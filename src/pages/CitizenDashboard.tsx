@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
+import { useState } from 'react';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -17,7 +18,7 @@ const Greeting = styled.div`
 
 const Hello = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 600;
+  font-weight: 500;
   color: #22312a;
   font-size: 1.15rem;
 `;
@@ -81,7 +82,7 @@ const CardTitle = styled.h2`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   color: #22312a;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 500;
 `;
 
 const ActionRow = styled.div`
@@ -126,17 +127,25 @@ const RowActions = styled.div`
 
 const RowActionButton = styled(Link)`
   text-decoration: none;
-  padding: 0.4rem 0.7rem;
-  border-radius: 10px;
-  background: rgba(31, 90, 51, 0.78);
-  border: 1px solid rgba(31, 90, 51, 0.5);
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9) 0%, rgba(31, 90, 51, 0.75) 100%);
+  border: 1px solid rgba(31, 90, 51, 0.4);
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
-  min-width: 84px;
+  min-width: 80px;
   text-align: center;
-  margin-left: 0.2rem;
+  margin-left: 0.25rem;
+  box-shadow: 0 3px 10px rgba(31, 90, 51, 0.25);
+  transition: all 0.25s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(31, 90, 51, 0.35);
+    background: linear-gradient(135deg, rgba(31, 90, 51, 1) 0%, rgba(31, 90, 51, 0.85) 100%);
+  }
 `;
 
 
@@ -154,47 +163,86 @@ const FilterChips = styled.div`
   flex-wrap: wrap;
 `;
 
-const Chip = styled.button`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  background: rgba(31, 90, 51, 0.08);
-  color: rgba(31, 90, 51, 0.9);
+const Chip = styled.button<{ $active?: boolean }>`
+  border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.2)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.08)'};
+  color: ${({ $active }) => $active ? '#ffffff' : 'rgba(31, 90, 51, 0.9)'};
   border-radius: 999px;
   padding: 0.35rem 0.8rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 500;
   font-size: 0.85rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.9)' : 'rgba(31, 90, 51, 0.15)'};
+    border-color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.6)' : 'rgba(31, 90, 51, 0.3)'};
+  }
 `;
 
 const ElectionList = styled.div`
   display: grid;
-  gap: 0.8rem;
-  margin-top: 0.8rem;
+  gap: 1.2rem;
+  margin-top: 1rem;
 `;
 
-const ElectionRow = styled.div`
+const ElectionRow = styled.div<{ $status: 'live' | 'scheduled' | 'closed' }>`
   display: grid;
-  grid-template-columns: 1.4fr 0.9fr 0.7fr 0.9fr;
-  gap: 0.8rem;
+  grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr;
+  gap: 1rem;
   align-items: center;
-  padding: 1.35rem 1rem;
-  min-height: 88px;
-  border-radius: 14px;
-  border: 1px solid rgba(31, 90, 51, 0.12);
-  background: rgba(255, 255, 255, 0.92);
+  padding: 1.4rem 1.5rem;
+  height: 120px;
+  border-radius: 18px;
+  border: 2px solid ${({ $status }) => 
+    $status === 'live' ? 'rgba(31, 90, 51, 0.25)' : 
+    $status === 'scheduled' ? 'rgba(138, 90, 16, 0.25)' : 
+    'rgba(91, 95, 101, 0.15)'};
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%);
+  box-shadow: 0 6px 20px rgba(12, 24, 18, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: ${({ $status }) => 
+      $status === 'live' ? 'rgba(31, 90, 51, 0.8)' : 
+      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.7)' : 
+      'rgba(91, 95, 101, 0.5)'};
+    border-radius: 18px 0 0 18px;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px rgba(12, 24, 18, 0.12);
+    border-color: ${({ $status }) => 
+      $status === 'live' ? 'rgba(31, 90, 51, 0.4)' : 
+      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.4)' : 
+      'rgba(91, 95, 101, 0.25)'};
+  }
 `;
 
 const RowTitle = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 600;
-  color: #22312a;
+  font-weight: 500;
+  color: #1a261e;
+  font-size: 1.08rem;
+  letter-spacing: -0.02em;
 `;
 
 const RowMeta = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #6b6f72;
-  font-size: 0.88rem;
+  color: #5a6268;
+  font-size: 0.85rem;
   align-self: center;
+  font-weight: 500;
 `;
 
 const RegionMeta = styled(RowMeta)`
@@ -204,55 +252,77 @@ const RegionMeta = styled(RowMeta)`
 
 const Tag = styled.span<{ $tone: 'live' | 'scheduled' | 'closed' }>`
   justify-self: center;
-  padding: 0.25rem 0.6rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: ${({ $tone }) =>
-    $tone === 'live' ? 'rgba(31, 90, 51, 0.8)' : $tone === 'scheduled' ? 'rgba(138, 90, 16, 0.8)' : 'rgba(91, 95, 101, 0.85)'};
+    $tone === 'live' ? '#1a5a33' : $tone === 'scheduled' ? '#8a5a10' : '#5a5f65'};
   background: ${({ $tone }) =>
     $tone === 'live'
-      ? 'rgba(31, 90, 51, 0.12)'
+      ? 'rgba(31, 90, 51, 0.15)'
       : $tone === 'scheduled'
-        ? 'rgba(138, 90, 16, 0.12)'
+        ? 'rgba(138, 90, 16, 0.15)'
         : 'rgba(91, 95, 101, 0.12)'};
+  box-shadow: 0 2px 8px ${({ $tone }) =>
+    $tone === 'live'
+      ? 'rgba(31, 90, 51, 0.15)'
+      : $tone === 'scheduled'
+        ? 'rgba(138, 90, 16, 0.15)'
+        : 'rgba(91, 95, 101, 0.1)'};
+  border: 1px solid ${({ $tone }) =>
+    $tone === 'live'
+      ? 'rgba(31, 90, 51, 0.2)'
+      : $tone === 'scheduled'
+        ? 'rgba(138, 90, 16, 0.2)'
+        : 'rgba(91, 95, 101, 0.15)'};
 `;
 
 const MetaRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 `;
 
 const Badge = styled.span`
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(31, 90, 51, 0.12);
-  color: rgba(31, 90, 51, 0.9);
+  padding: 0.25rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(31, 90, 51, 0.1);
+  color: rgba(31, 90, 51, 0.85);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
-  font-size: 0.7rem;
-`;
+  font-size: 0.72rem;
+  border: 1px solid rgba(31, 90, 51, 0.15);
+  transition: all 0.2s ease;
 
-const NewBadge = styled(Badge)`
-  background: rgba(138, 90, 16, 0.12);
-  color: rgba(138, 90, 16, 0.85);
+  &:hover {
+    background: rgba(31, 90, 51, 0.15);
+  }
 `;
 
 const DetailButton = styled(Link)`
   text-decoration: none;
-  padding: 0.4rem 0.75rem;
-  border-radius: 10px;
-  background: rgba(31, 90, 51, 0.12);
+  padding: 0.5rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(31, 90, 51, 0.08);
   color: rgba(31, 90, 51, 0.9);
-  border: 1px solid rgba(31, 90, 51, 0.25);
+  border: 1px solid rgba(31, 90, 51, 0.2);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 500;
   font-size: 0.85rem;
-  min-width: 80px;
+  min-width: 78px;
   text-align: center;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: rgba(31, 90, 51, 0.15);
+    border-color: rgba(31, 90, 51, 0.35);
+    transform: translateY(-1px);
+  }
 `;
 
 const Pagination = styled.div`
@@ -285,6 +355,8 @@ const CitizenDashboard = () => {
     { label: 'Profil', to: '/citoyen/profil' },
   ];
 
+  const [activeFilter, setActiveFilter] = useState('all');
+
   const elections = [
     {
       id: 'pres-2025',
@@ -294,6 +366,7 @@ const CitizenDashboard = () => {
       status: 'live' as const,
       hasVoted: false,
       isNew: true,
+      type: 'Presidentielle',
     },
     {
       id: 'leg-2025-dkr',
@@ -303,6 +376,7 @@ const CitizenDashboard = () => {
       status: 'scheduled' as const,
       hasVoted: false,
       isNew: false,
+      type: 'Legislative',
     },
     {
       id: 'mun-2025-pk',
@@ -312,6 +386,7 @@ const CitizenDashboard = () => {
       status: 'closed' as const,
       hasVoted: true,
       isNew: false,
+      type: 'Municipale',
     },
   ];
 
@@ -340,11 +415,6 @@ const CitizenDashboard = () => {
             <Hello>Bonjour, Aicha Fall</Hello>
             <HelperText>Votre session est active et securisee.</HelperText>
           </div>
-          <Filter>
-            <option>Scrutins actifs</option>
-            <option>Scrutins programmes</option>
-            <option>Scrutins clos</option>
-          </Filter>
         </Greeting>
 
         <Stats>
@@ -360,35 +430,66 @@ const CitizenDashboard = () => {
             <StatLabel>Participation nationale</StatLabel>
             <StatValue>64%</StatValue>
           </StatCard>
+          <StatCard $accent="rgba(91, 95, 101, 0.6)">
+            <StatLabel>Scrutins clotures</StatLabel>
+            <StatValue>5</StatValue>
+          </StatCard>
         </Stats>
 
         <Card>
           <FilterRow>
             <CardTitle>Scrutins principaux</CardTitle>
             <FilterChips>
-              <Chip>Tous</Chip>
-              <Chip>En cours</Chip>
-              <Chip>Programmes</Chip>
-              <Chip>Clotures</Chip>
+              <Chip 
+                $active={activeFilter === 'all'} 
+                onClick={() => setActiveFilter('all')}
+              >
+                Tous
+              </Chip>
+              <Chip 
+                $active={activeFilter === 'live'} 
+                onClick={() => setActiveFilter('live')}
+              >
+                En cours
+              </Chip>
+              <Chip 
+                $active={activeFilter === 'scheduled'} 
+                onClick={() => setActiveFilter('scheduled')}
+              >
+                Programmes
+              </Chip>
+              <Chip 
+                $active={activeFilter === 'closed'} 
+                onClick={() => setActiveFilter('closed')}
+              >
+                Clotures
+              </Chip>
             </FilterChips>
           </FilterRow>
-          <ElectionList>
-            {elections.map((election) => {
+           <ElectionList>
+            {elections
+              .filter(election => 
+                activeFilter === 'all' || election.status === activeFilter
+              )
+              .map((election) => {
               const canVote = election.status === 'live' && !election.hasVoted;
               return (
-                <ElectionRow key={election.id}>
+                <ElectionRow key={election.id} $status={election.status}>
                   <div>
                     <RowTitle>{election.title}</RowTitle>
                     <MetaRow>
                       <RowMeta>{election.schedule}</RowMeta>
+                      <Badge>{election.type}</Badge>
                       <Badge>{election.hasVoted ? 'Deja vote' : 'Pas encore vote'}</Badge>
-                      {election.isNew ? <NewBadge>Nouveau</NewBadge> : null}
                     </MetaRow>
                   </div>
                   <RegionMeta>{election.region}</RegionMeta>
                   <Tag $tone={election.status}>{getStatusLabel(election.status)}</Tag>
                   <RowActions>
                     {canVote ? <RowActionButton to="/citoyen/vote">Voter</RowActionButton> : null}
+                    {election.status === 'closed' && (
+                      <DetailButton to="/citoyen/resultats">Resultats</DetailButton>
+                    )}
                     <DetailButton to="/citoyen/elections/detail">Details</DetailButton>
                   </RowActions>
                 </ElectionRow>

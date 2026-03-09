@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { Link, useLocation } from 'react-router-dom';
-import { ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
 
 interface NavItem {
@@ -205,15 +205,7 @@ const SearchField = styled.input`
   }
 `;
 
-const StatusPill = styled.div`
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
-  background: rgba(31, 90, 51, 0.12);
-  color: rgba(31, 90, 51, 0.9);
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.85rem;
-  font-weight: 500;
-`;
+
 
 const TitleGroup = styled.div`
   display: flex;
@@ -273,7 +265,7 @@ const TitleRow = styled.div`
   gap: 0.8rem;
 `;
 
-export const AppLayout = ({ role, title, subtitle, navItems, actions, children }: AppLayoutProps) => {
+export const AppLayout = ({ title, subtitle, navItems, actions, children }: AppLayoutProps) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
