@@ -30,15 +30,6 @@ const HelperText = styled.p`
   font-size: 0.95rem;
 `;
 
-const Filter = styled.select`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  border-radius: 999px;
-  padding: 0.45rem 0.9rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  background: rgba(255, 255, 255, 0.85);
-  color: #22312a;
-`;
-
 const Stats = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -83,13 +74,6 @@ const CardTitle = styled.h2`
   color: #22312a;
   font-size: 1.2rem;
   font-weight: 500;
-`;
-
-const ActionRow = styled.div`
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  margin-top: 0.8rem;
 `;
 
 const ActionButton = styled(Link)`

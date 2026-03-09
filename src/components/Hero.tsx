@@ -15,20 +15,29 @@ const HeroSection = styled.section`
   z-index: 1;
   margin: 0;
   padding: 0;
+  @media (max-width: 768px) {
+    position: relative;
+    height: auto;
+    min-height: 100vh;
+  }
 `;
 
 const VideoBackground = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 0;
   margin: 0;
   padding: 0;
+  @media (max-width: 768px) {
+    position: relative;
+    height: 300px;
+  }
   video, img {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     filter: brightness(0.92) saturate(0.98);
     position: absolute;
@@ -60,18 +69,21 @@ const HeroContent = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  padding-top: 4rem;
+  padding: 4rem 1.5rem;
+  @media (max-width: 768px) {
+    padding: 2rem 1rem;
+  }
 `;
 
 const HeroText = styled.div`
-  background: rgba(30, 30, 30, 0.5);
-  border-radius: 1.6rem;
-  padding: 2.5rem 2.6rem;
+  background: rgba(30, 30, 30, 0.6);
+  border-radius: 1.2rem;
+  padding: 1.5rem 1.8rem;
   color: #fff;
-  font-size: 1.65rem;
+  font-size: 1.25rem;
   font-weight: 500;
   max-width: 720px;
   text-align: left;
@@ -79,11 +91,16 @@ const HeroText = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   letter-spacing: 0.1px;
   pointer-events: auto;
-  margin: 1.5rem auto 0 auto;
+  margin: 1rem auto 0 auto;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   line-height: 1.4;
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    padding: 1.2rem 1.4rem;
+    border-radius: 1rem;
+  }
 `;
 
 const TrustRow = styled.div`
@@ -93,6 +110,9 @@ const TrustRow = styled.div`
   flex-wrap: wrap;
   justify-content: center;
   pointer-events: auto;
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+  }
 `;
 
 const TrustPill = styled.div`
@@ -101,9 +121,13 @@ const TrustPill = styled.div`
   color: rgba(255, 255, 255, 0.95);
   padding: 0.45rem 0.9rem;
   border-radius: 999px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   letter-spacing: 0.2px;
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+  }
 `;
 
 const ActionRow = styled.div`
@@ -113,6 +137,12 @@ const ActionRow = styled.div`
   flex-wrap: wrap;
   justify-content: center;
   pointer-events: auto;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+    gap: 0.6rem;
+  }
 `;
 
 const SecondaryAction = styled(Link)`
@@ -125,6 +155,12 @@ const SecondaryAction = styled(Link)`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   background: rgba(23, 76, 42, 0.4);
   transition: background 0.2s, border-color 0.2s;
+  text-align: center;
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+  }
   &:hover {
     background: rgba(23, 76, 42, 0.55);
     border-color: rgba(255, 255, 255, 0.6);
@@ -141,6 +177,10 @@ const FooterBar = styled.div`
   pointer-events: none;
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(2px);
+  @media (max-width: 768px) {
+    position: relative;
+    margin-top: 1rem;
+  }
 `;
 
 const FooterInner = styled.div`
@@ -150,13 +190,20 @@ const FooterInner = styled.div`
   gap: 0.8rem;
   flex-wrap: wrap;
   color: rgba(255, 255, 255, 0.95);
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
   pointer-events: auto;
   padding: 0.8rem 1.2rem;
   background: transparent;
   border-radius: 0.8rem 0.8rem 0 0;
+  @media (max-width: 768px) {
+    width: 100%;
+    font-size: 0.8rem;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.5rem;
+  }
 `;
 
 const FooterLink = styled.a`

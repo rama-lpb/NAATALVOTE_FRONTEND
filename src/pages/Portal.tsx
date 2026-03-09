@@ -1,6 +1,8 @@
 import styled, { keyframes } from 'styled-components';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
+import { useEffect, useState } from 'react';
+import { getRoleDisplayName, getRoleDashboardPath, getRoleColor, type UserRole } from '../data/mockData';
 
 const fadeUp = keyframes`
   from {
@@ -38,6 +40,7 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
 `;
 
 const Brand = styled.div`
@@ -76,7 +79,7 @@ const Grid = styled.div`
   gap: 1.4rem;
 `;
 
-const Card = styled(Link)`
+const Card = styled.button`
   text-decoration: none;
   color: inherit;
   border-radius: 22px;
@@ -91,6 +94,7 @@ const Card = styled(Link)`
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   animation: ${fadeUp} 500ms ease-out;
   backdrop-filter: blur(10px);
+  cursor: pointer;
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 20px 36px rgba(0, 0, 0, 0.14);
@@ -112,18 +116,97 @@ const CardText = styled.p`
   line-height: 1.5;
 `;
 
-const Pill = styled.span`
+const Pill = styled.span<{ $color: string }>`
   align-self: flex-start;
   padding: 0.3rem 0.7rem;
-  background: rgba(31, 90, 51, 0.15);
+  background: ${({ $color }) => $color};
   border-radius: 999px;
   font-size: 0.8rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
-  color: #1f5a33;
+  color: white;
 `;
 
+const UserInfo = styled.div`
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(31, 90, 51, 0.05);
+  border-radius: 12px;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #335a42;
+`;
+
+const LogoutLink = styled.button`
+  background: none;
+  border: none;
+  color: #1f5a33;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 0.5rem;
+  &:hover {
+    color: #2d7a4a;
+  }
+`;
+
+interface UserSession {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  roles: UserRole[];
+  currentRole: UserRole;
+}
+
+// Role-specific descriptions
+const roleDescriptions: Record<UserRole, string> = {
+  CITOYEN: 'Consultez les elections, votez une seule fois et suivez les resultats en direct.',
+  ADMIN: 'Programmez les elections, ajoutez des candidats et publiez les statistiques avancees.',
+  OPERATEUR: 'Analysez les alertes automatiques, marquez les comptes suspects et preparez les rapports.',
+  SUPERADMIN: 'Controlez les acces, validez les suspensions et exportez les logs immuables.'
+};
+
 const Portal = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<UserSession | null>(null);
+
+  // Get user from sessionStorage
+  const storedUser = sessionStorage.getItem('user');
+  
+  useEffect(() => {
+    if (!storedUser) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+    } catch (e) {
+      console.error('Error parsing user session:', e);
+      navigate('/login');
+    }
+  }, [storedUser, navigate]);
+
+  const handleRoleSelect = (role: UserRole) => {
+    if (user) {
+      // Update current role in session
+      const updatedUser = { ...user, currentRole: role };
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+      // Redirect to the role's dashboard
+      navigate(getRoleDashboardPath(role));
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  if (!user) {
+    return <Page><Shell>Chargement...</Shell></Page>;
+  }
+
   return (
     <Page>
       <Shell>
@@ -137,35 +220,36 @@ const Portal = () => {
           </div>
           <Badge>Acces par role</Badge>
         </Header>
+        
+        <UserInfo>
+          <strong>Connecte en tant que:</strong> {user.prenom} {user.nom} ({user.email})
+          <br />
+          <strong>Roles disponibles:</strong> {user.roles.map(r => getRoleDisplayName(r)).join(', ')}
+          <br />
+          <LogoutLink onClick={handleLogout}>Se deconnecter</LogoutLink>
+        </UserInfo>
+        
         <Grid>
-          <Card to="/citoyen/dashboard">
-            <Pill>Citoyen</Pill>
-            <CardTitle>Espace Citoyen</CardTitle>
-            <CardText>
-              Consultez les elections, votez une seule fois et suivez les resultats en direct.
-            </CardText>
-          </Card>
-          <Card to="/admin/dashboard">
-            <Pill>Administrateur</Pill>
-            <CardTitle>Console Admin</CardTitle>
-            <CardText>
-              Programmez les elections, ajoutez des candidats et publiez les statistiques avancees.
-            </CardText>
-          </Card>
-          <Card to="/operateur/alerts">
-            <Pill>Operateur</Pill>
-            <CardTitle>Centre de Fraude</CardTitle>
-            <CardText>
-              Analysez les alertes automatiques, marquez les comptes suspects et preparez les rapports.
-            </CardText>
-          </Card>
-          <Card to="/superadmin/console">
-            <Pill>Super Admin</Pill>
-            <CardTitle>Supervision Systeme</CardTitle>
-            <CardText>
-              Controlez les acces, validez les suspensions et exportez les logs immuables.
-            </CardText>
-          </Card>
+          {user.roles.map((role) => (
+            <Card 
+              key={role} 
+              onClick={() => handleRoleSelect(role)}
+              style={{ animationDelay: `${user.roles.indexOf(role) * 100}ms` }}
+            >
+              <Pill $color={getRoleColor(role)}>
+                {getRoleDisplayName(role)}
+              </Pill>
+              <CardTitle>
+                {role === 'CITOYEN' && 'Espace Citoyen'}
+                {role === 'ADMIN' && 'Console Admin'}
+                {role === 'OPERATEUR' && 'Centre de Fraude'}
+                {role === 'SUPERADMIN' && 'Supervision Systeme'}
+              </CardTitle>
+              <CardText>
+                {roleDescriptions[role]}
+              </CardText>
+            </Card>
+          ))}
         </Grid>
       </Shell>
     </Page>

@@ -1,6 +1,13 @@
 import styled, { keyframes } from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
+import { useState, type FormEvent } from 'react';
+import { 
+  getPhonesByCNI, 
+  validateOTP, 
+  hasMultipleRoles, 
+  getRoleDashboardPath
+} from '../data/mockData';
 
 const fadeUp = keyframes`
   from {
@@ -80,6 +87,13 @@ const Shell = styled.section`
   border-radius: 28px;
   overflow: hidden;
   position: relative;
+  
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    border-radius: 0;
+  }
 `;
 
 const ImagePanel = styled.div`
@@ -87,6 +101,10 @@ const ImagePanel = styled.div`
   padding: 2rem 0 2rem 2rem;
   display: flex;
   align-items: center;
+  
+  @media (max-width: 900px) {
+    display: none;
+  }
 `;
 
 const ImageFrame = styled.div`
@@ -113,9 +131,14 @@ const FormPanel = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 1.4rem;
+  gap: 1.2rem;
   position: relative;
   padding-top: 4rem;
+  
+  @media (max-width: 900px) {
+    padding: 1.5rem;
+    padding-top: 5rem;
+  }
 `;
 
 const LogoRow = styled.div`
@@ -197,51 +220,218 @@ const TabLink = styled(Link)<{ $active?: boolean }>`
   }
 `;
 
-const Field = styled.input`
+const Form = styled.form`
   width: 100%;
   max-width: 460px;
-  border: 2px solid rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const FieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+`;
+
+const FieldLabel = styled.label`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1a3d28;
+`;
+
+const Field = styled.input<{ hasError?: boolean }>`
+  width: 100%;
+  border: 2px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
   border-radius: 16px;
   padding: 0.95rem 1.2rem;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #1f5a33;
+  color: #1a3d28;
+  background: #fafafa;
   outline: none;
   animation: ${fadeUp} 1200ms ease-out;
+  transition: border-color 0.2s, box-shadow 0.2s;
   &:focus {
     border-color: rgba(31, 90, 51, 0.6);
     box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
+    background: #ffffff;
+  }
+  &::placeholder {
+    color: #8a9a90;
   }
 `;
 
-const SubmitButton = styled(Link)`
+const Select = styled.select<{ hasError?: boolean }>`
   width: 100%;
-  max-width: 460px;
+  border: 2px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
+  border-radius: 16px;
+  padding: 0.95rem 1.2rem;
+  font-size: 1.1rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #1a3d28;
+  background: #fafafa;
+  outline: none;
+  cursor: pointer;
+  animation: ${fadeUp} 1200ms ease-out;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  &:focus {
+    border-color: rgba(31, 90, 51, 0.6);
+    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
+    background: #ffffff;
+  }
+`;
+
+const ErrorText = styled.span`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.8rem;
+  color: #b03a2e;
+  margin-left: 0.3rem;
+`;
+
+const Helper = styled.span`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.8rem;
+  color: #6b6f72;
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
   border: none;
   border-radius: 14px;
-  padding: 0.9rem 1.4rem;
-  font-size: 1.4rem;
+  padding: 1rem 1.4rem;
+  font-size: 1.2rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-weight: 600;
   color: #ffffff;
-  background: rgba(31, 90, 51, 0.85);
-  border: 1px solid rgba(31, 90, 51, 0.6);
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9) 0%, rgba(31, 90, 51, 0.75) 100%);
+  border: 1px solid rgba(31, 90, 51, 0.5);
   cursor: pointer;
-  margin-top: 0.6rem;
+  margin-top: 0.8rem;
   animation: ${fadeUp} 1000ms ease-out;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
   text-decoration: none;
   text-align: center;
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(31, 90, 51, 1) 0%, rgba(31, 90, 51, 0.85) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(31, 90, 51, 0.3);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const ForgotPassword = styled(Link)`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  color: #1f5a33;
+  text-decoration: none;
+  text-align: center;
+  margin-top: 0.5rem;
   &:hover {
-    background: rgba(31, 90, 51, 0.95);
+    text-decoration: underline;
   }
 `;
 
 const Login = () => {
-  const location = useLocation();
-  const direction =
-    (location.state as { from?: string } | null)?.from === 'register'
-      ? 'right'
-      : 'none';
+  const navigate = useNavigate();
+  const direction = 'none';
+
+  const [cni, setCni] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [errors, setErrors] = useState<{ cni?: string; phone?: string; otp?: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingPhones, setIsLoadingPhones] = useState(false);
+  const [availablePhones, setAvailablePhones] = useState<string[]>([]);
+  const [hasSearchedPhones, setHasSearchedPhones] = useState(false);
+
+  // Look up phone numbers by CNI
+  const simulatePhoneLookup = async (cniNumber: string) => {
+    if (cniNumber.length < 5) return;
+    
+    setIsLoadingPhones(true);
+    setHasSearchedPhones(true);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Use centralized mock data to get phone numbers
+    const phones = getPhonesByCNI(cniNumber);
+    setAvailablePhones(phones.length > 0 ? phones : []);
+    
+    setIsLoadingPhones(false);
+  };
+
+  const validateForm = () => {
+    const newErrors: { cni?: string; phone?: string; otp?: string } = {};
+    
+    if (!cni.trim()) {
+      newErrors.cni = 'Le numéro CNI est requis';
+    } else if (cni.length < 5) {
+      newErrors.cni = 'Le numéro CNI doit contenir au moins 5 caractères';
+    }
+    
+    if (!phone.trim()) {
+      newErrors.phone = 'Le numéro de téléphone est requis';
+    }
+    
+    if (!otp.trim()) {
+      newErrors.otp = 'Le code OTP est requis';
+    } else if (otp.length !== 6) {
+      newErrors.otp = 'Le code OTP doit contenir 6 chiffres';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (validateForm()) {
+      setIsLoading(true);
+      
+      // Validate OTP against mock data
+      const user = validateOTP(cni, phone, otp);
+      
+      setTimeout(() => {
+        setIsLoading(false);
+        if (user) {
+          // Check if user has multiple roles
+          if (hasMultipleRoles(user)) {
+            // Store user info with all roles in sessionStorage
+            sessionStorage.setItem('user', JSON.stringify({
+              id: user.id,
+              nom: user.nom,
+              prenom: user.prenom,
+              email: user.email,
+              roles: user.roles,
+              currentRole: user.roles[0]
+            }));
+            // Redirect to portal for role selection
+            navigate('/portal');
+          } else {
+            // Single role - redirect directly to dashboard
+            sessionStorage.setItem('user', JSON.stringify({
+              id: user.id,
+              nom: user.nom,
+              prenom: user.prenom,
+              email: user.email,
+              roles: user.roles,
+              currentRole: user.roles[0]
+            }));
+            window.location.href = getRoleDashboardPath(user.roles[0]);
+          }
+        } else {
+          setErrors({ otp: 'Code OTP invalide' });
+        }
+      }, 1200);
+    }
+  };
 
   return (
     <Page $direction={direction}>
@@ -255,7 +445,7 @@ const Login = () => {
             <LogoNaatalVote size={120} />
             NATAALVOTE
           </LogoRow>
-          <Title>Connectez vous</Title>
+          <Title>Connectez-vous</Title>
           <Tabs>
             <TabLink to="/login" $active>
               Connexion
@@ -264,9 +454,96 @@ const Login = () => {
               Inscription
             </TabLink>
           </Tabs>
-          <Field placeholder="Numéro CNI" />
-          <Field type="password" placeholder="Mot de passe" />
-          <SubmitButton to="/portal">Se connecter</SubmitButton>
+          <Form onSubmit={handleSubmit} noValidate>
+            <FieldGroup>
+              <FieldLabel htmlFor="cni">Numéro CNI</FieldLabel>
+              <Field 
+                id="cni"
+                type="text" 
+                placeholder="Entrez votre numéro CNI"
+                value={cni}
+                onChange={(e) => {
+                  setCni(e.target.value);
+                  if (errors.cni) setErrors(prev => ({ ...prev, cni: undefined }));
+                  // Trigger phone lookup when CNI is entered
+                  if (e.target.value.length >= 5) {
+                    simulatePhoneLookup(e.target.value);
+                  } else {
+                    setHasSearchedPhones(false);
+                    setAvailablePhones([]);
+                    setPhone('');
+                  }
+                }}
+                hasError={!!errors.cni}
+                aria-describedby={errors.cni ? 'cni-error' : undefined}
+                aria-invalid={!!errors.cni}
+                autoComplete="username"
+              />
+              {errors.cni && <ErrorText id="cni-error" role="alert">{errors.cni}</ErrorText>}
+            </FieldGroup>
+            <FieldGroup>
+              <FieldLabel htmlFor="phone">Numéro de téléphone</FieldLabel>
+              {!hasSearchedPhones ? (
+                <Helper style={{ color: '#8a9a90', fontStyle: 'italic' }}>
+                  Entrez d'abord votre CNI pour voir les numéros associés
+                </Helper>
+              ) : isLoadingPhones ? (
+                <Helper style={{ color: '#1f5a33' }}>
+                  Recherche des numéros associés en cours...
+                </Helper>
+              ) : availablePhones.length > 0 ? (
+                <>
+                  <Select
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (errors.phone) setErrors(prev => ({ ...prev, phone: undefined }));
+                    }}
+                    hasError={!!errors.phone}
+                    aria-describedby={errors.phone ? 'phone-error' : undefined}
+                    aria-invalid={!!errors.phone}
+                  >
+                    <option value="">Sélectionnez un numéro</option>
+                    {availablePhones.map((p, idx) => (
+                      <option key={idx} value={p}>{p}</option>
+                    ))}
+                  </Select>
+                  {errors.phone && <ErrorText id="phone-error" role="alert">{errors.phone}</ErrorText>}
+                </>
+              ) : (
+                <Helper style={{ color: '#8a5a10' }}>
+                  Aucun numéro trouvé pour ce CNI
+                </Helper>
+              )}
+            </FieldGroup>
+            <FieldGroup>
+              <FieldLabel htmlFor="otp">Code OTP</FieldLabel>
+              <Field 
+                id="otp"
+                type="text" 
+                placeholder="Entrez le code OTP (ex: 123456)"
+                value={otp}
+                onChange={(e) => {
+                  setOtp(e.target.value);
+                  if (errors.otp) setErrors(prev => ({ ...prev, otp: undefined }));
+                }}
+                hasError={!!errors.otp}
+                aria-describedby={errors.otp ? 'otp-error' : undefined}
+                aria-invalid={!!errors.otp}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={6}
+              />
+              {errors.otp && <ErrorText id="otp-error" role="alert">{errors.otp}</ErrorText>}
+            </FieldGroup>
+            <SubmitButton type="submit" disabled={isLoading}>
+              {isLoading ? 'Vérification...' : 'Se connecter'}
+            </SubmitButton>
+            <Helper style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+              Le code OTP a été envoyé à votre numéro de téléphone
+            </Helper>
+          </Form>
         </FormPanel>
       </Shell>
     </Page>

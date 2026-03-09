@@ -39,6 +39,9 @@ const Shell = styled.section<{ $collapsed: boolean }>`
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
   }
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Sidebar = styled.aside<{ $collapsed: boolean }>`
@@ -53,11 +56,20 @@ const Sidebar = styled.aside<{ $collapsed: boolean }>`
   gap: 1.2rem;
   min-width: 0;
   height: 100%;
+  transition: all 0.3s ease;
   @media (max-width: 1100px) {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
     gap: 1rem;
+    padding: 0.8rem;
+    height: auto;
+    border-radius: 0;
+  }
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 0.5rem;
   }
 `;
 
@@ -94,6 +106,11 @@ const Nav = styled.nav`
     flex-wrap: wrap;
     order: 3;
   }
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.5rem;
+  }
 `;
 
 const NavItemLink = styled(Link)<{ $active?: boolean; $collapsed?: boolean }>`
@@ -102,6 +119,7 @@ const NavItemLink = styled(Link)<{ $active?: boolean; $collapsed?: boolean }>`
   border-radius: 12px;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 500;
+  font-size: 0.95rem;
   color: ${({ $active }) => ($active ? '#ffffff' : '#2f3b36')};
   background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.08)')};
   border: 1px solid ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.2)')};
@@ -110,15 +128,22 @@ const NavItemLink = styled(Link)<{ $active?: boolean; $collapsed?: boolean }>`
   align-items: center;
   gap: 0.65rem;
   justify-content: ${({ $collapsed }) => ($collapsed ? 'center' : 'flex-start')};
+  white-space: nowrap;
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.7rem;
+  }
   &:hover {
     background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.95)' : 'rgba(31, 90, 51, 0.16)')};
   }
-  white-space: nowrap;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   .nav-label {
     display: ${({ $collapsed }) => ($collapsed ? 'none' : 'inline')};
+    @media (max-width: 1100px) {
+      display: inline;
+    }
   }
   .nav-icon {
     font-size: 1.05rem;
@@ -165,6 +190,9 @@ const Content = styled.div`
   height: 100%;
   overflow: auto;
   padding: 1.2rem 1.5rem 1.5rem 1.5rem;
+  @media (max-width: 768px) {
+    padding: 1rem 0.8rem;
+  }
 `;
 
 const TopBar = styled.div`
@@ -180,6 +208,11 @@ const TopBar = styled.div`
   margin-bottom: 1.4rem;
   gap: 1rem;
   flex-wrap: wrap;
+  @media (max-width: 768px) {
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    gap: 0.8rem;
+  }
 `;
 
 const TopRight = styled.div`
@@ -199,6 +232,12 @@ const SearchField = styled.input`
   background: rgba(255, 255, 255, 0.85);
   outline: none;
   min-width: 220px;
+  transition: all 0.2s ease;
+  @media (max-width: 768px) {
+    min-width: 100%;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.8rem;
+  }
   &:focus {
     border-color: rgba(31, 90, 51, 0.45);
     box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
@@ -219,6 +258,9 @@ const Title = styled.h1`
   font-size: 2rem;
   color: #22312a;
   font-weight: 600;
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const Subtitle = styled.p`
@@ -226,6 +268,9 @@ const Subtitle = styled.p`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   color: #335a42;
   font-size: 1rem;
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+  }
 `;
 
 const Actions = styled.div`

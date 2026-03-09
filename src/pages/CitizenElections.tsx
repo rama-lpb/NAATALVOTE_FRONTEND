@@ -316,9 +316,84 @@ const PageButton = styled.button<{ $active?: boolean }>`
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.9)' : 'rgba(31, 90, 51, 0.1)'};
   }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+/* ─── Empty State ─────────────────────────────────────── */
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  gap: 1rem;
+`;
+
+const EmptyIcon = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(31, 90, 51, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: rgba(31, 90, 51, 0.5);
+`;
+
+const EmptyTitle = styled.h3`
+  margin: 0;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #22312a;
+  font-size: 1.2rem;
+  font-weight: 600;
+`;
+
+const EmptyText = styled.p`
+  margin: 0;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #6b7a72;
+  font-size: 0.95rem;
+  max-width: 400px;
+`;
+
+/* ─── Loading Skeleton ────────────────────────────────── */
+const SkeletonCard = styled.div`
+  border-radius: 18px;
+  border: 2px solid rgba(31, 90, 51, 0.1);
+  padding: 1.3rem 1.2rem;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  animation: pulse 1.5s ease-in-out infinite;
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
+
+const SkeletonLine = styled.div<{ $width?: string; $height?: string }>`
+  width: ${({ $width }) => $width || '100%'};
+  height: ${({ $height }) => $height || '16px'};
+  border-radius: 8px;
+  background: rgba(31, 90, 51, 0.1);
+`;
+
+const SkeletonBadge = styled.div`
+  width: 80px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(31, 90, 51, 0.1);
 `;
 
 const CitizenElections = () => {
@@ -336,6 +411,9 @@ const CitizenElections = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [currentPage, setCurrentPage] = useState(1);
+  // isLoading is kept for potential future async data loading
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isLoading, setIsLoading] = useState(false);
   const itemsPerPage = 2;
 
   const elections = [
@@ -528,7 +606,58 @@ const CitizenElections = () => {
             Regionale
           </FilterChip>
         </Filters>
-        <Grid $viewMode={viewMode}>
+        {/* Loading/Empty/Content States */}
+        {isLoading ? (
+          <Grid $viewMode={viewMode}>
+            {[1, 2].map((i) => (
+              <SkeletonCard key={i}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <SkeletonLine $width="180px" $height="20px" />
+                  <SkeletonBadge />
+                </div>
+                <SkeletonLine $width="100%" $height="14px" />
+                <SkeletonLine $width="80%" $height="14px" />
+                <SkeletonLine $width="60%" $height="14px" />
+                <SkeletonLine $width="90%" $height="8px" />
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <SkeletonLine $width="80px" $height="32px" />
+                  <SkeletonLine $width="80px" $height="32px" />
+                </div>
+              </SkeletonCard>
+            ))}
+          </Grid>
+        ) : filteredElections.length === 0 ? (
+          /* Empty State */
+          <>
+          <Grid $viewMode={viewMode}>
+            <EmptyState style={{ gridColumn: '1 / -1' }}>
+              <EmptyIcon>
+                <i className="bi bi-calendar-x" />
+              </EmptyIcon>
+              <EmptyTitle>Aucun scrutin trouvé</EmptyTitle>
+              <EmptyText>
+                {(activeFilter !== 'all' || typeFilter !== 'all' || searchTerm)
+                  ? 'Essayez de modifier vos filtres ou termes de recherche.'
+                  : 'Aucun scrutin n\'est disponible pour le moment. Revenez plus tard.'}
+              </EmptyText>
+              {(activeFilter !== 'all' || typeFilter !== 'all' || searchTerm) && (
+                <FilterChip
+                  $active
+                  onClick={() => {
+                    setActiveFilter('all');
+                    setTypeFilter('all');
+                    setSearchTerm('');
+                    setCurrentPage(1);
+                  }}
+                >
+                  Réinitialiser les filtres
+                </FilterChip>
+              )}
+            </EmptyState>
+          </Grid>
+          </>
+        ) : (
+          <Grid $viewMode={viewMode}>
           {paginatedElections.map((election) => {
             const canVote = election.status === 'live' && !election.hasVoted;
             return (
@@ -568,6 +697,7 @@ const CitizenElections = () => {
             );
           })}
         </Grid>
+        )}
         <Pagination>
           <PageButton 
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
