@@ -70,8 +70,8 @@ const Title = styled.h2`
   margin: 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   color: var(--forest);
-  font-size: clamp(1.7rem, 2.4vw, 2.4rem);
-  font-weight: 700;
+  font-size: clamp(1.3rem, 2vw, 1.6rem);
+  font-weight: 600;
 `;
 
 const Subtitle = styled.p`
@@ -188,8 +188,8 @@ const ParticipationTitle = styled.h4`
 const ParticipationValue = styled.span`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   color: #1f5a33;
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 600;
 `;
 
 const ProgressBarContainer = styled.div`
@@ -246,9 +246,9 @@ const StatItem = styled.div`
 
 const StatValue = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 700;
-  color: #22312a;
-  font-size: 1.2rem;
+  font-weight: 600;
+  color: #22332d;
+  font-size: 1rem;
 `;
 
 const StatLabel = styled.div`
@@ -360,9 +360,9 @@ const BarColumn = styled.div`
 
 const BarValue = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 700;
-  color: #22312a;
-  font-size: 1.2rem;
+  font-weight: 500;
+  color: #5a6a63;
+  font-size: 1rem;
 `;
 
 const BarStick = styled.div<{ $value: number; $color: string }>`
@@ -436,8 +436,8 @@ const CandidateAvatar = styled.div`
   align-items: center;
   justify-content: center;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 700;
-  font-size: 1.25rem;
+  font-weight: 600;
+  font-size: 1rem;
   border: 2px solid rgba(31, 90, 51, 0.2);
 `;
 
@@ -447,9 +447,9 @@ const CandidateInfo = styled.div`
 
 const CandidateName = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 700;
-  color: #22312a;
-  font-size: 1.15rem;
+  font-weight: 500;
+  color: #4a5a54;
+  font-size: 1rem;
 `;
 
 const CandidateMeta = styled.div`
@@ -466,11 +466,11 @@ const CandidateVotes = styled.div`
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.7rem;
-  background: rgba(31, 90, 51, 0.12);
+  background: rgba(31, 90, 51, 0.08);
   border-radius: 6px;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 600;
-  color: #1f5a33;
+  font-weight: 500;
+  color: #4a7a5a;
   font-size: 0.85rem;
 `;
 

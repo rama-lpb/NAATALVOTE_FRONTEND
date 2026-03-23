@@ -1,193 +1,169 @@
 import styled from 'styled-components';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '../components/AppLayout';
+import { data } from '../data/mockData';
 
-const LayoutGrid = styled.div`
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 1.2rem;
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-`;
+interface UserData {
+  id: string;
+  cni?: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  telephones?: string[];
+  date_naissance?: string;
+  adresse?: string;
+  roles: string[];
+  currentRole: string;
+}
 
-const LeftCol = styled.div`
-  display: grid;
-  gap: 1.2rem;
-  align-content: start;
-`;
-
-const RightCol = styled.div`
-  display: grid;
-  gap: 1.2rem;
-`;
-
-const AvatarCard = styled.div`
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 22px;
-  padding: 1.8rem 1.4rem;
-  box-shadow: 0 14px 28px rgba(12, 24, 18, 0.08);
-  border: 1px solid rgba(31, 90, 51, 0.12);
+const ProfileContainer = styled.div`
+  max-width: 100%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const ProfileCard = styled.div`
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px rgba(12, 24, 18, 0.08);
+  border: 1px solid rgba(31, 90, 51, 0.1);
+`;
+
+const ProfileHeader = styled.div`
+  display: flex;
   align-items: center;
-  gap: 1rem;
-  text-align: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(31, 90, 51, 0.1);
 `;
 
 const AvatarCircle = styled.div`
-  width: 90px;
-  height: 90px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(31, 90, 51, 0.85), rgba(31, 90, 51, 0.55));
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 800;
-  font-size: 2rem;
+  font-weight: 700;
+  font-size: 1.8rem;
   color: #fff;
-  box-shadow: 0 6px 20px rgba(31, 90, 51, 0.3);
+  box-shadow: 0 4px 15px rgba(31, 90, 51, 0.25);
+  flex-shrink: 0;
 `;
+
+const HeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+`;
+
+const UserInfo = styled.div``;
 
 const UserName = styled.h2`
   margin: 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: #1a2e20;
 `;
 
-const UserRole = styled.p`
-  margin: 0;
+const UserMeta = styled.p`
+  margin: 0.3rem 0 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #6b7a72;
 `;
 
-const StatusBadge = styled.div<{ $active: boolean }>`
+const StatusBadge = styled.span<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.8rem;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 999px;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.12)' : 'rgba(176, 58, 46, 0.1)'};
   color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.9)' : 'rgba(176, 58, 46, 0.9)'};
   border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.25)' : 'rgba(176, 58, 46, 0.2)'};
 `;
 
-const AvatarDivider = styled.div`
-  height: 1px;
-  width: 100%;
-  background: rgba(31, 90, 51, 0.1);
+const StatsContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
 `;
 
-const SecurityCard = styled.div`
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 22px;
-  padding: 1.2rem 1.4rem;
-  box-shadow: 0 14px 28px rgba(12, 24, 18, 0.08);
-  border: 1px solid rgba(31, 90, 51, 0.12);
-  display: grid;
-  gap: 0.8rem;
+const StatBox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  background: rgba(31, 90, 51, 0.06);
+  border-radius: 10px;
+  border: 1px solid rgba(31, 90, 51, 0.1);
 `;
 
-const CardTitle = styled.h3`
-  margin: 0;
+const StatIcon = styled.span`
+  font-size: 1rem;
+  color: rgba(31, 90, 51, 0.7);
+`;
+
+const StatText = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StatValue = styled.span`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #22312a;
+  color: #1a2e20;
+  line-height: 1;
 `;
 
-const SecurityItem = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: 12px;
-  background: rgba(31, 90, 51, 0.04);
-  border: 1px solid rgba(31, 90, 51, 0.08);
-`;
-
-const SecurityLabel = styled.span`
+const StatLabel = styled.span`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.85rem;
-  color: #4a6d5a;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
+  font-size: 0.65rem;
+  color: #8a9a90;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 `;
 
-const SecurityStatus = styled.span<{ $ok: boolean }>`
+const SectionTitle = styled.h3`
+  margin: 0 0 1rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: ${({ $ok }) => $ok ? 'rgba(31, 90, 51, 0.85)' : 'rgba(138, 90, 16, 0.85)'};
-  background: ${({ $ok }) => $ok ? 'rgba(31, 90, 51, 0.1)' : 'rgba(138, 90, 16, 0.1)'};
-  padding: 0.2rem 0.55rem;
-  border-radius: 8px;
-`;
-
-const InfoPanel = styled.div`
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 22px;
-  padding: 1.4rem 1.6rem;
-  box-shadow: 0 14px 28px rgba(12, 24, 18, 0.08);
-  border: 1px solid rgba(31, 90, 51, 0.12);
-  display: grid;
-  gap: 0.8rem;
-`;
-
-const PanelHeader = styled.div`
+  color: #22312a;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.2rem;
+  gap: 0.5rem;
 `;
 
-const EditButton = styled.button`
-  background: rgba(31, 90, 51, 0.08);
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  border-radius: 10px;
-  padding: 0.35rem 0.8rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.8rem;
-  color: rgba(31, 90, 51, 0.85);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-weight: 500;
-  transition: background 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.14); }
-`;
-
-const InfoRow = styled.div`
+const InfoGrid = styled.div`
   display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 0.6rem;
-  align-items: start;
-  padding: 0.7rem 0.8rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(31, 90, 51, 0.09);
-  @media (max-width: 500px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
 `;
+
+const InfoItem = styled.div``;
 
 const InfoLabel = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(31, 90, 51, 0.65);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  color: rgba(31, 90, 51, 0.6);
+  margin-bottom: 0.25rem;
 `;
 
 const InfoValue = styled.div`
@@ -197,51 +173,129 @@ const InfoValue = styled.div`
   font-weight: 500;
 `;
 
-const VoteHistoryPanel = styled(InfoPanel)``;
-
-const VoteHistoryRow = styled.div<{ $status: 'voted' | 'active' | 'upcoming' }>`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 0.8rem;
-  align-items: center;
-  padding: 0.8rem 1rem;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid ${({ $status }) =>
-    $status === 'voted' ? 'rgba(31, 90, 51, 0.18)' :
-    $status === 'active' ? 'rgba(138, 90, 16, 0.18)' :
-    'rgba(91, 95, 101, 0.12)'};
+const OTPContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
-const VoteTitle = styled.div`
+const OTPLine = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
+const OTPField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 200px;
+`;
+
+const OTPLabel = styled.label`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.8rem;
   font-weight: 600;
+  color: #4a6d5a;
+`;
+
+const OTPInput = styled.input`
+  border: 1px solid rgba(31, 90, 51, 0.25);
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #22312a;
+  width: 100%;
+  text-align: center;
+  letter-spacing: 0.4rem;
+  outline: none;
+  transition: all 0.2s;
+
+  &:focus {
+    border-color: rgba(31, 90, 51, 0.6);
+    box-shadow: 0 0 0 4px rgba(31, 90, 51, 0.12);
+  }
+
+  &::placeholder {
+    letter-spacing: normal;
+    color: #bbb;
+    font-size: 0.9rem;
+  }
+`;
+
+const OTPButton = styled.button`
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9), rgba(31, 90, 51, 0.7));
+  border: none;
+  border-radius: 12px;
+  padding: 0.7rem 1.5rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.9rem;
-  color: #1a2e20;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s;
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(31, 90, 51, 0.35);
+    background: linear-gradient(135deg, rgba(31, 90, 51, 1), rgba(31, 90, 51, 0.8));
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
-const VoteMeta = styled.div`
+const OTPMessage = styled.div<{ $success?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.78rem;
-  color: #8a9a90;
-  margin-top: 0.1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: ${({ $success }) => $success ? 'rgba(31, 90, 51, 0.12)' : 'rgba(176, 58, 46, 0.1)'};
+  color: ${({ $success }) => $success ? 'rgba(31, 90, 51, 0.9)' : 'rgba(176, 58, 46, 0.9)'};
+  border: 1px solid ${({ $success }) => $success ? 'rgba(31, 90, 51, 0.2)' : 'rgba(176, 58, 46, 0.15)'};
 `;
 
-const VoteTag = styled.span<{ $status: 'voted' | 'active' | 'upcoming' }>`
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
+const SecurityIcon = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.15), rgba(31, 90, 51, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: rgba(31, 90, 51, 0.8);
+`;
+
+const HeaderWithIcon = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+`;
+
+const LoadingText = styled.p`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: ${({ $status }) =>
-    $status === 'voted' ? 'rgba(31, 90, 51, 0.9)' :
-    $status === 'active' ? 'rgba(138, 90, 16, 0.9)' :
-    'rgba(91, 95, 101, 0.7)'};
-  background: ${({ $status }) =>
-    $status === 'voted' ? 'rgba(31, 90, 51, 0.1)' :
-    $status === 'active' ? 'rgba(138, 90, 16, 0.1)' :
-    'rgba(91, 95, 101, 0.08)'};
+  font-size: 0.9rem;
+  color: #6b7a72;
+  text-align: center;
+  padding: 2rem;
 `;
 
 const navItems = [
@@ -253,116 +307,234 @@ const navItems = [
   { label: 'Profil', to: '/citoyen/profil' },
 ];
 
-const history = [
-  { title: 'Presidentielle 2025', meta: 'En cours — cloture le 12/03/2026', status: 'voted' as const },
-  { title: 'Legislatives Dakar', meta: 'Debut le 20/03/2026', status: 'active' as const },
-  { title: 'Municipales Pikine', meta: 'Cloturee le 02/02/2026', status: 'voted' as const },
-  { title: 'Regionales Thies', meta: 'Cloturee le 15/11/2025', status: 'voted' as const },
-];
-
 const CitizenProfile = () => {
+  const [currentOtp, setCurrentOtp] = useState('');
+  const [newOtp, setNewOtp] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  // Récupérer les données utilisateur depuis sessionStorage
+  const userData = useMemo(() => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser) as UserData;
+      } catch (e) {
+        console.error('Erreur parsing user:', e);
+      }
+    }
+    return null;
+  }, []);
+
+  // Si pas de session, utiliser les données mockées (pour démo)
+  const user = useMemo(() => {
+    if (userData && userData.id) {
+      // Essayer de trouver l'utilisateur complet dans les mock data
+      const mockUser = data.users.find(u => u.id === userData.id);
+      if (mockUser) {
+        return {
+          ...userData,
+          cni: mockUser.cni,
+          telephones: mockUser.telephones,
+          date_naissance: mockUser.date_naissance,
+          adresse: mockUser.adresse
+        };
+      }
+      return userData;
+    }
+    return null;
+  }, [userData]);
+
+  const handleCurrentOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setCurrentOtp(value);
+    setOtpMessage('');
+  };
+
+  const handleNewOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setNewOtp(value);
+    setOtpMessage('');
+  };
+
+  const handleOtpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentOtp.length !== 6) {
+      setOtpMessage('Veuillez saisir votre code OTP actuel (6 chiffres)');
+      setIsSuccess(false);
+      return;
+    }
+    if (newOtp.length !== 6) {
+      setOtpMessage('Veuillez saisir le nouveau code OTP (6 chiffres)');
+      setIsSuccess(false);
+      return;
+    }
+    if (currentOtp === newOtp) {
+      setOtpMessage('Le nouveau code doit etre different de l\'actuel');
+      setIsSuccess(false);
+      return;
+    }
+    setOtpMessage('Code OTP modifie avec succes!');
+    setIsSuccess(true);
+    setCurrentOtp('');
+    setNewOtp('');
+  };
+
+  // Formatage du nom complet
+  const fullName = user ? `${user.prenom || ''} ${user.nom || ''}`.trim() : '';
+  const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  
+  // Formatage du téléphone
+  const phone = user?.telephones && user.telephones.length > 0 ? user.telephones[0] : '';
+  
+  // Formatage de la date de naissance
+  const birthDate = user?.date_naissance ? new Date(user.date_naissance).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }) : '';
+
+  if (!user) {
+    return (
+      <AppLayout
+        role="Citoyen"
+        title="Mon profil"
+        subtitle="Informations personnelles et parametres de securite."
+        navItems={navItems}
+      >
+        <LoadingText>Chargement des informations...</LoadingText>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout
       role="Citoyen"
       title="Mon profil"
-      subtitle="Informations personnelles, securite et historique electoral."
+      subtitle="Informations personnelles et parametres de securite."
       navItems={navItems}
     >
-      <LayoutGrid>
-        <LeftCol>
-          <AvatarCard>
-            <AvatarCircle>AF</AvatarCircle>
-            <div>
-              <UserName>Aicha Fall</UserName>
-              <UserRole>Citoyenne — Senegal</UserRole>
-            </div>
-            <StatusBadge $active>
-              <i className="bi bi-check-circle-fill" />
-              Eligible — Compte actif
-            </StatusBadge>
-            <AvatarDivider />
-            <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', textAlign: 'center' }}>
-              <div>
-                <div style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: '1.3rem', color: '#1a2e20' }}>3</div>
-                <div style={{ fontFamily: 'Poppins', fontSize: '0.75rem', color: '#8a9a90' }}>Votes effectues</div>
-              </div>
-              <div>
-                <div style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: '1.3rem', color: '#1a2e20' }}>100%</div>
-                <div style={{ fontFamily: 'Poppins', fontSize: '0.75rem', color: '#8a9a90' }}>Participation</div>
-              </div>
-            </div>
-          </AvatarCard>
+      <ProfileContainer>
+        {/* En-tête du profil */}
+        <ProfileCard>
+          <ProfileHeader>
+            <AvatarCircle>{initials || 'U'}</AvatarCircle>
+            <HeaderContent>
+              <UserInfo>
+                <UserName>{fullName || 'Utilisateur'}</UserName>
+                <UserMeta>Citoyen — Senegal</UserMeta>
+                <StatusBadge $active style={{ marginTop: '0.5rem' }}>
+                  Eligible — Compte actif
+                </StatusBadge>
+              </UserInfo>
+              <StatsContainer>
+                <StatBox>
+                  <StatIcon>✓</StatIcon>
+                  <StatText>
+                    <StatValue>3</StatValue>
+                    <StatLabel>Votes</StatLabel>
+                  </StatText>
+                </StatBox>
+                <StatBox>
+                  <StatIcon>%</StatIcon>
+                  <StatText>
+                    <StatValue>100%</StatValue>
+                    <StatLabel>Participation</StatLabel>
+                  </StatText>
+                </StatBox>
+                <StatBox>
+                  <StatIcon>→</StatIcon>
+                  <StatText>
+                    <StatValue>1</StatValue>
+                    <StatLabel>A venir</StatLabel>
+                  </StatText>
+                </StatBox>
+              </StatsContainer>
+            </HeaderContent>
+          </ProfileHeader>
 
-          <SecurityCard>
-            <CardTitle><i className="bi bi-shield-lock" /> Securite</CardTitle>
-            <SecurityItem>
-              <SecurityLabel><i className="bi bi-phone" />OTP SMS</SecurityLabel>
-              <SecurityStatus $ok>Actif</SecurityStatus>
-            </SecurityItem>
-            <SecurityItem>
-              <SecurityLabel><i className="bi bi-clock" />Session</SecurityLabel>
-              <SecurityStatus $ok>30 min</SecurityStatus>
-            </SecurityItem>
-            <SecurityItem>
-              <SecurityLabel><i className="bi bi-calendar-check" />Derniere connexion</SecurityLabel>
-              <SecurityStatus $ok>Auj. 09:14</SecurityStatus>
-            </SecurityItem>
-          </SecurityCard>
-        </LeftCol>
+          <SectionTitle>
+            <i className="bi bi-person-vcard" /> Informations personnelles
+          </SectionTitle>
+          <InfoGrid>
+            <InfoItem>
+              <InfoLabel>Nom complet</InfoLabel>
+              <InfoValue>{fullName || '-'}</InfoValue>
+            </InfoItem>
+            <InfoItem>
+              <InfoLabel>Telephone</InfoLabel>
+              <InfoValue>{phone || '-'}</InfoValue>
+            </InfoItem>
+            <InfoItem>
+              <InfoLabel>Email</InfoLabel>
+              <InfoValue>{user.email || '-'}</InfoValue>
+            </InfoItem>
+            <InfoItem>
+              <InfoLabel>Numero CNI</InfoLabel>
+              <InfoValue>{user.cni || '-'}</InfoValue>
+            </InfoItem>
+            <InfoItem>
+              <InfoLabel>Adresse</InfoLabel>
+              <InfoValue>{user.adresse || '-'}</InfoValue>
+            </InfoItem>
+            <InfoItem>
+              <InfoLabel>Date de naissance</InfoLabel>
+              <InfoValue>{birthDate || '-'}</InfoValue>
+            </InfoItem>
+          </InfoGrid>
+        </ProfileCard>
 
-        <RightCol>
-          <InfoPanel>
-            <PanelHeader>
-              <CardTitle>Informations personnelles</CardTitle>
-              <EditButton><i className="bi bi-pencil" />Modifier</EditButton>
-            </PanelHeader>
-            <InfoRow>
-              <InfoLabel><i className="bi bi-person" />Nom complet</InfoLabel>
-              <InfoValue>Aicha Fall</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel><i className="bi bi-credit-card-2-front" />Numero CNI</InfoLabel>
-              <InfoValue>SN-2349-8891</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel><i className="bi bi-telephone" />Telephone</InfoLabel>
-              <InfoValue>+221 77 000 00 00</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel><i className="bi bi-geo-alt" />Adresse</InfoLabel>
-              <InfoValue>Medina, Dakar, Senegal</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel><i className="bi bi-calendar" />Date de naissance</InfoLabel>
-              <InfoValue>14 Mars 1988</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel><i className="bi bi-envelope" />Email</InfoLabel>
-              <InfoValue>aicha.fall@email.sn</InfoValue>
-            </InfoRow>
-          </InfoPanel>
-
-          <VoteHistoryPanel>
-            <PanelHeader>
-              <CardTitle>Historique electoral</CardTitle>
-            </PanelHeader>
-            {history.map((h) => (
-              <VoteHistoryRow key={h.title} $status={h.status}>
-                <div>
-                  <VoteTitle>{h.title}</VoteTitle>
-                  <VoteMeta>{h.meta}</VoteMeta>
-                </div>
-                <VoteTag $status={h.status}>
-                  {h.status === 'voted' ? 'Vote' : h.status === 'active' ? 'A venir' : 'Upcoming'}
-                </VoteTag>
-                {h.status === 'voted' && (
-                  <i className="bi bi-check-circle-fill" style={{ color: 'rgba(31, 90, 51, 0.7)', fontSize: '1.1rem' }} />
-                )}
-              </VoteHistoryRow>
-            ))}
-          </VoteHistoryPanel>
-        </RightCol>
-      </LayoutGrid>
+        {/* Section OTP modernisée */}
+        <ProfileCard>
+          <HeaderWithIcon>
+            <SecurityIcon>
+              <i className="bi bi-shield-lock-fill" />
+            </SecurityIcon>
+            <SectionTitle style={{ margin: 0 }}>
+              Modifier le code OTP
+            </SectionTitle>
+          </HeaderWithIcon>
+          
+          <form onSubmit={handleOtpSubmit}>
+            <OTPContainer>
+              <OTPLine>
+                <OTPField>
+                  <OTPLabel>Code OTP actuel</OTPLabel>
+                  <OTPInput
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="------"
+                    value={currentOtp}
+                    onChange={handleCurrentOtpChange}
+                    maxLength={6}
+                  />
+                </OTPField>
+                <OTPField>
+                  <OTPLabel>Nouveau code OTP</OTPLabel>
+                  <OTPInput
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="------"
+                    value={newOtp}
+                    onChange={handleNewOtpChange}
+                    maxLength={6}
+                  />
+                </OTPField>
+                <OTPButton type="submit">
+                  <i className="bi bi-check2-circle" style={{ marginRight: '0.4rem' }} />
+                  Confirmer
+                </OTPButton>
+              </OTPLine>
+              {otpMessage && (
+                <OTPMessage $success={isSuccess}>
+                  <i className={`bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'}`} />
+                  {otpMessage}
+                </OTPMessage>
+              )}
+            </OTPContainer>
+          </form>
+        </ProfileCard>
+      </ProfileContainer>
     </AppLayout>
   );
 };

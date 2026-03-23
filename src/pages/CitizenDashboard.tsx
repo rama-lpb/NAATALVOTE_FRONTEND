@@ -37,12 +37,12 @@ const Stats = styled.div`
 `;
 
 const StatCard = styled.div<{ $accent: string }>`
-  background: rgba(255, 255, 255, 0.9);
+  background: #ffffff;
   border-radius: 16px;
   padding: 0.9rem 1rem;
-  box-shadow: 0 14px 26px rgba(12, 24, 18, 0.08);
-  border: 1px solid rgba(31, 90, 51, 0.12);
-  border-left: 5px solid ${({ $accent }) => $accent};
+  box-shadow: 0 14px 26px rgba(12, 24, 18, 0.06);
+  border: 1px solid rgba(31, 90, 51, 0.08);
+  border-left: 4px solid ${({ $accent }) => $accent};
 `;
 
 const StatLabel = styled.p`
@@ -65,7 +65,7 @@ const Card = styled.div`
   border-radius: 20px;
   padding: 1.2rem 1.4rem;
   box-shadow: 0 16px 30px rgba(12, 24, 18, 0.08);
-  border: 1px solid rgba(31, 90, 51, 0.12);
+  border: 1px solid rgba(31, 90, 51, 0.06);
 `;
 
 const CardTitle = styled.h2`
@@ -179,10 +179,10 @@ const ElectionRow = styled.div<{ $status: 'live' | 'scheduled' | 'closed' }>`
   padding: 1.4rem 1.5rem;
   height: 120px;
   border-radius: 18px;
-  border: 2px solid ${({ $status }) => 
-    $status === 'live' ? 'rgba(31, 90, 51, 0.25)' : 
-    $status === 'scheduled' ? 'rgba(138, 90, 16, 0.25)' : 
-    'rgba(91, 95, 101, 0.15)'};
+  border: 1px solid ${({ $status }) => 
+    $status === 'live' ? 'rgba(31, 90, 51, 0.12)' : 
+    $status === 'scheduled' ? 'rgba(138, 90, 16, 0.12)' : 
+    'rgba(91, 95, 101, 0.08)'};
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%);
   box-shadow: 0 6px 20px rgba(12, 24, 18, 0.08);
   transition: all 0.3s ease;
@@ -195,11 +195,11 @@ const ElectionRow = styled.div<{ $status: 'live' | 'scheduled' | 'closed' }>`
     left: 0;
     top: 0;
     bottom: 0;
-    width: 5px;
+    width: 4px;
     background: ${({ $status }) => 
-      $status === 'live' ? 'rgba(31, 90, 51, 0.8)' : 
-      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.7)' : 
-      'rgba(91, 95, 101, 0.5)'};
+      $status === 'live' ? 'rgba(31, 90, 51, 0.6)' : 
+      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.5)' : 
+      'rgba(91, 95, 101, 0.4)'};
     border-radius: 18px 0 0 18px;
   }
 
@@ -207,9 +207,9 @@ const ElectionRow = styled.div<{ $status: 'live' | 'scheduled' | 'closed' }>`
     transform: translateY(-3px);
     box-shadow: 0 14px 32px rgba(12, 24, 18, 0.12);
     border-color: ${({ $status }) => 
-      $status === 'live' ? 'rgba(31, 90, 51, 0.4)' : 
-      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.4)' : 
-      'rgba(91, 95, 101, 0.25)'};
+      $status === 'live' ? 'rgba(31, 90, 51, 0.2)' : 
+      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.2)' : 
+      'rgba(91, 95, 101, 0.12)'};
   }
 `;
 
@@ -402,19 +402,19 @@ const CitizenDashboard = () => {
         </Greeting>
 
         <Stats>
-          <StatCard $accent="rgba(31, 90, 51, 0.6)">
+          <StatCard $accent="#1f5a33">
             <StatLabel>Elections en cours</StatLabel>
             <StatValue>2</StatValue>
           </StatCard>
-          <StatCard $accent="rgba(31, 90, 51, 0.6)">
+          <StatCard $accent="#1f5a33">
             <StatLabel>Statut electeur</StatLabel>
             <StatValue>Eligible</StatValue>
           </StatCard>
-          <StatCard $accent="rgba(138, 90, 16, 0.6)">
+          <StatCard $accent="#8a5a10">
             <StatLabel>Participation nationale</StatLabel>
             <StatValue>64%</StatValue>
           </StatCard>
-          <StatCard $accent="rgba(91, 95, 101, 0.6)">
+          <StatCard $accent="#5a5f65">
             <StatLabel>Scrutins clotures</StatLabel>
             <StatValue>5</StatValue>
           </StatCard>

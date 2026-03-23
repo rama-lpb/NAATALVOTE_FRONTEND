@@ -1,5 +1,221 @@
 import styled from 'styled-components';
 import { AppLayout } from '../components/AppLayout';
+import { useState, useMemo } from 'react';
+import { getAllElectionsList, getElectionById, type Election } from '../data/mockData';
+
+// Statistics data for each election
+interface ElectionStats {
+  electionId: string;
+  participation: { month: string; global: number; valid: number }[];
+  ageGroups: { label: string; value: number; color: string }[];
+  sexDistribution: { femme: number; homme: number };
+  regions: { label: string; value: number; color: string }[];
+  hourlyPeaks: { hour: string; votes: number }[];
+}
+
+const electionStatsData: Record<string, ElectionStats> = {
+  'elec-001': {
+    electionId: 'elec-001',
+    participation: [
+      { month: 'Jan', global: 45, valid: 42 },
+      { month: 'Fev', global: 52, valid: 48 },
+      { month: 'Mar', global: 38, valid: 35 },
+      { month: 'Avr', global: 61, valid: 58 },
+      { month: 'Mai', global: 55, valid: 51 },
+      { month: 'Juin', global: 48, valid: 45 },
+    ],
+    ageGroups: [
+      { label: '18 - 24 ans', value: 22, color: 'rgba(31, 90, 51, 0.6)' },
+      { label: '25 - 34 ans', value: 28, color: 'rgba(31, 90, 51, 0.65)' },
+      { label: '35 - 44 ans', value: 20, color: 'rgba(138, 90, 16, 0.6)' },
+      { label: '45 - 54 ans', value: 18, color: 'rgba(91, 95, 101, 0.6)' },
+      { label: '55+ ans', value: 12, color: 'rgba(31, 90, 51, 0.5)' },
+    ],
+    sexDistribution: { femme: 46, homme: 54 },
+    regions: [
+      { label: 'Dakar', value: 68, color: 'rgba(31, 90, 51, 0.6)' },
+      { label: 'Thies', value: 57, color: 'rgba(31, 90, 51, 0.6)' },
+      { label: 'Saint-Louis', value: 49, color: 'rgba(138, 90, 16, 0.6)' },
+      { label: 'Ziguinchor', value: 53, color: 'rgba(91, 95, 101, 0.6)' },
+    ],
+    hourlyPeaks: [
+      { hour: '08h', votes: 120 },
+      { hour: '10h', votes: 350 },
+      { hour: '12h', votes: 280 },
+      { hour: '14h', votes: 420 },
+      { hour: '16h', votes: 510 },
+      { hour: '18h', votes: 380 },
+      { hour: '20h', votes: 190 },
+    ],
+  },
+  'elec-002': {
+    electionId: 'elec-002',
+    participation: [
+      { month: 'Jan', global: 35, valid: 32 },
+      { month: 'Fev', global: 42, valid: 39 },
+      { month: 'Mar', global: 48, valid: 44 },
+      { month: 'Avr', global: 51, valid: 47 },
+      { month: 'Mai', global: 39, valid: 36 },
+      { month: 'Juin', global: 44, valid: 41 },
+    ],
+    ageGroups: [
+      { label: '18 - 24 ans', value: 18, color: 'rgba(31, 90, 51, 0.55)' },
+      { label: '25 - 34 ans', value: 32, color: 'rgba(31, 90, 51, 0.7)' },
+      { label: '35 - 44 ans', value: 22, color: 'rgba(138, 90, 16, 0.6)' },
+      { label: '45 - 54 ans', value: 16, color: 'rgba(91, 95, 101, 0.55)' },
+      { label: '55+ ans', value: 12, color: 'rgba(31, 90, 51, 0.45)' },
+    ],
+    sexDistribution: { femme: 49, homme: 51 },
+    regions: [
+      { label: 'Dakar', value: 72, color: 'rgba(31, 90, 51, 0.65)' },
+      { label: 'Thies', value: 61, color: 'rgba(31, 90, 51, 0.6)' },
+      { label: 'Saint-Louis', value: 42, color: 'rgba(138, 90, 16, 0.55)' },
+      { label: 'Ziguinchor', value: 58, color: 'rgba(91, 95, 101, 0.6)' },
+    ],
+    hourlyPeaks: [
+      { hour: '08h', votes: 90 },
+      { hour: '10h', votes: 280 },
+      { hour: '12h', votes: 220 },
+      { hour: '14h', votes: 350 },
+      { hour: '16h', votes: 420 },
+      { hour: '18h', votes: 310 },
+      { hour: '20h', votes: 150 },
+    ],
+  },
+  'elec-003': {
+    electionId: 'elec-003',
+    participation: [
+      { month: 'Jan', global: 28, valid: 25 },
+      { month: 'Fev', global: 35, valid: 32 },
+      { month: 'Mar', global: 42, valid: 38 },
+      { month: 'Avr', global: 38, valid: 35 },
+      { month: 'Mai', global: 45, valid: 41 },
+      { month: 'Juin', global: 32, valid: 29 },
+    ],
+    ageGroups: [
+      { label: '18 - 24 ans', value: 25, color: 'rgba(31, 90, 51, 0.6)' },
+      { label: '25 - 34 ans', value: 30, color: 'rgba(31, 90, 51, 0.65)' },
+      { label: '35 - 44 ans', value: 18, color: 'rgba(138, 90, 16, 0.55)' },
+      { label: '45 - 54 ans', value: 15, color: 'rgba(91, 95, 101, 0.5)' },
+      { label: '55+ ans', value: 12, color: 'rgba(31, 90, 51, 0.45)' },
+    ],
+    sexDistribution: { femme: 44, homme: 56 },
+    regions: [
+      { label: 'Dakar', value: 65, color: 'rgba(31, 90, 51, 0.6)' },
+      { label: 'Thies', value: 52, color: 'rgba(31, 90, 51, 0.55)' },
+      { label: 'Saint-Louis', value: 55, color: 'rgba(138, 90, 16, 0.6)' },
+      { label: 'Ziguinchor', value: 48, color: 'rgba(91, 95, 101, 0.55)' },
+    ],
+    hourlyPeaks: [
+      { hour: '08h', votes: 80 },
+      { hour: '10h', votes: 200 },
+      { hour: '12h', votes: 180 },
+      { hour: '14h', votes: 280 },
+      { hour: '16h', votes: 340 },
+      { hour: '18h', votes: 250 },
+      { hour: '20h', votes: 110 },
+    ],
+  },
+};
+
+// Default stats when no election is selected
+const defaultStats: ElectionStats = {
+  electionId: 'default',
+  participation: [
+    { month: 'Jan', global: 45, valid: 42 },
+    { month: 'Fev', global: 52, valid: 48 },
+    { month: 'Mar', global: 38, valid: 35 },
+    { month: 'Avr', global: 61, valid: 58 },
+    { month: 'Mai', global: 55, valid: 51 },
+    { month: 'Juin', global: 48, valid: 45 },
+  ],
+  ageGroups: [
+    { label: '18 - 24 ans', value: 22, color: 'rgba(31, 90, 51, 0.6)' },
+    { label: '25 - 34 ans', value: 28, color: 'rgba(31, 90, 51, 0.65)' },
+    { label: '35 - 44 ans', value: 20, color: 'rgba(138, 90, 16, 0.6)' },
+    { label: '45 - 54 ans', value: 18, color: 'rgba(91, 95, 101, 0.6)' },
+    { label: '55+ ans', value: 12, color: 'rgba(31, 90, 51, 0.5)' },
+  ],
+  sexDistribution: { femme: 46, homme: 54 },
+  regions: [
+    { label: 'Dakar', value: 68, color: 'rgba(31, 90, 51, 0.6)' },
+    { label: 'Thies', value: 57, color: 'rgba(31, 90, 51, 0.6)' },
+    { label: 'Saint-Louis', value: 49, color: 'rgba(138, 90, 16, 0.6)' },
+    { label: 'Ziguinchor', value: 53, color: 'rgba(91, 95, 101, 0.6)' },
+  ],
+  hourlyPeaks: [
+    { hour: '08h', votes: 120 },
+    { hour: '10h', votes: 350 },
+    { hour: '12h', votes: 280 },
+    { hour: '14h', votes: 420 },
+    { hour: '16h', votes: 510 },
+    { hour: '18h', votes: 380 },
+    { hour: '20h', votes: 190 },
+  ],
+};
+
+const FilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  border: 1px solid rgba(31, 90, 51, 0.12);
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const FilterLabel = styled.label`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #22312a;
+  font-size: 0.9rem;
+  font-weight: 500;
+`;
+
+const FilterSelect = styled.select`
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  border: 2px solid rgba(31, 90, 51, 0.2);
+  background: #ffffff;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  color: #22312a;
+  cursor: pointer;
+  min-width: 150px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: rgba(31, 90, 51, 0.5);
+    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
+  }
+`;
+
+const ElectionBadge = styled.span<{ $status: string }>`
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 0.5rem;
+  background: ${({ $status }) => 
+    $status === 'EN_COURS' ? 'rgba(34, 197, 94, 0.15)' :
+    $status === 'CLOTUREE' ? 'rgba(176, 58, 46, 0.15)' :
+    'rgba(59, 130, 246, 0.15)'};
+  color: ${({ $status }) => 
+    $status === 'EN_COURS' ? '#16a34a' :
+    $status === 'CLOTUREE' ? '#b03a2e' :
+    '#3b82f6'};
+`;
 
 const Section = styled.div`
   display: grid;
@@ -115,6 +331,119 @@ const AdminStats = () => {
     { label: 'Rapports', to: '/admin/rapports' },
   ];
 
+  // Get all elections for the filter
+  const elections = useMemo(() => getAllElectionsList(), []);
+  
+  // State for selected election
+  const [selectedElectionId, setSelectedElectionId] = useState<string>('');
+  const [selectedElection, setSelectedElection] = useState<Election | null>(null);
+
+  // Additional filters
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [electionType, setElectionType] = useState<string>('all');
+
+  // Filter elections based on year and type
+  const filteredElections = useMemo(() => {
+    let result = elections;
+    if (selectedYear !== 'all') {
+      result = result.filter(e => e.date_debut.includes(selectedYear));
+    }
+    if (electionType !== 'all') {
+      result = result.filter(e => e.type === electionType);
+    }
+    return result;
+  }, [elections, selectedYear, electionType]);
+
+  // Get current stats based on selected filters
+  const currentStats = useMemo(() => {
+    // If specific election is selected, use its stats
+    if (selectedElectionId && electionStatsData[selectedElectionId]) {
+      return electionStatsData[selectedElectionId];
+    }
+    
+    // If year or type is selected but no specific election, aggregate stats
+    if (selectedYear !== 'all' || electionType !== 'all') {
+      // Get elections matching the filters
+      let matchingElections = elections;
+      if (selectedYear !== 'all') {
+        matchingElections = matchingElections.filter(e => e.date_debut.includes(selectedYear));
+      }
+      if (electionType !== 'all') {
+        matchingElections = matchingElections.filter(e => e.type === electionType);
+      }
+      
+      // If we have matching elections with stats, aggregate them
+      const matchingStats = matchingElections
+        .map(e => electionStatsData[e.id])
+        .filter(Boolean);
+      
+      if (matchingStats.length > 0) {
+        // Aggregate the stats
+        const avgStats: ElectionStats = {
+          electionId: 'aggregated',
+          participation: matchingStats[0].participation,
+          ageGroups: matchingStats[0].ageGroups,
+          sexDistribution: {
+            femme: Math.round(matchingStats.reduce((sum, s) => sum + s.sexDistribution.femme, 0) / matchingStats.length),
+            homme: Math.round(matchingStats.reduce((sum, s) => sum + s.sexDistribution.homme, 0) / matchingStats.length),
+          },
+          regions: matchingStats[0].regions,
+          hourlyPeaks: matchingStats[0].hourlyPeaks,
+        };
+        return avgStats;
+      }
+    }
+    
+    // If no filters selected (all elections), aggregate ALL elections
+    const allStats = elections
+      .map(e => electionStatsData[e.id])
+      .filter(Boolean);
+    
+    if (allStats.length > 0) {
+      const avgStats: ElectionStats = {
+        electionId: 'all-aggregated',
+        participation: allStats[0].participation,
+        ageGroups: allStats[0].ageGroups,
+        sexDistribution: {
+          femme: Math.round(allStats.reduce((sum, s) => sum + s.sexDistribution.femme, 0) / allStats.length),
+          homme: Math.round(allStats.reduce((sum, s) => sum + s.sexDistribution.homme, 0) / allStats.length),
+        },
+        regions: allStats[0].regions,
+        hourlyPeaks: allStats[0].hourlyPeaks,
+      };
+      return avgStats;
+    }
+    
+    // Fallback to default
+    return defaultStats;
+  }, [selectedElectionId, selectedYear, electionType, elections]);
+
+  // Handle election selection
+  const handleElectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const electionId = e.target.value;
+    setSelectedElectionId(electionId);
+    if (electionId) {
+      const election = getElectionById(electionId);
+      setSelectedElection(election || null);
+    } else {
+      setSelectedElection(null);
+    }
+  };
+
+  // Handle year filter change - reset election selection
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedYear(e.target.value);
+    setSelectedElectionId('');
+    setSelectedElection(null);
+  };
+
+  // Handle type filter change - reset election selection
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setElectionType(e.target.value);
+    setSelectedElectionId('');
+    setSelectedElection(null);
+  };
+
   return (
     <AppLayout
       role="Administrateur"
@@ -122,6 +451,58 @@ const AdminStats = () => {
       subtitle="Repartitions demographiques, participation et tendances temporelles."
       navItems={navItems}
     >
+      <FilterBar>
+        <FilterGroup>
+          <FilterLabel htmlFor="election-filter">Election :</FilterLabel>
+          <FilterSelect 
+            id="election-filter" 
+            value={selectedElectionId} 
+            onChange={handleElectionChange}
+          >
+            <option value="">Toutes les elections</option>
+            {filteredElections.map((election) => (
+              <option key={election.id} value={election.id}>
+                {election.titre}
+              </option>
+            ))}
+          </FilterSelect>
+          {selectedElection && (
+            <ElectionBadge $status={selectedElection.statut}>
+              {selectedElection.statut === 'EN_COURS' ? 'En cours' :
+               selectedElection.statut === 'CLOTUREE' ? 'Cloturee' :
+               'Programmee'}
+            </ElectionBadge>
+          )}
+        </FilterGroup>
+
+        <FilterGroup>
+          <FilterLabel htmlFor="year-filter">Annee :</FilterLabel>
+          <FilterSelect 
+            id="year-filter"
+            value={selectedYear}
+            onChange={handleYearChange}
+          >
+            <option value="all">Toutes les annees</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </FilterSelect>
+        </FilterGroup>
+
+        <FilterGroup>
+          <FilterLabel htmlFor="type-filter">Type :</FilterLabel>
+          <FilterSelect 
+            id="type-filter"
+            value={electionType}
+            onChange={handleTypeChange}
+          >
+            <option value="all">Tous les types</option>
+            <option value=" PRESIDENTIELLE">Presidentielle</option>
+            <option value="LEGISLATIVE">Legislative</option>
+            <option value="MUNICIPALE">Municipale</option>
+          </FilterSelect>
+        </FilterGroup>
+      </FilterBar>
       <Section>
         <Grid>
           <Card>
@@ -129,13 +510,13 @@ const AdminStats = () => {
             <ChartBox>
               <ChartSvg viewBox="0 0 600 220" preserveAspectRatio="none">
                 <polyline
-                  points="0,180 60,160 120,150 180,130 240,110 300,120 360,95 420,105 480,120 540,110 600,140"
+                  points={currentStats.participation.map((p, i) => `${i * 120},${220 - p.global * 3}`).join(' ')}
                   fill="none"
                   stroke="rgba(31, 90, 51, 0.7)"
                   strokeWidth="3"
                 />
                 <polyline
-                  points="0,200 60,190 120,175 180,170 240,155 300,150 360,135 420,140 480,150 540,165 600,175"
+                  points={currentStats.participation.map((p, i) => `${i * 120},${220 - p.valid * 3}`).join(' ')}
                   fill="none"
                   stroke="rgba(31, 90, 51, 0.65)"
                   strokeWidth="3"
@@ -155,31 +536,13 @@ const AdminStats = () => {
           <Card>
             <CardTitle>Votes par tranche d'age</CardTitle>
             <BarList>
-              <BarRow>
-                <BarLabel>18 - 24 ans</BarLabel>
-                <BarTrack $value={22} $color="rgba(31, 90, 51, 0.6)" />
-                <BarValue>22%</BarValue>
-              </BarRow>
-              <BarRow>
-                <BarLabel>25 - 34 ans</BarLabel>
-                <BarTrack $value={28} $color="rgba(31, 90, 51, 0.6)" />
-                <BarValue>28%</BarValue>
-              </BarRow>
-              <BarRow>
-                <BarLabel>35 - 44 ans</BarLabel>
-                <BarTrack $value={20} $color="rgba(138, 90, 16, 0.6)" />
-                <BarValue>20%</BarValue>
-              </BarRow>
-              <BarRow>
-                <BarLabel>45 - 54 ans</BarLabel>
-                <BarTrack $value={18} $color="rgba(91, 95, 101, 0.6)" />
-                <BarValue>18%</BarValue>
-              </BarRow>
-              <BarRow>
-                <BarLabel>55+ ans</BarLabel>
-                <BarTrack $value={12} $color="rgba(31, 90, 51, 0.5)" />
-                <BarValue>12%</BarValue>
-              </BarRow>
+              {currentStats.ageGroups.map((group, idx) => (
+                <BarRow key={idx}>
+                  <BarLabel>{group.label}</BarLabel>
+                  <BarTrack $value={group.value} $color={group.color} />
+                  <BarValue>{group.value}%</BarValue>
+                </BarRow>
+              ))}
             </BarList>
           </Card>
         </Grid>
@@ -192,10 +555,10 @@ const AdminStats = () => {
                 <rect x="120" y="80" width="120" height="120" fill="rgba(31, 90, 51, 0.6)" />
                 <rect x="360" y="60" width="120" height="140" fill="rgba(31, 90, 51, 0.6)" />
                 <text x="180" y="70" textAnchor="middle" fontSize="14" fill="#22312a">
-                  Femmes 46%
+                  Femmes {currentStats.sexDistribution.femme}%
                 </text>
                 <text x="420" y="50" textAnchor="middle" fontSize="14" fill="#22312a">
-                  Hommes 54%
+                  Hommes {currentStats.sexDistribution.homme}%
                 </text>
               </ChartSvg>
             </ChartBox>
@@ -212,26 +575,13 @@ const AdminStats = () => {
           <Card>
             <CardTitle>Participation par region</CardTitle>
             <BarList>
-              <BarRow>
-                <BarLabel>Dakar</BarLabel>
-                <BarTrack $value={68} $color="rgba(31, 90, 51, 0.6)" />
-                <BarValue>68%</BarValue>
-              </BarRow>
-              <BarRow>
-                <BarLabel>Thies</BarLabel>
-                <BarTrack $value={57} $color="rgba(31, 90, 51, 0.6)" />
-                <BarValue>57%</BarValue>
-              </BarRow>
-              <BarRow>
-                <BarLabel>Saint-Louis</BarLabel>
-                <BarTrack $value={49} $color="rgba(138, 90, 16, 0.6)" />
-                <BarValue>49%</BarValue>
-              </BarRow>
-              <BarRow>
-                <BarLabel>Ziguinchor</BarLabel>
-                <BarTrack $value={53} $color="rgba(91, 95, 101, 0.6)" />
-                <BarValue>53%</BarValue>
-              </BarRow>
+              {currentStats.regions.map((region, idx) => (
+                <BarRow key={idx}>
+                  <BarLabel>{region.label}</BarLabel>
+                  <BarTrack $value={region.value} $color={region.color} />
+                  <BarValue>{region.value}%</BarValue>
+                </BarRow>
+              ))}
             </BarList>
           </Card>
         </Grid>
@@ -240,15 +590,32 @@ const AdminStats = () => {
           <CardTitle>Histogramme des pics de vote (heures)</CardTitle>
           <ChartBox>
             <ChartSvg viewBox="0 0 600 220" preserveAspectRatio="none">
-              <rect x="20" y="140" width="40" height="60" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="80" y="120" width="40" height="80" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="140" y="90" width="40" height="110" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="200" y="70" width="40" height="130" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="260" y="60" width="40" height="140" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="320" y="80" width="40" height="120" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="380" y="110" width="40" height="90" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="440" y="130" width="40" height="70" fill="rgba(31, 90, 51, 0.55)" />
-              <rect x="500" y="150" width="40" height="50" fill="rgba(31, 90, 51, 0.55)" />
+              {currentStats.hourlyPeaks.map((peak, idx) => {
+                const maxVotes = Math.max(...currentStats.hourlyPeaks.map(p => p.votes));
+                const height = (peak.votes / maxVotes) * 160;
+                const y = 200 - height;
+                return (
+                  <g key={idx}>
+                    <rect 
+                      x={30 + idx * 75} 
+                      y={y} 
+                      width="40" 
+                      height={height} 
+                      fill="rgba(31, 90, 51, 0.55)" 
+                      rx="4"
+                    />
+                    <text 
+                      x={50 + idx * 75} 
+                      y="215" 
+                      textAnchor="middle" 
+                      fontSize="11" 
+                      fill="#6b6f72"
+                    >
+                      {peak.hour}
+                    </text>
+                  </g>
+                );
+              })}
             </ChartSvg>
           </ChartBox>
         </Card>

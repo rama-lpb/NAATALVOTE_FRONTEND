@@ -241,6 +241,10 @@ export const getClosedElections = (): Election[] => {
   return data.elections.filter(e => e.statut === 'CLOTUREE');
 };
 
+export const getAllElectionsList = (): Election[] => {
+  return data.elections;
+};
+
 export const getAlertesFraude = (): AlerteFraude[] => {
   return data.alertes_fraude;
 };

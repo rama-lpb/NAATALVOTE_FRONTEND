@@ -310,7 +310,7 @@ const TitleRow = styled.div`
   gap: 0.8rem;
 `;
 
-export const AppLayout = ({ title, subtitle, navItems, actions, children }: AppLayoutProps) => {
+export const AppLayout = ({ title, subtitle, navItems, actions, children, noScroll }: AppLayoutProps) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 

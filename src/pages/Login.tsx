@@ -4,7 +4,7 @@ import { LogoNaatalVote } from '../assets/LogoNaatalVote';
 import { useState, type FormEvent } from 'react';
 import { 
   getPhonesByCNI, 
-  validateOTP, 
+  findUserByCNI,
   hasMultipleRoles, 
   getRoleDashboardPath
 } from '../data/mockData';
@@ -263,6 +263,30 @@ const Field = styled.input<{ hasError?: boolean }>`
   }
 `;
 
+const OtpInput = styled.input<{ hasError?: boolean }>`
+  width: 100%;
+  border: 2px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
+  border-radius: 16px;
+  padding: 0.95rem 1.2rem;
+  font-size: 1.3rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #1a3d28;
+  background: #fafafa;
+  outline: none;
+  text-align: center;
+  letter-spacing: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  &:focus {
+    border-color: rgba(31, 90, 51, 0.6);
+    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
+    background: #ffffff;
+  }
+  &::placeholder {
+    color: #8a9a90;
+    letter-spacing: 2px;
+  }
+`;
+
 const Select = styled.select<{ hasError?: boolean }>`
   width: 100%;
   border: 2px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
@@ -337,18 +361,161 @@ const ForgotPassword = styled(Link)`
   }
 `;
 
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+  animation: ${fadeScale} 200ms ease-out;
+`;
+
+const PopupCard = styled.div`
+  background: #e8ebe9;
+  border-radius: 16px;
+  padding: 1.8rem 2rem;
+  max-width: 560px;
+  width: 92%;
+  box-shadow: 
+    0 20px 45px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(31, 90, 51, 0.08);
+  animation: ${fadeScale} 300ms ease-out;
+  position: relative;
+`;
+
+const PopupIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.15) 0%, rgba(31, 90, 51, 0.06) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.9rem;
+  
+  i {
+    font-size: 1.3rem;
+    color: #1f5a33;
+  }
+`;
+
+const PopupTitle = styled.h2`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #1a2e23;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  text-align: center;
+`;
+
+const PopupText = styled.p`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #4a5550;
+  font-size: 0.85rem;
+  margin: 0 0 1.2rem;
+  text-align: center;
+  line-height: 1.5;
+  
+  strong {
+    color: #1f5a33;
+  }
+`;
+
+const OtpDisplay = styled.div`
+  background: rgba(31, 90, 51, 0.08);
+  border: 1px dashed rgba(31, 90, 51, 0.25);
+  border-radius: 10px;
+  padding: 0.85rem;
+  text-align: center;
+  margin-bottom: 1.2rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+`;
+
+const OtpLabel = styled.span`
+  display: block;
+  color: #6b7570;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 0.2rem;
+`;
+
+const OtpCode = styled.span`
+  display: block;
+  color: #1f5a33;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+`;
+
+const PopupButton = styled.button`
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1.3rem;
+  font-size: 0.95rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1f5a33 0%, #2d7a45 100%);
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-top: 0.45rem;
+  box-shadow: 0 3px 8px rgba(31, 90, 51, 0.25);
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 12px rgba(31, 90, 51, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const PopupSecondary = styled.button`
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1.3rem;
+  font-size: 0.85rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  color: #5a6560;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: #2a3530;
+  }
+`;
+
 const Login = () => {
   const navigate = useNavigate();
   const direction = 'none';
 
   const [cni, setCni] = useState('');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [errors, setErrors] = useState<{ cni?: string; phone?: string; otp?: string }>({});
+  const [errors, setErrors] = useState<{ cni?: string; phone?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPhones, setIsLoadingPhones] = useState(false);
   const [availablePhones, setAvailablePhones] = useState<string[]>([]);
   const [hasSearchedPhones, setHasSearchedPhones] = useState(false);
+  const [showOtpPopup, setShowOtpPopup] = useState(false);
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
 
   // Look up phone numbers by CNI
   const simulatePhoneLookup = async (cniNumber: string) => {
@@ -368,7 +535,7 @@ const Login = () => {
   };
 
   const validateForm = () => {
-    const newErrors: { cni?: string; phone?: string; otp?: string } = {};
+    const newErrors: { cni?: string; phone?: string } = {};
     
     if (!cni.trim()) {
       newErrors.cni = 'Le numéro CNI est requis';
@@ -380,12 +547,6 @@ const Login = () => {
       newErrors.phone = 'Le numéro de téléphone est requis';
     }
     
-    if (!otp.trim()) {
-      newErrors.otp = 'Le code OTP est requis';
-    } else if (otp.length !== 6) {
-      newErrors.otp = 'Le code OTP doit contenir 6 chiffres';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -393,22 +554,38 @@ const Login = () => {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
+      // Generate a random 6-digit OTP for each connection attempt
+      const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(newOtp);
+      setEnteredOtp('');
+      setOtpError('');
+      setShowOtpPopup(true);
+    }
+  };
+
+  const handleOtpVerification = () => {
+    if (enteredOtp === generatedOtp) {
       setIsLoading(true);
       
-      // Validate OTP against mock data
-      const user = validateOTP(cni, phone, otp);
+      // Find user by CNI from mock data
+      const user = findUserByCNI(cni);
       
       setTimeout(() => {
         setIsLoading(false);
-        if (user) {
+        setShowOtpPopup(false);
+        if (user && user.telephones.includes(phone)) {
           // Check if user has multiple roles
           if (hasMultipleRoles(user)) {
             // Store user info with all roles in sessionStorage
             sessionStorage.setItem('user', JSON.stringify({
               id: user.id,
+              cni: user.cni,
               nom: user.nom,
               prenom: user.prenom,
               email: user.email,
+              telephones: user.telephones,
+              date_naissance: user.date_naissance,
+              adresse: user.adresse,
               roles: user.roles,
               currentRole: user.roles[0]
             }));
@@ -418,18 +595,24 @@ const Login = () => {
             // Single role - redirect directly to dashboard
             sessionStorage.setItem('user', JSON.stringify({
               id: user.id,
+              cni: user.cni,
               nom: user.nom,
               prenom: user.prenom,
               email: user.email,
+              telephones: user.telephones,
+              date_naissance: user.date_naissance,
+              adresse: user.adresse,
               roles: user.roles,
               currentRole: user.roles[0]
             }));
             window.location.href = getRoleDashboardPath(user.roles[0]);
           }
         } else {
-          setErrors({ otp: 'Code OTP invalide' });
+          setOtpError('Code OTP invalide');
         }
       }, 1200);
+    } else {
+      setOtpError('Code OTP invalide');
     }
   };
 
@@ -517,35 +700,58 @@ const Login = () => {
                 </Helper>
               )}
             </FieldGroup>
-            <FieldGroup>
-              <FieldLabel htmlFor="otp">Code OTP</FieldLabel>
-              <Field 
-                id="otp"
-                type="text" 
-                placeholder="Entrez le code OTP (ex: 123456)"
-                value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value);
-                  if (errors.otp) setErrors(prev => ({ ...prev, otp: undefined }));
-                }}
-                hasError={!!errors.otp}
-                aria-describedby={errors.otp ? 'otp-error' : undefined}
-                aria-invalid={!!errors.otp}
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                maxLength={6}
-              />
-              {errors.otp && <ErrorText id="otp-error" role="alert">{errors.otp}</ErrorText>}
-            </FieldGroup>
             <SubmitButton type="submit" disabled={isLoading}>
-              {isLoading ? 'Vérification...' : 'Se connecter'}
+              {isLoading ? 'Envoi en cours...' : 'Se connecter'}
             </SubmitButton>
             <Helper style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-              Le code OTP a été envoyé à votre numéro de téléphone
+              Cliquez pour recevoir un code OTP par SMS
             </Helper>
           </Form>
         </FormPanel>
       </Shell>
+      
+      {/* OTP Popup Modal */}
+      {showOtpPopup && (
+        <Overlay>
+          <PopupCard>
+            <PopupIcon>
+              <i className="bi bi-shield-lock-fill" />
+            </PopupIcon>
+            <PopupTitle>Vérification OTP</PopupTitle>
+            <PopupText>
+              Un code de vérification a été envoyé au numéro : <strong>{phone}</strong>
+            </PopupText>
+            <OtpDisplay>
+              <OtpLabel>Code OTP généré (simulation)</OtpLabel>
+              <OtpCode>{generatedOtp}</OtpCode>
+            </OtpDisplay>
+            <FieldGroup>
+              <FieldLabel htmlFor="popup-otp">Entrez le code OTP</FieldLabel>
+              <OtpInput
+                id="popup-otp"
+                type="text" 
+                placeholder="------"
+                value={enteredOtp}
+                onChange={(e) => {
+                  setEnteredOtp(e.target.value);
+                  if (otpError) setOtpError('');
+                }}
+                hasError={!!otpError}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={6}
+              />
+              {otpError && <ErrorText role="alert">{otpError}</ErrorText>}
+            </FieldGroup>
+            <PopupButton onClick={handleOtpVerification} disabled={isLoading || enteredOtp.length !== 6}>
+              {isLoading ? 'Vérification...' : 'Valider le code'}
+            </PopupButton>
+            <PopupSecondary onClick={() => setShowOtpPopup(false)}>
+              Annuler
+            </PopupSecondary>
+          </PopupCard>
+        </Overlay>
+      )}
     </Page>
   );
 };

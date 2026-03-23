@@ -4,128 +4,164 @@ import { AppLayout } from '../components/AppLayout';
 import Swal from 'sweetalert2';
 
 const Form = styled.div`
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 22px;
-  padding: 1.6rem;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(31, 90, 51, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
   display: grid;
-  gap: 1.4rem;
-  border: 1px solid rgba(31, 90, 51, 0.1);
-  backdrop-filter: blur(10px);
-  max-width: 900px;
+  gap: 1.8rem;
+  border: 1px solid rgba(31, 90, 51, 0.08);
+  width: 100%;
+`;
+
+const FormContainer = styled.div`
+  width: 100%;
 `;
 
 const SectionTitle = styled.h2`
-  margin: 0;
+  margin: 0 0 1.2rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #22312a;
-  font-size: 1.1rem;
+  color: #1a3d28;
+  font-size: 1.15rem;
   font-weight: 600;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(31, 90, 51, 0.1);
+  padding-bottom: 0.8rem;
+  border-bottom: 2px solid rgba(31, 90, 51, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 20px;
+    background: linear-gradient(180deg, #1f5a33 0%, #2d7a4a 100%);
+    border-radius: 2px;
+  }
 `;
 
 const Row = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.2rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const FieldGroup = styled.div`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.5rem;
+  width: 100%;
 `;
 
 const Label = styled.label`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #1a3d28;
-  font-size: 0.9rem;
-  font-weight: 500;
+  color: #1f5a33;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  
+  &::after {
+    content: '';
+  }
 `;
 
 const Helper = styled.span<{ $error?: boolean }>`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.8rem;
-  color: ${({ $error }) => $error ? '#b03a2e' : '#6b6f72'};
+  font-size: 0.78rem;
+  color: ${({ $error }) => $error ? '#c0392b' : '#6b7280'};
+  margin-top: 0.2rem;
 `;
 
 const Field = styled.input<{ hasError?: boolean }>`
   width: 100%;
-  border: 1px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.5)' : 'rgba(31, 90, 51, 0.2)'};
-  border-radius: 14px;
-  padding: 0.75rem 0.9rem;
-  font-size: 1rem;
+  border: 1.5px solid ${({ hasError }) => hasError ? '#e74c3c' : '#e2e8f0'};
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #22312a;
+  color: #1a202c;
   outline: none;
-  background: rgba(255, 255, 255, 0.85);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  
   &:focus {
-    border-color: rgba(31, 90, 51, 0.45);
-    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
+    border-color: ${({ hasError }) => hasError ? '#e74c3c' : '#1f5a33'};
+    background: #ffffff;
+    box-shadow: 0 0 0 3px ${({ hasError }) => hasError ? 'rgba(231, 76, 60, 0.15)' : 'rgba(31, 90, 51, 0.1)'};
   }
+  
   &::placeholder {
-    color: #8a9a90;
+    color: #94a3b8;
   }
 `;
 
 const Select = styled.select<{ hasError?: boolean }>`
   width: 100%;
-  border: 1px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.5)' : 'rgba(31, 90, 51, 0.2)'};
-  border-radius: 14px;
-  padding: 0.75rem 0.9rem;
-  font-size: 1rem;
+  border: 1.5px solid ${({ hasError }) => hasError ? '#e74c3c' : '#e2e8f0'};
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #22312a;
+  color: #1a202c;
   outline: none;
-  background: rgba(255, 255, 255, 0.85);
+  background: #f8fafc;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
+  
   &:focus {
-    border-color: rgba(31, 90, 51, 0.45);
-    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
+    border-color: ${({ hasError }) => hasError ? '#e74c3c' : '#1f5a33'};
+    background: #ffffff;
+    box-shadow: 0 0 0 3px ${({ hasError }) => hasError ? 'rgba(231, 76, 60, 0.15)' : 'rgba(31, 90, 51, 0.1)'};
   }
 `;
 
 const Textarea = styled.textarea`
   width: 100%;
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  border-radius: 14px;
-  padding: 0.75rem 0.9rem;
-  font-size: 1rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #22312a;
+  color: #1a202c;
   outline: none;
   min-height: 120px;
   resize: vertical;
-  background: rgba(255, 255, 255, 0.85);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  
   &:focus {
-    border-color: rgba(31, 90, 51, 0.45);
-    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
+    border-color: #1f5a33;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.1);
   }
+  
   &::placeholder {
-    color: #8a9a90;
+    color: #94a3b8;
   }
 `;
 
 const Notice = styled.div<{ $type?: 'info' | 'warning' | 'success' }>`
   padding: 1rem 1.2rem;
-  border-radius: 16px;
+  border-radius: 14px;
   background: ${({ $type }) => 
-    $type === 'warning' ? 'rgba(210, 140, 30, 0.1)' : 
-    $type === 'success' ? 'rgba(31, 90, 51, 0.1)' :
-    'rgba(255, 255, 255, 0.88)'};
+    $type === 'warning' ? 'rgba(245, 158, 11, 0.1)' : 
+    $type === 'success' ? 'rgba(34, 197, 94, 0.1)' :
+    'rgba(59, 130, 246, 0.08)'};
   border: 1px solid ${({ $type }) => 
-    $type === 'warning' ? 'rgba(210, 140, 30, 0.3)' : 
-    $type === 'success' ? 'rgba(31, 90, 51, 0.3)' :
-    'rgba(31, 90, 51, 0.2)'};
+    $type === 'warning' ? 'rgba(245, 158, 11, 0.3)' : 
+    $type === 'success' ? 'rgba(34, 197, 94, 0.3)' :
+    'rgba(59, 130, 246, 0.2)'};
   color: ${({ $type }) => 
-    $type === 'warning' ? '#8a5a10' : 
-    $type === 'success' ? '#1a5a33' :
-    '#2e4f3b'};
+    $type === 'warning' ? '#92400e' : 
+    $type === 'success' ? '#166534' :
+    '#1e40af'};
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
@@ -138,26 +174,28 @@ const Notice = styled.div<{ $type?: 'info' | 'warning' | 'success' }>`
 
 const ActionRow = styled.div`
   display: flex;
-  gap: 0.8rem;
+  gap: 1rem;
   flex-wrap: wrap;
-  padding-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(31, 90, 51, 0.08);
 `;
 
 const PrimaryButton = styled.button`
-  border: 1px solid rgba(31, 90, 51, 0.55);
-  border-radius: 12px;
-  padding: 0.75rem 1.4rem;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9) 0%, rgba(31, 90, 51, 0.75) 100%);
+  border: none;
+  border-radius: 14px;
+  padding: 0.9rem 1.8rem;
+  background: linear-gradient(135deg, #1f5a33 0%, #2d7a4a 100%);
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(31, 90, 51, 0.25);
   
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(31, 90, 51, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(31, 90, 51, 0.35);
   }
   
   &:disabled {
@@ -167,8 +205,8 @@ const PrimaryButton = styled.button`
 `;
 
 const GhostButton = styled.button`
-  border: 1px solid rgba(31, 90, 51, 0.25);
-  border-radius: 12px;
+  border: 1.5px solid rgba(31, 90, 51, 0.3);
+  border-radius: 14px;
   padding: 0.75rem 1.4rem;
   background: rgba(31, 90, 51, 0.08);
   color: rgba(31, 90, 51, 0.9);
@@ -351,7 +389,8 @@ const AdminCreateElection = () => {
       subtitle="Le systeme demarre et cloture automatiquement selon les dates definies."
       navItems={navItems}
     >
-      <Form onSubmit={handleSubmit}>
+      <FormContainer>
+        <Form onSubmit={handleSubmit}>
         <SectionTitle>Informations générales</SectionTitle>
         <Row>
           <FieldGroup>
@@ -437,22 +476,42 @@ const AdminCreateElection = () => {
         <Row>
           <FieldGroup>
             <Label htmlFor="region">Zone / Région *</Label>
-            <Field 
-              id="region"
-              name="region"
-              placeholder="Ex: National, Dakar, Thiès..."
-              value={formData.region}
-              onChange={handleChange}
-              hasError={!!errors.region}
-              aria-invalid={!!errors.region}
-              aria-describedby={errors.region ? 'region-error' : undefined}
-            />
+            <div style={{ position: 'relative' }}>
+              <Field 
+                id="region"
+                name="region"
+                placeholder="Tapez pour rechercher une région..."
+                value={formData.region}
+                onChange={handleChange}
+                hasError={!!errors.region}
+                aria-invalid={!!errors.region}
+                aria-describedby={errors.region ? 'region-error' : undefined}
+                list="region-suggestions"
+              />
+              <datalist id="region-suggestions">
+                <option value="National" />
+                <option value="Dakar" />
+                <option value="Diourbel" />
+                <option value="Fatick" />
+                <option value="Kaffrine" />
+                <option value="Kaolack" />
+                <option value="Kédougou" />
+                <option value="Kolda" />
+                <option value="Louga" />
+                <option value="Matam" />
+                <option value="Saint-Louis" />
+                <option value="Sédhiou" />
+                <option value="Tambacounda" />
+                <option value="Thiès" />
+                <option value="Ziguinchor" />
+              </datalist>
+            </div>
             {errors.region && <Helper $error id="region-error">{errors.region}</Helper>}
           </FieldGroup>
         </Row>
 
-        <Notice $type="info">
-          <i className="bi bi-info-circle-fill" />
+        <Notice $type="success">
+          <i className="bi bi-check-circle-fill" />
           <div>
             <strong>Important :</strong> Une fois programmée, l'élection suit un cycle automatique. 
             Le système démarre et clôture automatiquement selon les dates définies. Aucune intervention 
@@ -469,6 +528,7 @@ const AdminCreateElection = () => {
           </GhostButton>
         </ActionRow>
       </Form>
+      </FormContainer>
     </AppLayout>
   );
 };

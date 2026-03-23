@@ -279,90 +279,162 @@ const CitizenVoteConfirm = () => {
   const navigate = useNavigate();
 
   const handleConfirmVote = () => {
-    // Step 1 — Confirmation popup
+    // Step 1 — Demander le code OTP
     Swal.fire({
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
       buttonsStyling: false,
       showCancelButton: true,
-      confirmButtonText: '<i class="bi bi-lock-fill"></i>&nbsp; Confirmer mon vote',
+      confirmButtonText: '<i class="bi bi-shield-check"></i>&nbsp; Valider',
       cancelButtonText: 'Annuler',
-      title: 'Confirmer votre vote ?',
+      title: 'Vérification de sécurité',
       html: `
-        <p style="margin:0 0 0.5rem;font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;">
-          Vous vous apprêtez à voter pour :
+        <p style="margin:0 0 1rem;font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;">
+          Pour confirmer votre vote, veuillez saisir le code OTP envoyé par SMS.
         </p>
 
-        <div class="swal-vote-candidate">
-          <div class="swal-vote-avatar">FS</div>
-          <div class="swal-vote-info">
-            <div class="name">Fatou Sow</div>
-            <div class="party">Renouveau National — Emploi des jeunes</div>
-          </div>
+        <div style="
+          background:rgba(31,90,51,0.04);
+          border:1px dashed rgba(31,90,51,0.2);
+          border-radius:14px;
+          padding:0.8rem 1rem;
+          margin-bottom:1rem;
+        ">
+          <input 
+            type="text" 
+            id="otp-input" 
+            placeholder="XXXXXX" 
+            maxlength="6"
+            style="
+              width:100%;
+              border:none;
+              background:transparent;
+              text-align:center;
+              font-family:'Courier New',monospace;
+              font-size:1.5rem;
+              font-weight:700;
+              letter-spacing:0.3em;
+              color:rgba(31,90,51,0.85);
+              outline:none;
+            "
+          />
         </div>
 
         <div class="swal-chips">
-          <span class="swal-chip"><i class="bi bi-shield-lock"></i> Anonyme</span>
-          <span class="swal-chip"><i class="bi bi-key"></i> AES-256</span>
-          <span class="swal-chip"><i class="bi bi-check2-all"></i> Vote unique</span>
+          <span class="swal-chip"><i class="bi bi-phone"></i> Code à 6 chiffres</span>
+          <span class="swal-chip"><i class="bi bi-clock"></i> Valide 5 min</span>
         </div>
 
-        <div class="swal-alert-box">
-          <i class="bi bi-exclamation-triangle" style="flex-shrink:0;margin-top:1px;"></i>
-          <span>Cette action est <strong>irréversible</strong>. Votre bulletin sera enregistré définitivement et de manière anonyme.</span>
+        <div class="swal-alert-box" style="margin-top:1rem;">
+          <i class="bi bi-info-circle" style="flex-shrink:0;margin-top:1px;"></i>
+          <span>Si vous n'avez pas reçu le code, veuillez réessayer dans quelques secondes.</span>
         </div>
       `,
+      preConfirm: () => {
+        const otpInput = document.getElementById('otp-input') as HTMLInputElement;
+        const otp = otpInput?.value?.trim();
+        if (!otp) {
+          Swal.showValidationMessage('Veuillez saisir le code OTP');
+          return false;
+        }
+        if (otp.length !== 6) {
+          Swal.showValidationMessage('Le code doit comporter 6 chiffres');
+          return false;
+        }
+        // Simulation de vérification OTP - en production, vérifier avec le backend
+        if (otp !== '123456') {
+          Swal.showValidationMessage('Code OTP invalide');
+          return false;
+        }
+        return true;
+      },
     }).then((result) => {
       if (!result.isConfirmed) return;
 
-      // Step 2 — Chiffrement en cours (loading)
+      // Step 2 — Confirmation popup après OTP
       Swal.fire({
-        customClass: { popup: 'naatal-swal naatal-swal-loading' },
-        title: 'Chiffrement en cours...',
+        customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
+        buttonsStyling: false,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-lock-fill"></i>&nbsp; Confirmer mon vote',
+        cancelButtonText: 'Annuler',
+        title: 'Confirmer votre vote ?',
         html: `
-          <p style="font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;margin:0;">
-            Votre bulletin est chiffré avec <strong>AES-256</strong> et anonymisé.<br/>
-            Veuillez patienter.
+          <p style="margin:0 0 0.5rem;font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;">
+            Vous vous apprêtez à voter pour :
           </p>
+
+          <div class="swal-vote-candidate">
+            <div class="swal-vote-avatar">FS</div>
+            <div class="swal-vote-info">
+              <div class="name">Fatou Sow</div>
+              <div class="party">Renouveau National — Emploi des jeunes</div>
+            </div>
+          </div>
+
+          <div class="swal-chips">
+            <span class="swal-chip"><i class="bi bi-shield-lock"></i> Anonyme</span>
+            <span class="swal-chip"><i class="bi bi-key"></i> AES-256</span>
+            <span class="swal-chip"><i class="bi bi-check2-all"></i> Vote unique</span>
+          </div>
+
+          <div class="swal-alert-box">
+            <i class="bi bi-exclamation-triangle" style="flex-shrink:0;margin-top:1px;"></i>
+            <span>Cette action est <strong>irréversible</strong>. Votre bulletin sera enregistré définitivement et de manière anonyme.</span>
+          </div>
         `,
-        showConfirmButton: false,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => {
-          Swal.showLoading();
-          // Simulate async encryption delay
-          setTimeout(() => {
-            // Step 3 — Success
-            Swal.fire({
-              customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
-              buttonsStyling: false,
-              icon: 'success',
-              title: 'Vote enregistré !',
-              html: `
-                <p style="font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;margin:0 0 0.8rem;">
-                  Votre bulletin a été ajouté au scrutin de façon <strong>anonyme et chiffrée</strong>.
-                </p>
-                <div style="
-                  background:rgba(31,90,51,0.07);
-                  border:1px solid rgba(31,90,51,0.18);
-                  border-radius:12px;
-                  padding:0.7rem 1rem;
-                  font-family:'Courier New',monospace;
-                  font-size:1.05rem;
-                  font-weight:800;
-                  color:rgba(31,90,51,0.88);
-                  letter-spacing:0.14em;
-                  text-align:center;
-                ">5F7C-82AB-9C22-4A11</div>
-                <p style="font-family:Poppins,sans-serif;font-size:0.75rem;color:#8a9a90;margin:0.5rem 0 0;">
-                  Conservez ce token — c'est votre seule preuve de participation.
-                </p>
-              `,
-              confirmButtonText: '<i class="bi bi-receipt"></i>&nbsp; Voir mon reçu complet',
-            }).then(() => {
-              navigate('/citoyen/vote/recu');
-            });
-          }, 1800);
-        },
+      }).then((confirmResult) => {
+        if (!confirmResult.isConfirmed) return;
+
+        // Step 3 — Chiffrement en cours (loading)
+        Swal.fire({
+          customClass: { popup: 'naatal-swal naatal-swal-loading' },
+          title: 'Chiffrement en cours...',
+          html: `
+            <p style="font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;margin:0;">
+              Votre bulletin est chiffré avec <strong>AES-256</strong> et anonymisé.<br/>
+              Veuillez patienter.
+            </p>
+          `,
+          showConfirmButton: false,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => {
+            Swal.showLoading();
+            // Simulate async encryption delay
+            setTimeout(() => {
+              // Step 4 — Success
+              Swal.fire({
+                customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+                buttonsStyling: false,
+                icon: 'success',
+                title: 'Vote enregistré !',
+                html: `
+                  <p style="font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;margin:0 0 0.8rem;">
+                    Votre bulletin a été ajouté au scrutin de façon <strong>anonyme et chiffrée</strong>.
+                  </p>
+                  <div style="
+                    background:rgba(31,90,51,0.07);
+                    border:1px solid rgba(31,90,51,0.18);
+                    border-radius:12px;
+                    padding:0.7rem 1rem;
+                    font-family:'Courier New',monospace;
+                    font-size:1.05rem;
+                    font-weight:800;
+                    color:rgba(31,90,51,0.88);
+                    letter-spacing:0.14em;
+                    text-align:center;
+                  ">5F7C-82AB-9C22-4A11</div>
+                  <p style="font-family:Poppins,sans-serif;font-size:0.75rem;color:#8a9a90;margin:0.5rem 0 0;">
+                    Conservez ce token — c'est votre seule preuve de participation.
+                  </p>
+                `,
+                confirmButtonText: '<i class="bi bi-receipt"></i>&nbsp; Voir mon reçu complet',
+              }).then(() => {
+                navigate('/citoyen/vote/recu');
+              });
+            }, 1800);
+          },
+        });
       });
     });
   };

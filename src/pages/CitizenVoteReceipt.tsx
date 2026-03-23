@@ -1,5 +1,5 @@
 import styled, { keyframes } from 'styled-components';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 
 const pop = keyframes`
@@ -10,36 +10,42 @@ const pop = keyframes`
 
 const PageGrid = styled.div`
   display: grid;
-  gap: 1.2rem;
-  max-width: 720px;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 `;
 
 const SuccessPanel = styled.div`
   background: rgba(255, 255, 255, 0.93);
   border-radius: 24px;
-  padding: 2rem 1.8rem;
+  padding: 1.5rem;
   box-shadow: 0 16px 36px rgba(12, 24, 18, 0.1);
   display: grid;
-  gap: 1.4rem;
+  gap: 1rem;
   border: 1px solid rgba(31, 90, 51, 0.18);
   backdrop-filter: blur(10px);
   text-align: center;
   align-items: center;
   justify-items: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
 `;
 
 const CheckCircle = styled.div`
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(31, 90, 51, 0.85), rgba(31, 90, 51, 0.6));
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(31, 90, 51, 0.3);
+  box-shadow: 0 6px 18px rgba(31, 90, 51, 0.3);
   animation: ${pop} 0.5s ease-out;
   i {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
     color: #fff;
   }
 `;
@@ -47,7 +53,7 @@ const CheckCircle = styled.div`
 const SuccessTitle = styled.h2`
   margin: 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #1a2e20;
 `;
@@ -55,10 +61,10 @@ const SuccessTitle = styled.h2`
 const SuccessText = styled.p`
   margin: 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: #5a6d62;
-  max-width: 480px;
-  line-height: 1.6;
+  max-width: 420px;
+  line-height: 1.5;
 `;
 
 const ReceiptBox = styled.div`
@@ -66,10 +72,10 @@ const ReceiptBox = styled.div`
   background: rgba(31, 90, 51, 0.05);
   border: 1px dashed rgba(31, 90, 51, 0.3);
   border-radius: 18px;
-  padding: 1.4rem 1.6rem;
+  padding: 1.2rem 1.4rem;
   text-align: left;
   display: grid;
-  gap: 0.8rem;
+  gap: 0.7rem;
 `;
 
 const ReceiptTitle = styled.p`
@@ -102,18 +108,18 @@ const ReceiptValue = styled.span`
   color: #22312a;
 `;
 
-const TokenBox = styled.div`
+const ConfirmBox = styled.div`
   background: rgba(31, 90, 51, 0.08);
   border-radius: 12px;
-  padding: 0.8rem 1rem;
+  padding: 0.7rem 0.9rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
   border: 1px solid rgba(31, 90, 51, 0.15);
 `;
 
-const TokenLabel = styled.span`
+const ConfirmLabel = styled.span`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.78rem;
   font-weight: 600;
@@ -122,109 +128,33 @@ const TokenLabel = styled.span`
   color: rgba(31, 90, 51, 0.6);
 `;
 
-const TokenCode = styled.span`
-  font-family: 'Courier New', monospace;
-  font-weight: 800;
+const ConfirmNumber = styled.span`
+  font-family: 'Poppins', Arial, sans-serif;
+  font-weight: 700;
   color: rgba(31, 90, 51, 0.9);
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   font-size: 1rem;
 `;
 
-const CopyButton = styled.button`
-  background: rgba(31, 90, 51, 0.1);
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  border-radius: 8px;
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
-  color: rgba(31, 90, 51, 0.8);
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
-  transition: background 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.18); }
-`;
-
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.8rem;
-  width: 100%;
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const InfoCard = styled.div`
-  padding: 0.9rem 1rem;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(31, 90, 51, 0.12);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  text-align: center;
-  i {
-    font-size: 1.4rem;
-    color: rgba(31, 90, 51, 0.7);
-  }
-`;
-
-const InfoLabel = styled.p`
-  margin: 0;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.75rem;
-  color: #6b7a72;
-`;
-
-const InfoValue = styled.p`
-  margin: 0;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #22312a;
-`;
-
-const ActionRow = styled.div`
-  display: flex;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  justify-content: center;
-`;
-
-const SecondaryButton = styled(Link)`
-  text-decoration: none;
-  padding: 0.65rem 1.2rem;
-  border-radius: 12px;
+const ReturnButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
   background: rgba(31, 90, 51, 0.08);
   color: rgba(31, 90, 51, 0.9);
   border: 1px solid rgba(31, 90, 51, 0.22);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
-`;
-
-const PrimaryButton = styled(Link)`
-  text-decoration: none;
-  padding: 0.65rem 1.4rem;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9), rgba(31, 90, 51, 0.72));
-  color: #fff;
-  border: 1px solid rgba(31, 90, 51, 0.55);
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 700;
-  font-size: 0.95rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 14px rgba(31, 90, 51, 0.22);
+  cursor: pointer;
+  transition: background 0.2s;
+  z-index: 10;
+  &:hover { background: rgba(31, 90, 51, 0.15); }
 `;
 
 const navItems = [
@@ -237,10 +167,9 @@ const navItems = [
 ];
 
 const CitizenVoteReceipt = () => {
-  const token = '5F7C-82AB-9C22-4A11';
-  const handleCopy = () => {
-    navigator.clipboard.writeText(token);
-  };
+  const navigate = useNavigate();
+  // Simple confirmation number instead of technical token
+  const confirmationNumber = 'V-2026-0847';
 
   return (
     <AppLayout
@@ -251,13 +180,14 @@ const CitizenVoteReceipt = () => {
     >
       <PageGrid>
         <SuccessPanel>
+          <ReturnButton onClick={() => navigate(-1)}>
+            <i className="bi bi-arrow-left" />
+            Retour
+          </ReturnButton>
           <CheckCircle><i className="bi bi-check-lg" /></CheckCircle>
-          <div>
-            <SuccessTitle>Merci pour votre participation !</SuccessTitle>
-          </div>
+          <SuccessTitle>Merci pour votre participation !</SuccessTitle>
           <SuccessText>
-            Votre vote a ete enregistre avec succes. Aucun lien n'existe entre votre identite et votre
-            bulletin. Le token ci-dessous est la seule preuve de votre participation.
+            Votre vote a ete enregistre avec succes. Votre voix compte pour construire l'avenir de notre pays.
           </SuccessText>
 
           <ReceiptBox>
@@ -267,54 +197,25 @@ const CitizenVoteReceipt = () => {
               <ReceiptValue>Presidentielle 2025</ReceiptValue>
             </ReceiptRow>
             <ReceiptRow>
-              <ReceiptLabel>Horodatage</ReceiptLabel>
-              <ReceiptValue>09/03/2026 — 11:42:07</ReceiptValue>
+              <ReceiptLabel>Date</ReceiptLabel>
+              <ReceiptValue>09 mars 2026</ReceiptValue>
+            </ReceiptRow>
+            <ReceiptRow>
+              <ReceiptLabel>Heure</ReceiptLabel>
+              <ReceiptValue>11:42</ReceiptValue>
             </ReceiptRow>
             <ReceiptRow>
               <ReceiptLabel>Statut</ReceiptLabel>
               <ReceiptValue style={{ color: 'rgba(31, 90, 51, 0.9)' }}>
-                <i className="bi bi-shield-check" /> Valide et chiffre
+                <i className="bi bi-shield-check" /> Vote enregistre
               </ReceiptValue>
             </ReceiptRow>
             <div style={{ height: '1px', background: 'rgba(31, 90, 51, 0.1)' }} />
-            <TokenLabel>Token anonyme</TokenLabel>
-            <TokenBox>
-              <TokenCode>{token}</TokenCode>
-              <CopyButton onClick={handleCopy}>
-                <i className="bi bi-clipboard" />
-                Copier
-              </CopyButton>
-            </TokenBox>
+            <ConfirmLabel>Numero de confirmation</ConfirmLabel>
+            <ConfirmBox>
+              <ConfirmNumber>{confirmationNumber}</ConfirmNumber>
+            </ConfirmBox>
           </ReceiptBox>
-
-          <InfoGrid>
-            <InfoCard>
-              <i className="bi bi-person-x" />
-              <InfoLabel>Anonymat</InfoLabel>
-              <InfoValue>Garanti</InfoValue>
-            </InfoCard>
-            <InfoCard>
-              <i className="bi bi-shield-lock" />
-              <InfoLabel>Chiffrement</InfoLabel>
-              <InfoValue>AES-256</InfoValue>
-            </InfoCard>
-            <InfoCard>
-              <i className="bi bi-clock-history" />
-              <InfoLabel>Cloture scrutin</InfoLabel>
-              <InfoValue>12/03 18h00</InfoValue>
-            </InfoCard>
-          </InfoGrid>
-
-          <ActionRow>
-            <SecondaryButton to="/citoyen/resultats">
-              <i className="bi bi-bar-chart" />
-              Voir resultats
-            </SecondaryButton>
-            <PrimaryButton to="/citoyen/dashboard">
-              <i className="bi bi-house" />
-              Tableau de bord
-            </PrimaryButton>
-          </ActionRow>
         </SuccessPanel>
       </PageGrid>
     </AppLayout>

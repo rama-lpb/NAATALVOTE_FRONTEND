@@ -1,0 +1,318 @@
+@startuml NAATALVOTE_Class_Diagram
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam backgroundColor #FEFEFE
+
+' ============================================
+' PACKAGES
+' ============================================
+
+package "Modèles de Données" {
+    class User {
+        -id: string
+        -cni: string
+        -nom: string
+        -prenom: string
+        -email: string
+        -telephones: string[]
+        -date_naissance: string
+        -adresse: string
+        -roles: UserRole[]
+        -otp: string
+        +findUserByCNI(cni: string): User
+        +validateOTP(cni: string, phone: string, otp: string): User
+    }
+    
+    enum UserRole {
+        CITOYEN
+        ADMIN
+        OPERATEUR
+        SUPERADMIN
+    }
+    
+    class Election {
+        -id: string
+        -titre: string
+        -description: string
+        -type: string
+        -date_debut: string
+        -date_fin: string
+        -statut: ElectionStatut
+        -admin_id: string
+        -candidat_ids: string[]
+        -region: string
+        -total_electeurs: number
+        -votes_count: number
+        +getOpenElections(): Election[]
+        +getUpcomingElections(): Election[]
+        +getClosedElections(): Election[]
+    }
+    
+    enum ElectionStatut {
+        PROGRAMMEE
+        EN_COURS
+        CLOTUREE
+    }
+    
+    class Candidat {
+        -id: string
+        -nom: string
+        -prenom: string
+        -parti_politique: string
+        -biographie: string
+        -photo_url: string
+        -programme_url: string
+        -election_id: string
+        -votes_count: number
+        -color: string
+    }
+    
+    class Vote {
+        -id: string
+        -token_anonyme: string
+        -candidat_id: string
+        -election_id: string
+        -user_id: string
+        -horodatage: string
+    }
+    
+    class TraceVote {
+        -id: string
+        -user_id: string
+        -election_id: string
+        -a_vote: boolean
+        -horodatage: string | null
+    }
+    
+    class AlerteFraude {
+        -id: string
+        -type_fraude: string
+        -user_id: string | null
+        -election_id: string
+        -description: string
+        -statut: AlerteStatut
+        -date_detection: string
+        -operateur_id: string | null
+        -date_traitement: string | null
+        -ip: string | null
+    }
+    
+    enum AlerteStatut {
+        NOUVELLE
+        EN_ANALYSE
+        RESOLUE
+        FAUSSE_ALERTE
+    }
+    
+    class ActionLog {
+        -id: string
+        -type_action: string
+        -utilisateur_id: string
+        -description: string
+        -horodatage: string
+        -adresse_ip: string
+        -signature_cryptographique: string
+    }
+    
+    class Suspension {
+        -id: string
+        -user_id: string
+        -motif: string
+        -operateur_id: string
+        -superadmin_id: string | null
+        -statut: SuspensionStatut
+        -date_creation: string
+        -date_decision: string | null
+        -justification: string
+    }
+    
+    enum SuspensionStatut {
+        EN_ATTENTE
+        APPROUVEE
+        REJETEE
+    }
+}
+
+package "Services" {
+    class AuthService {
+        +login(cni: string, phone: string, otp: string): User
+        +logout(): void
+        +getCurrentUser(): User
+        +hasRole(role: UserRole): boolean
+    }
+    
+    class ElectionService {
+        +createElection(data: Election): Election
+        +updateElection(id: string, data: Election): Election
+        +deleteElection(id: string): void
+        +getElections(): Election[]
+        +getElectionById(id: string): Election
+        +getCandidatsByElection(electionId: string): Candidat[]
+    }
+    
+    class VoteService {
+        +castVote(electionId: string, candidatId: string): Vote
+        +verifyVote(citoyenId: string, electionId: string): boolean
+        +getVoteReceipt(voteId: string): Vote
+        +getElectionResults(electionId: string): Resultats
+    }
+    
+    class SecurityService {
+        +detectFraude(): AlerteFraude[]
+        +analyzePattern(electionId: string): AlerteFraude
+        +recommendSuspension(citoyenId: string, motif: string): Suspension
+    }
+    
+    class AuditService {
+        +logAction(type: string, utilisateurId: string): ActionLog
+        +getLogs(): ActionLog[]
+        +getLogsByUser(utilisateurId: string): ActionLog[]
+        +verifyIntegrity(): boolean
+    }
+    
+    class UserManagementService {
+        +createUser(data: User): User
+        +updateUser(id: string, data: User): User
+        +suspendUser(citoyenId: string, motif: string): Suspension
+        +approveSuspension(suspensionId: string): void
+        +rejectSuspension(suspensionId: string): void
+    }
+}
+
+package "Contrôleurs" {
+    class AuthController {
+        +login(): void
+        +otpVerification(): void
+        +logout(): void
+        +selectRole(): void
+    }
+    
+    class CitizenController {
+        +viewElections(): void
+        +viewCandidates(): void
+        +castVote(): void
+        +confirmVote(): void
+        +viewResults(): void
+        +viewProfile(): void
+    }
+    
+    class AdminController {
+        +createElection(): void
+        +manageCandidates(): void
+        +viewStats(): void
+        +generateReports(): void
+    }
+    
+    class OperatorController {
+        +viewAlerts(): void
+        +analyzeAlert(): void
+        +recommendSuspension(): void
+        +viewHistory(): void
+    }
+    
+    class SuperAdminController {
+        +manageUsers(): void
+        +viewLogs(): void
+        +exportData(): void
+        +manageSuspensions(): void
+        +makeDecision(): void
+    }
+}
+
+package "Vues" {
+    class LoginView
+    class CitizenDashboardView
+    class CitizenElectionsView
+    class CitizenVoteView
+    class CitizenVoteConfirmView
+    class CitizenResultsView
+    class AdminDashboardView
+    class AdminCreateElectionView
+    class AdminCandidatesView
+    class AdminStatsView
+    class OperatorDashboardView
+    class SuperAdminConsoleView
+}
+
+' ============================================
+' RELATIONS - HÉRITAGE
+' ============================================
+
+UserRole -- User
+ElectionStatut -- Election
+AlerteStatut -- AlerteFraude
+SuspensionStatut -- Suspension
+
+' ============================================
+' RELATIONS - ASSOCIATIONS
+' ============================================
+
+' User et Election
+User "1" -- "*" Election : "crée"
+Election "1" -- "*" Candidat : "contient"
+
+' Election et Vote
+Election "1" -- "*" Vote : "reçoit"
+Election "1" -- "*" TraceVote : "trace"
+Election "1" -- "*" AlerteFraude : "surveille"
+
+' User et Vote
+User "1" -- "*" Vote : "émet"
+User "1" -- "*" TraceVote : "suivi"
+
+' Candidat et Vote
+Candidat "1" -- "*" Vote : "reçoit"
+
+' Suspensions
+User "1" -- "*" Suspension : "subit"
+User "1" -- "*" AlerteFraude : "impliqué"
+
+' Logs
+User "1" -- "*" ActionLog : "génère"
+
+' ============================================
+' RELATIONS - SERVICES
+' ============================================
+
+AuthService --> User
+ElectionService --> Election
+ElectionService --> Candidat
+VoteService --> Vote
+VoteService --> TraceVote
+SecurityService --> AlerteFraude
+SecurityService --> Suspension
+AuditService --> ActionLog
+UserManagementService --> User
+UserManagementService --> Suspension
+
+' ============================================
+' CONTRÔLEURS - SERVICES
+' ============================================
+
+AuthController --> AuthService
+CitizenController --> ElectionService
+CitizenController --> VoteService
+AdminController --> ElectionService
+AdminController --> VoteService
+OperatorController --> SecurityService
+SuperAdminController --> UserManagementService
+SuperAdminController --> AuditService
+
+' ============================================
+' VUES - CONTRÔLEURS
+' ============================================
+
+LoginView --> AuthController
+CitizenDashboardView --> CitizenController
+CitizenElectionsView --> CitizenController
+CitizenVoteView --> CitizenController
+CitizenVoteConfirmView --> CitizenController
+CitizenResultsView --> CitizenController
+AdminDashboardView --> AdminController
+AdminCreateElectionView --> AdminController
+AdminCandidatesView --> AdminController
+AdminStatsView --> AdminController
+OperatorDashboardView --> OperatorController
+SuperAdminConsoleView --> SuperAdminController
+
+@enduml

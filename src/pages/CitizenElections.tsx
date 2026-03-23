@@ -10,7 +10,7 @@ const Panel = styled.div`
   box-shadow: 0 16px 30px rgba(12, 24, 18, 0.08);
   display: grid;
   gap: 1rem;
-  border: 1px solid rgba(31, 90, 51, 0.12);
+  border: 1px solid rgba(31, 90, 51, 0.06);
   backdrop-filter: blur(10px);
 `;
 
@@ -22,7 +22,7 @@ const SummaryRow = styled.div`
 
 const SummaryCard = styled.div`
   border-radius: 16px;
-  border: 1px solid rgba(31, 90, 51, 0.12);
+  border: 1px solid rgba(31, 90, 51, 0.06);
   padding: 0.9rem 1rem;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 10px 20px rgba(12, 24, 18, 0.06);
@@ -47,7 +47,7 @@ const HeaderRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
+  gap: 1rem;
   flex-wrap: wrap;
 `;
 
@@ -57,6 +57,13 @@ const Title = styled.h2`
   color: #22312a;
   font-size: 1.2rem;
   font-weight: 500;
+`;
+
+const FiltersAndControls = styled.div`
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
 `;
 
 const Filters = styled.div`
@@ -83,12 +90,6 @@ const FilterChip = styled.button<{ $active?: boolean }>`
   }
 `;
 
-const Controls = styled.div`
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  align-items: center;
-`;
 
 const Search = styled.input`
   border: 1px solid rgba(31, 90, 51, 0.2);
@@ -149,10 +150,10 @@ const Grid = styled.div<{ $viewMode: 'grid' | 'list' }>`
 
 const Card = styled.div<{ $status: 'live' | 'scheduled' | 'closed' }>`
   border-radius: 18px;
-  border: 2px solid ${({ $status }) => 
-    $status === 'live' ? 'rgba(31, 90, 51, 0.25)' : 
-    $status === 'scheduled' ? 'rgba(138, 90, 16, 0.25)' : 
-    'rgba(91, 95, 101, 0.15)'};
+  border: 1px solid ${({ $status }) => 
+    $status === 'live' ? 'rgba(31, 90, 51, 0.12)' : 
+    $status === 'scheduled' ? 'rgba(138, 90, 16, 0.12)' : 
+    'rgba(91, 95, 101, 0.08)'};
   padding: 1.3rem 1.2rem;
   background: rgba(255, 255, 255, 0.95);
   display: flex;
@@ -170,11 +171,11 @@ const Card = styled.div<{ $status: 'live' | 'scheduled' | 'closed' }>`
     left: 0;
     top: 0;
     bottom: 0;
-    width: 5px;
+    width: 4px;
     background: ${({ $status }) => 
-      $status === 'live' ? 'rgba(31, 90, 51, 0.8)' : 
-      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.7)' : 
-      'rgba(91, 95, 101, 0.5)'};
+      $status === 'live' ? 'rgba(31, 90, 51, 0.6)' : 
+      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.5)' : 
+      'rgba(91, 95, 101, 0.4)'};
     border-radius: 18px 0 0 18px;
   }
 
@@ -182,9 +183,9 @@ const Card = styled.div<{ $status: 'live' | 'scheduled' | 'closed' }>`
     transform: translateY(-3px);
     box-shadow: 0 12px 28px rgba(12, 24, 18, 0.1);
     border-color: ${({ $status }) => 
-      $status === 'live' ? 'rgba(31, 90, 51, 0.4)' : 
-      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.4)' : 
-      'rgba(91, 95, 101, 0.25)'};
+      $status === 'live' ? 'rgba(31, 90, 51, 0.2)' : 
+      $status === 'scheduled' ? 'rgba(138, 90, 16, 0.2)' : 
+      'rgba(91, 95, 101, 0.12)'};
   }
 `;
 
@@ -519,7 +520,63 @@ const CitizenElections = () => {
         </SummaryRow>
         <HeaderRow>
           <Title>Liste des scrutins</Title>
-          <Controls>
+          <FiltersAndControls>
+            <Filters>
+              <FilterChip 
+                $active={activeFilter === 'all'} 
+                onClick={() => { setActiveFilter('all'); setCurrentPage(1); }}
+              >
+                Toutes
+              </FilterChip>
+              <FilterChip 
+                $active={activeFilter === 'live'} 
+                onClick={() => { setActiveFilter('live'); setCurrentPage(1); }}
+              >
+                En cours
+              </FilterChip>
+              <FilterChip 
+                $active={activeFilter === 'scheduled'} 
+                onClick={() => { setActiveFilter('scheduled'); setCurrentPage(1); }}
+              >
+                Programmees
+              </FilterChip>
+              <FilterChip 
+                $active={activeFilter === 'closed'} 
+                onClick={() => { setActiveFilter('closed'); setCurrentPage(1); }}
+              >
+                Cloturees
+              </FilterChip>
+            </Filters>
+            <FilterChip 
+              $active={typeFilter === 'all'} 
+              onClick={() => { setTypeFilter('all'); setCurrentPage(1); }}
+            >
+              Tous types
+            </FilterChip>
+            <FilterChip 
+              $active={typeFilter === 'Presidentielle'} 
+              onClick={() => { setTypeFilter('Presidentielle'); setCurrentPage(1); }}
+            >
+              Presidentielle
+            </FilterChip>
+            <FilterChip 
+              $active={typeFilter === 'Legislative'} 
+              onClick={() => { setTypeFilter('Legislative'); setCurrentPage(1); }}
+            >
+              Legislative
+            </FilterChip>
+            <FilterChip 
+              $active={typeFilter === 'Municipale'} 
+              onClick={() => { setTypeFilter('Municipale'); setCurrentPage(1); }}
+            >
+              Municipale
+            </FilterChip>
+            <FilterChip 
+              $active={typeFilter === 'Regionale'} 
+              onClick={() => { setTypeFilter('Regionale'); setCurrentPage(1); }}
+            >
+              Regionale
+            </FilterChip>
             <Search 
               placeholder="Rechercher un scrutin" 
               value={searchTerm}
@@ -546,66 +603,8 @@ const CitizenElections = () => {
                 ⊞
               </ViewButton>
             </ViewToggle>
-          </Controls>
+          </FiltersAndControls>
         </HeaderRow>
-        <Filters>
-          <FilterChip 
-            $active={activeFilter === 'all'} 
-            onClick={() => { setActiveFilter('all'); setCurrentPage(1); }}
-          >
-            Toutes
-          </FilterChip>
-          <FilterChip 
-            $active={activeFilter === 'live'} 
-            onClick={() => { setActiveFilter('live'); setCurrentPage(1); }}
-          >
-            En cours
-          </FilterChip>
-          <FilterChip 
-            $active={activeFilter === 'scheduled'} 
-            onClick={() => { setActiveFilter('scheduled'); setCurrentPage(1); }}
-          >
-            Programmees
-          </FilterChip>
-          <FilterChip 
-            $active={activeFilter === 'closed'} 
-            onClick={() => { setActiveFilter('closed'); setCurrentPage(1); }}
-          >
-            Cloturees
-          </FilterChip>
-        </Filters>
-        <Filters style={{ marginTop: '0.5rem' }}>
-          <FilterChip 
-            $active={typeFilter === 'all'} 
-            onClick={() => { setTypeFilter('all'); setCurrentPage(1); }}
-          >
-            Tous types
-          </FilterChip>
-          <FilterChip 
-            $active={typeFilter === 'Presidentielle'} 
-            onClick={() => { setTypeFilter('Presidentielle'); setCurrentPage(1); }}
-          >
-            Presidentielle
-          </FilterChip>
-          <FilterChip 
-            $active={typeFilter === 'Legislative'} 
-            onClick={() => { setTypeFilter('Legislative'); setCurrentPage(1); }}
-          >
-            Legislative
-          </FilterChip>
-          <FilterChip 
-            $active={typeFilter === 'Municipale'} 
-            onClick={() => { setTypeFilter('Municipale'); setCurrentPage(1); }}
-          >
-            Municipale
-          </FilterChip>
-          <FilterChip 
-            $active={typeFilter === 'Regionale'} 
-            onClick={() => { setTypeFilter('Regionale'); setCurrentPage(1); }}
-          >
-            Regionale
-          </FilterChip>
-        </Filters>
         {/* Loading/Empty/Content States */}
         {isLoading ? (
           <Grid $viewMode={viewMode}>

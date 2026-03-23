@@ -100,6 +100,46 @@ const CountdownBox = styled.div`
   i { color: rgba(31, 90, 51, 0.6); }
 `;
 
+/* ─── Election selector ───────────────────────────────── */
+const ElectionSelector = styled.div`
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+`;
+
+const ElectionOption = styled.button<{ $active?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  border-radius: 14px;
+  border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.15)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.12)' : 'rgba(255, 255, 255, 0.85)'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.95)' : 'rgba(31, 90, 51, 0.7)'};
+  box-shadow: ${({ $active }) => $active ? '0 4px 12px rgba(31, 90, 51, 0.15)' : 'none'};
+
+  &:hover {
+    border-color: rgba(31, 90, 51, 0.35);
+    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.15)' : 'rgba(31, 90, 51, 0.08)'};
+  }
+`;
+
+const ElectionBadge = styled.span<{ $status: 'live' | 'scheduled' }>`
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: ${({ $status }) => $status === 'live' ? 'rgba(31, 90, 51, 0.15)' : 'rgba(138, 90, 16, 0.15)'};
+  color: ${({ $status }) => $status === 'live' ? '#1a5a33' : '#8a5a10'};
+`;
+
 /* ─── Step wizard ─────────────────────────────────────── */
 const StepRow = styled.div`
   display: grid;
@@ -166,78 +206,73 @@ const CandCount = styled.span`
 
 const CandidateGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 3.5rem;
 `;
 
 /* ─── Candidate card ─────────────────────────────────── */
 const CandCard = styled.div<{ $selected?: boolean }>`
-  background: rgba(255, 255, 255, 0.93);
-  border-radius: 22px;
+  background: #ffffff;
+  border-radius: 14px;
   overflow: hidden;
   border: ${({ $selected }) => $selected
-    ? '2px solid rgba(31, 90, 51, 0.55)'
-    : '1px solid rgba(31, 90, 51, 0.12)'};
+    ? '2px solid #1f5a33'
+    : '1px solid rgba(31, 90, 51, 0.1)'};
   box-shadow: ${({ $selected }) => $selected
-    ? '0 12px 32px rgba(31, 90, 51, 0.18)'
-    : '0 6px 18px rgba(12, 24, 18, 0.07)'};
-  transition: all 0.25s ease;
+    ? '0 6px 16px rgba(31, 90, 51, 0.12)'
+    : '0 2px 8px rgba(0, 0, 0, 0.04)'};
+  transition: all 0.2s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 36px rgba(12, 24, 18, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(31, 90, 51, 0.1);
   }
 `;
 
 const CardTop = styled.div<{ $color: string }>`
-  height: 88px;
+  height: 60px;
   background: ${({ $color }) => $color};
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  padding: 0 1.2rem 0;
 `;
 
 const CandAvatar = styled.div`
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: 3px solid rgba(255, 255, 255, 0.6);
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 800;
-  font-size: 1.3rem;
-  color: #fff;
-  transform: translateY(30px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #1a2e20;
+  transform: translateY(24px);
+  margin-left: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 `;
 
 const SelectedMark = styled.div`
   position: absolute;
-  top: 0.7rem;
-  right: 0.7rem;
-  width: 28px;
-  height: 28px;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
+  background: #1f5a33;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(31, 90, 51, 0.9);
-  font-size: 0.95rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  color: #ffffff;
+  font-size: 0.8rem;
 `;
 
 const CardBody = styled.div`
-  padding: 2.2rem 1.2rem 1.3rem;
+  padding: 2rem 1.4rem 1.4rem;
   display: grid;
-  gap: 0.5rem;
+  gap: 1rem;
   flex: 1;
 `;
 
@@ -253,22 +288,22 @@ const CandPartyBadge = styled.span<{ $color: string }>`
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-  background: ${({ $color }) => $color}18;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: ${({ $color }) => $color}15;
   color: ${({ $color }) => $color};
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.02em;
 `;
 
 const CandProgram = styled.p`
   margin: 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.8rem;
-  color: #6b7a72;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  color: #8a9a90;
+  line-height: 1.4;
 `;
 
 const CardDivider = styled.div`
@@ -281,32 +316,41 @@ const CardActions = styled.div`
   gap: 0.5rem;
 `;
 
-const VoteBtn = styled.button<{ $selected?: boolean }>`
+const VoteBtn = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
   flex: 1;
   padding: 0.6rem 0.8rem;
   border-radius: 12px;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
-  cursor: pointer;
+  cursor: ${({ $disabled }) => $disabled ? 'not-allowed' : 'pointer'};
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
   transition: all 0.2s;
-  background: ${({ $selected }) => $selected
-    ? 'linear-gradient(135deg, rgba(31,90,51,0.9), rgba(31,90,51,0.7))'
-    : 'rgba(31, 90, 51, 0.08)'};
-  color: ${({ $selected }) => $selected ? '#fff' : 'rgba(31,90,51,0.85)'};
-  border: ${({ $selected }) => $selected
-    ? '1px solid rgba(31,90,51,0.5)'
-    : '1px solid rgba(31,90,51,0.18)'};
+  opacity: ${({ $disabled }) => $disabled ? 0.5 : 1};
+  background: ${({ $selected, $disabled }) => $disabled 
+    ? 'rgba(31, 90, 51, 0.05)'
+    : $selected 
+      ? 'linear-gradient(135deg, rgba(31,90,51,0.9), rgba(31,90,51,0.7))'
+      : 'rgba(31, 90, 51, 0.08)'};
+  color: ${({ $selected, $disabled }) => $disabled 
+    ? 'rgba(31,90,51,0.4)'
+    : $selected ? '#fff' : 'rgba(31,90,51,0.85)'};
+  border: ${({ $selected, $disabled }) => $disabled 
+    ? '1px solid rgba(31,90,51,0.1)'
+    : $selected 
+      ? '1px solid rgba(31,90,51,0.5)'
+      : '1px solid rgba(31,90,51,0.18)'};
   box-shadow: ${({ $selected }) => $selected ? '0 4px 12px rgba(31,90,51,0.22)' : 'none'};
   &:hover {
-    transform: translateY(-1px);
-    background: ${({ $selected }) => $selected
-      ? 'linear-gradient(135deg, rgba(31,90,51,0.95), rgba(31,90,51,0.78))'
-      : 'rgba(31, 90, 51, 0.12)'};
+    transform: ${({ $disabled }) => $disabled ? 'none' : 'translateY(-1px)'};
+    background: ${({ $selected, $disabled }) => $disabled 
+      ? 'rgba(31, 90, 51, 0.05)'
+      : $selected 
+        ? 'linear-gradient(135deg, rgba(31,90,51,0.95), rgba(31,90,51,0.78))'
+        : 'rgba(31, 90, 51, 0.12)'};
   }
 `;
 
@@ -357,6 +401,16 @@ const Dot = styled.span`
 `;
 
 /* ─── Data ───────────────────────────────────────────── */
+type Candidate = {
+  id: string;
+  initials: string;
+  name: string;
+  party: string;
+  program: string;
+  bg: string;
+  accent: string;
+  route: string;
+};
 const navItems = [
   { label: 'Tableau de bord', to: '/citoyen/dashboard' },
   { label: 'Elections', to: '/citoyen/elections' },
@@ -366,73 +420,132 @@ const navItems = [
   { label: 'Profil', to: '/citoyen/profil' },
 ];
 
-const candidates = [
+const elections = [
   {
-    id: 'c1',
-    initials: 'AN',
-    name: 'Aicha Ndiaye',
-    party: 'Union Civique',
-    program: 'Cohésion nationale, éducation gratuite et services sociaux universels.',
-    bg: 'linear-gradient(135deg, #1f5a33, #2d7a47)',
-    accent: '#1f5a33',
-    route: '/citoyen/candidats/c1',
+    id: 'pres-2025',
+    title: 'Presidentielle 2025',
+    schedule: "Cloture le 12 mars 2026 a 18h00",
+    status: 'live' as const,
+    candidateCount: 3,
+    daysLeft: '3j 06h',
   },
   {
-    id: 'c2',
-    initials: 'MD',
-    name: 'Moussa Diop',
-    party: 'Coalition Verte',
-    program: 'Transition écologique, énergies renouvelables et territoires résilients.',
-    bg: 'linear-gradient(135deg, #26558a, #3476b5)',
-    accent: '#26558a',
-    route: '/citoyen/candidats/c2',
+    id: 'leg-2025-dkr',
+    title: 'Legislatives Dakar',
+    schedule: 'Debut le 20 mars 2026',
+    status: 'scheduled' as const,
+    candidateCount: 12,
+    daysLeft: '10j 02h',
   },
   {
-    id: 'c3',
-    initials: 'MS',
-    name: 'Mariam Sow',
-    party: 'Renouveau National',
-    program: 'Services publics modernisés, emploi des jeunes et égalité des chances.',
-    bg: 'linear-gradient(135deg, #7a4a10, #a56218)',
-    accent: '#7a4a10',
-    route: '/citoyen/candidats/c3',
+    id: 'reg-2025-dkr',
+    title: 'Regionales Dakar',
+    schedule: 'En cours - Cloture 18 mars',
+    status: 'live' as const,
+    candidateCount: 4,
+    daysLeft: '5j 12h',
   },
 ];
 
+const candidatesByElection: Record<string, Candidate[]> = {
+  'pres-2025': [
+    {
+      id: 'c1',
+      initials: 'AN',
+      name: 'Aicha Ndiaye',
+      party: 'Union Civique',
+      program: 'Cohésion nationale, éducation gratuite et services sociaux universels.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/c1',
+    },
+    {
+      id: 'c2',
+      initials: 'MD',
+      name: 'Moussa Diop',
+      party: 'Coalition Verte',
+      program: 'Transition écologique, énergies renouvelables et territoires résilients.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/c2',
+    },
+    {
+      id: 'c3',
+      initials: 'MS',
+      name: 'Mariam Sow',
+      party: 'Renouveau National',
+      program: 'Services publics modernisés, emploi des jeunes et égalité des chances.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/c3',
+    },
+  ],
+  'leg-2025-dkr': [
+    {
+      id: 'l1',
+      initials: 'FB',
+      name: 'Fatou Ba',
+      party: 'Alliance Populaire',
+      program: 'Developpement local et infrastructures pour Dakar.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/l1',
+    },
+    {
+      id: 'l2',
+      initials: 'SK',
+      name: 'Seydou Kane',
+      party: 'Voix du Peuple',
+      program: 'Education et sante pour tous les quartiers.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/l2',
+    },
+    {
+      id: 'l3',
+      initials: 'NM',
+      name: 'Ndeye Marie',
+      party: 'Unisson Senegal',
+      program: 'Emploi youth et entrepreneuriat local.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/l3',
+    },
+  ],
+  'reg-2025-dkr': [
+    {
+      id: 'r1',
+      initials: 'DK',
+      name: 'Dakar Knowledge',
+      party: 'Citoyen Actif',
+      program: 'Gestion participative et transparence.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/r1',
+    },
+    {
+      id: 'r2',
+      initials: 'RT',
+      name: 'Renaissance Team',
+      party: 'Ensemble Dakar',
+      program: 'Urbanisme durable et transport.',
+      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+      accent: '#1f5a33',
+      route: '/citoyen/candidats/r2',
+    },
+  ],
+};
+
 /* ─── Swal step HTML helpers ─────────────────────────── */
-const swalStep1Html = (name: string, party: string, initials: string, accent: string) => `
-  <p style="margin:0 0 0.8rem;font-family:Poppins,sans-serif;font-size:0.85rem;color:#5a6d62;text-align:left;">
-    Vous vous apprêtez à voter pour :
-  </p>
-  <div style="display:flex;align-items:center;gap:1rem;padding:1rem 1.1rem;border-radius:16px;
-    background:linear-gradient(135deg,rgba(31,90,51,0.05),rgba(255,255,255,0.9));
-    border:1.5px solid rgba(31,90,51,0.18);text-align:left;margin-bottom:0.8rem;">
-    <div style="width:52px;height:52px;border-radius:50%;
-      background:linear-gradient(135deg,${accent}cc,${accent}88);
-      display:flex;align-items:center;justify-content:center;
-      font-family:Poppins,sans-serif;font-weight:800;font-size:1.1rem;color:#fff;flex-shrink:0;
-      box-shadow:0 4px 12px ${accent}44;">${initials}</div>
-    <div>
-      <div style="font-family:Poppins,sans-serif;font-weight:700;color:#1a2e20;font-size:1rem;">${name}</div>
-      <div style="font-family:Poppins,sans-serif;font-size:0.78rem;color:#6b7a72;margin-top:0.15rem;">${party}</div>
+const swalConfirmHtml = (name: string, party: string, initials: string, accent: string) => `
+  <div style="text-align:center;">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;
+      background:linear-gradient(135deg,${accent}ee,${accent}aa);box-shadow:0 8px 24px ${accent}44;
+      margin-bottom:1rem;">
+      <span style="font-family:Poppins,sans-serif;font-weight:800;font-size:2rem;color:#fff;">${initials}</span>
     </div>
-  </div>
-  <div style="display:flex;flex-wrap:wrap;gap:0.4rem;justify-content:center;">
-    <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.65rem;border-radius:999px;
-      background:rgba(31,90,51,0.08);border:1px solid rgba(31,90,51,0.18);
-      font-family:Poppins,sans-serif;font-size:0.72rem;font-weight:600;color:rgba(31,90,51,0.85);">
-      🔒 Vote anonymisé
-    </span>
-    <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.65rem;border-radius:999px;
-      background:rgba(31,90,51,0.08);border:1px solid rgba(31,90,51,0.18);
-      font-family:Poppins,sans-serif;font-size:0.72rem;font-weight:600;color:rgba(31,90,51,0.85);">
-      🔑 AES-256
-    </span>
-    <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.65rem;border-radius:999px;
-      background:rgba(31,90,51,0.08);border:1px solid rgba(31,90,51,0.18);
-      font-family:Poppins,sans-serif;font-size:0.72rem;font-weight:600;color:rgba(31,90,51,0.85);">
-      ✅ Vote unique
-    </span>
+    <p style="margin:0 0 0.3rem;font-family:Poppins,sans-serif;font-size:1.1rem;color:#1a2e20;font-weight:700;">${name}</p>
+    <p style="margin:0;font-family:Poppins,sans-serif;font-size:0.85rem;color:#6b7a72;">${party}</p>
   </div>
 `;
 
@@ -445,8 +558,6 @@ const swalStep2Html = `
       .map(t => `
       <div style="display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0.85rem;border-radius:12px;
         background:rgba(31,90,51,0.05);border:1px solid rgba(31,90,51,0.12);">
-        <span style="width:22px;height:22px;border-radius:50%;background:rgba(31,90,51,0.85);
-          display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff;flex-shrink:0;">✓</span>
         <span style="font-family:Poppins,sans-serif;font-size:0.83rem;color:#22312a;font-weight:500;">${t}</span>
       </div>`)
       .join('')}
@@ -470,7 +581,6 @@ const swalStep3Html = `
     <div style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem 0.8rem;border-radius:10px;
       background:rgba(210,140,30,0.07);border:1px solid rgba(210,140,30,0.2);
       font-family:Poppins,sans-serif;font-size:0.78rem;color:rgba(110,68,8,0.9);">
-      <span style="flex-shrink:0;">⚠️</span>
       <span>Conservez ce token. C'est votre <strong>seule preuve</strong> de participation.</span>
     </div>
   </div>
@@ -507,60 +617,75 @@ const swalStep4Html = (name: string) => `
 const CitizenVote = () => {
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedElection, setSelectedElection] = useState<string>('pres-2025');
+  // State pour suivre si l'utilisateur a déjà voted
+  const [hasVoted, setHasVoted] = useState<boolean>(false);
 
-  const openVoteFlow = async (cand: typeof candidates[0]) => {
+  const currentElection = elections.find(e => e.id === selectedElection);
+  const liveElections = elections.filter(e => e.status === 'live');
+  const electionCandidates = candidatesByElection[selectedElection] || candidatesByElection['pres-2025'];
+
+  const openVoteFlow = async (cand: Candidate) => {
     setSelectedId(cand.id);
 
     const swalBase = {
       buttonsStyling: false,
       showCancelButton: true,
-      confirmButtonText: 'Continuer &rarr;',
-      cancelButtonText: 'Annuler',
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
     };
 
-    /* Step 1 — Sélection */
+    /* Step 1 — Afficher le candidat */
     const r1 = await Swal.fire({
       ...swalBase,
-      title: '① Votre sélection',
-      html: swalStep1Html(cand.name, cand.party, cand.initials, cand.accent),
+      title: 'Voter pour ' + cand.name,
+      html: swalConfirmHtml(cand.name, cand.party, cand.initials, cand.accent),
+      confirmButtonText: 'Continuer',
+      cancelButtonText: 'Annuler',
     });
     if (!r1.isConfirmed) { setSelectedId(null); return; }
 
-    /* Step 2 — Vérification identité */
+    /* Step 2 — Confirmation finale avec avertissement */
     const r2 = await Swal.fire({
       ...swalBase,
-      title: '② Vérification d\'éligibilité',
-      html: swalStep2Html,
-      confirmButtonText: 'Valider &rarr;',
+      title: 'Confirmez votre vote',
+      html: `<div style="text-align:center;display:grid;gap:1.2rem;">
+        <div style="padding:1.2rem;border-radius:16px;background:rgba(31,90,51,0.06);border:1px solid rgba(31,90,51,0.15);">
+          <p style="margin:0;font-family:Poppins,sans-serif;font-size:0.9rem;color:#5a6d62;">
+            Vous êtes sur le point de voter pour
+          </p>
+          <p style="margin:0.5rem 0 0;font-family:Poppins,sans-serif;font-size:1.3rem;color:#1a2e20;font-weight:700;">
+            ${cand.name}
+          </p>
+          <p style="margin:0.3rem 0 0;font-family:Poppins,sans-serif;font-size:0.85rem;color:#6b7a72;">
+            ${cand.party}
+          </p>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:1rem;border-radius:12px;
+          background:rgba(176,58,46,0.07);border:1px solid rgba(176,58,46,0.2);">
+          <div>
+            <p style="margin:0;font-family:Poppins,sans-serif;font-size:0.9rem;color:rgba(120,40,28,0.95);font-weight:600;">
+              Attention
+            </p>
+            <p style="margin:0.3rem 0 0;font-family:Poppins,sans-serif;font-size:0.8rem;color:rgba(120,40,28,0.85);">
+              Cette action est <strong>irréversible</strong>. Votre vote sera enregistré définitivement.
+            </p>
+          </div>
+        </div>
+      </div>`,
+      confirmButtonText: 'Confirmer mon vote',
+      cancelButtonText: 'Annuler',
     });
     if (!r2.isConfirmed) { setSelectedId(null); return; }
 
-    /* Step 3 — Token généré */
-    const r3 = await Swal.fire({
-      ...swalBase,
-      title: '③ Token anonyme généré',
-      html: swalStep3Html,
-      confirmButtonText: 'Continuer &rarr;',
-    });
-    if (!r3.isConfirmed) { setSelectedId(null); return; }
+    // Marquer comme ayant vote
+    setHasVoted(true);
 
-    /* Step 4 — Validation finale */
-    const r4 = await Swal.fire({
-      ...swalBase,
-      title: '④ Validation finale',
-      html: swalStep4Html(cand.name),
-      confirmButtonText: '🔒 Confirmer mon vote',
-      cancelButtonText: 'Annuler',
-    });
-    if (!r4.isConfirmed) { setSelectedId(null); return; }
-
-    /* Chiffrement loading */
+    /* Loading - Traitement */
     Swal.fire({
       customClass: { popup: 'naatal-swal' },
-      title: 'Chiffrement en cours...',
+      title: 'Traitement en cours...',
       html: `<p style="font-family:Poppins,sans-serif;font-size:0.87rem;color:#5a6d62;margin:0;">
-        Votre bulletin est chiffré avec <strong>AES-256</strong> et anonymisé. Veuillez patienter.
+        Votre vote est en cours de traitement. Veuillez patienter.
       </p>`,
       showConfirmButton: false,
       allowOutsideClick: false,
@@ -573,23 +698,15 @@ const CitizenVote = () => {
             customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
             buttonsStyling: false,
             icon: 'success',
-            title: 'Vote enregistré !',
+            title: 'Vote enregistre !',
             html: `
-              <p style="font-family:Poppins,sans-serif;font-size:0.87rem;color:#5a6d62;margin:0 0 0.9rem;">
-                Votre bulletin a été ajouté au scrutin de façon <strong>anonyme et chiffrée</strong>.
-              </p>
-              <div style="padding:0.8rem 1.1rem;border-radius:14px;background:rgba(31,90,51,0.07);
-                border:1px solid rgba(31,90,51,0.18);text-align:center;margin-bottom:0.6rem;">
-                <div style="font-family:'Courier New',monospace;font-weight:800;font-size:1.15rem;
-                  color:rgba(31,90,51,0.88);letter-spacing:0.16em;">NV-7F2A-9C4B-3D1E</div>
-              </div>
-              <p style="font-family:Poppins,sans-serif;font-size:0.75rem;color:#8a9a90;margin:0;">
-                Conservez ce token — c'est votre seule preuve de participation.
+              <p style="font-family:Poppins,sans-serif;font-size:0.9rem;color:#5a6d62;margin:0 0 1rem;">
+                Votre vote a ete enregistre avec succes. Merci pour votre participation !
               </p>
             `,
-            confirmButtonText: '📄 Voir mon reçu complet',
+            confirmButtonText: 'Voir mon recu',
           }).then(() => navigate('/citoyen/vote/recu'));
-        }, 1800);
+        }, 1500);
       },
     });
   };
@@ -598,61 +715,72 @@ const CitizenVote = () => {
     <AppLayout
       role="Citoyen"
       title="Vote sécurisé"
-      subtitle="Sélectionnez votre candidat et confirmez votre bulletin en 4 étapes."
+      subtitle="Sélectionnez votre candidat et confirmez votre bulletin."
       navItems={navItems}
     >
       <PageGrid>
+        {/* Election selector for multiple elections */}
+        {elections.length > 1 && (
+          <div>
+            <SectionHeader>
+              <SectionTitle>
+                Elections en cours
+                <CandCount>({liveElections.length} scrutins actifs)</CandCount>
+              </SectionTitle>
+            </SectionHeader>
+            <ElectionSelector>
+              {elections.map((election) => (
+                <ElectionOption
+                  key={election.id}
+                  $active={selectedElection === election.id}
+                  onClick={() => setSelectedElection(election.id)}
+                >
+                  <ElectionBadge $status={election.status}>
+                    {election.status === 'live' ? 'En cours' : 'Bientot'}
+                  </ElectionBadge>
+                  {election.title}
+                </ElectionOption>
+              ))}
+            </ElectionSelector>
+          </div>
+        )}
+
         {/* Election banner */}
         <ElectionBanner>
           <BannerLeft>
             <ElectionTitle>
               <i className="bi bi-calendar2-check" style={{ color: 'rgba(31,90,51,0.75)' }} />
-              Présidentielle 2025
+              {currentElection?.title || 'Presidentielle 2025'}
             </ElectionTitle>
-            <ElectionSub>Clôture du scrutin le 12 mars 2026 à 18h00 — 3 candidats</ElectionSub>
+            <ElectionSub>{currentElection?.schedule || "Cloture le 12 mars 2026 a 18h00"} — {currentElection?.candidateCount || 3} candidats</ElectionSub>
           </BannerLeft>
           <BannerRight>
-            <LiveBadge><LiveDot />Scrutin en cours</LiveBadge>
-            <CountdownBox>
-              <i className="bi bi-clock" />
-              Fermeture dans 3j 06h
-            </CountdownBox>
+            {currentElection?.status === 'live' ? (
+              <><LiveBadge><LiveDot />Scrutin en cours</LiveBadge>
+              <CountdownBox>
+                <i className="bi bi-clock" />
+                Fermeture dans {currentElection?.daysLeft || '3j 06h'}
+              </CountdownBox></>
+            ) : (
+              <LiveBadge style={{ background: 'rgba(138, 90, 16, 0.1)', borderColor: 'rgba(138, 90, 16, 0.2)', color: 'rgba(138, 90, 16, 0.85)' }}>
+                <i className="bi bi-clock-history" /> Bientot disponible
+              </LiveBadge>
+            )}
           </BannerRight>
         </ElectionBanner>
-
-        {/* Step indicator */}
-        <StepRow>
-          <StepPill $active>
-            <StepNum $active>1</StepNum>
-            Sélection
-          </StepPill>
-          <StepPill>
-            <StepNum>2</StepNum>
-            Vérification
-          </StepPill>
-          <StepPill>
-            <StepNum>3</StepNum>
-            Token
-          </StepPill>
-          <StepPill>
-            <StepNum>4</StepNum>
-            Validation
-          </StepPill>
-        </StepRow>
 
         {/* Candidates */}
         <div>
           <SectionHeader>
             <SectionTitle>
-              <i className="bi bi-people" style={{ color: 'rgba(31,90,51,0.7)' }} />
               Candidats
-              <CandCount>({candidates.length} candidats)</CandCount>
+              <CandCount>({electionCandidates.length} candidats)</CandCount>
             </SectionTitle>
           </SectionHeader>
         </div>
 
         <CandidateGrid>
-          {candidates.map((c) => {
+          {electionCandidates.map((c) => {
             const isSelected = selectedId === c.id;
             return (
               <CandCard key={c.id} $selected={isSelected}>
@@ -670,12 +798,18 @@ const CitizenVote = () => {
                   <CandProgram>{c.program}</CandProgram>
                   <CardDivider />
                   <CardActions>
-                    <VoteBtn $selected={isSelected} onClick={() => openVoteFlow(c)}>
-                      {isSelected
-                        ? <><i className="bi bi-check2" />Sélectionné</>
-                        : <><i className="bi bi-hand-index" />Voter</>
-                      }
-                    </VoteBtn>
+                    {currentElection?.status === 'live' ? (
+                      <VoteBtn $selected={isSelected} $disabled={hasVoted} onClick={() => !hasVoted && openVoteFlow(c)}>
+                        {isSelected
+                          ? <><i className="bi bi-check2" />Sélectionné</>
+                          : <><i className="bi bi-hand-index" />Voter</>
+                        }
+                      </VoteBtn>
+                    ) : (
+                      <VoteBtn $disabled={true}>
+                        <i className="bi bi-clock" />Bientôt
+                      </VoteBtn>
+                    )}
                     <ProgramBtn to={c.route}>
                       <i className="bi bi-file-text" />
                       Programme
@@ -689,15 +823,15 @@ const CitizenVote = () => {
 
         {/* Security footer */}
         <SecurityBar>
-          <SecurityItem><i className="bi bi-shield-lock" />Vote anonymisé</SecurityItem>
+          <SecurityItem>Vote anonymise</SecurityItem>
           <Dot />
-          <SecurityItem><i className="bi bi-key" />Chiffrement AES-256</SecurityItem>
+          <SecurityItem>Chiffrement AES-256</SecurityItem>
           <Dot />
-          <SecurityItem><i className="bi bi-person-x" />Identité non tracée</SecurityItem>
+          <SecurityItem>Identite non tracee</SecurityItem>
           <Dot />
-          <SecurityItem><i className="bi bi-check2-all" />Vote unique garanti</SecurityItem>
+          <SecurityItem>Vote unique garanti</SecurityItem>
           <Dot />
-          <SecurityItem><i className="bi bi-hash" />HMAC-SHA256</SecurityItem>
+          <SecurityItem>HMAC-SHA256</SecurityItem>
         </SecurityBar>
       </PageGrid>
     </AppLayout>
