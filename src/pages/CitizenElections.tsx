@@ -76,7 +76,7 @@ const FilterChip = styled.button<{ $active?: boolean }>`
   border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.2)'};
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.12)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.12)'};
   color: ${({ $active }) => $active ? '#ffffff' : 'rgba(31, 90, 51, 0.9)'};
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 500;
@@ -85,7 +85,7 @@ const FilterChip = styled.button<{ $active?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.9)' : 'rgba(31, 90, 51, 0.15)'};
+    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.65)' : 'rgba(31, 90, 51, 0.15)'};
     border-color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.6)' : 'rgba(31, 90, 51, 0.3)'};
   }
 `;
@@ -125,7 +125,7 @@ const ViewToggle = styled.div`
 
 const ViewButton = styled.button<{ $active?: boolean }>`
   border: none;
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'transparent'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'transparent'};
   color: ${({ $active }) => $active ? '#ffffff' : 'rgba(31, 90, 51, 0.7)'};
   padding: 0.35rem 0.6rem;
   border-radius: 8px;
@@ -134,7 +134,7 @@ const ViewButton = styled.button<{ $active?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.9)' : 'rgba(31, 90, 51, 0.1)'};
+    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.65)' : 'rgba(31, 90, 51, 0.1)'};
   }
 `;
 
@@ -264,7 +264,9 @@ const ActionButton = styled(Link)`
   text-decoration: none;
   padding: 0.5rem 0.9rem;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9) 0%, rgba(31, 90, 51, 0.75) 100%);
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65) 0%, rgba(31, 90, 51, 0.5) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(31, 90, 51, 0.4);
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -307,7 +309,7 @@ const Pagination = styled.div`
 
 const PageButton = styled.button<{ $active?: boolean }>`
   border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.2)'};
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(255, 255, 255, 0.9)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(255, 255, 255, 0.9)'};
   color: ${({ $active }) => $active ? '#ffffff' : 'rgba(31, 90, 51, 0.9)'};
   border-radius: 10px;
   padding: 0.4rem 0.8rem;
@@ -318,7 +320,7 @@ const PageButton = styled.button<{ $active?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.9)' : 'rgba(31, 90, 51, 0.1)'};
+    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.65)' : 'rgba(31, 90, 51, 0.1)'};
   }
   
   &:disabled {

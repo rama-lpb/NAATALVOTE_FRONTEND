@@ -329,7 +329,9 @@ const SubmitButton = styled.button`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
   color: #ffffff;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9) 0%, rgba(31, 90, 51, 0.75) 100%);
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65) 0%, rgba(31, 90, 51, 0.5) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(31, 90, 51, 0.5);
   cursor: pointer;
   margin-top: 0.8rem;
@@ -338,7 +340,7 @@ const SubmitButton = styled.button`
   text-decoration: none;
   text-align: center;
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(31, 90, 51, 1) 0%, rgba(31, 90, 51, 0.85) 100%);
+    background: linear-gradient(135deg, rgba(31, 90, 51, 0.72) 0%, rgba(31, 90, 51, 0.58) 100%);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(31, 90, 51, 0.3);
   }

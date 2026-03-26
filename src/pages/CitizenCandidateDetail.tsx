@@ -126,7 +126,9 @@ const PrimaryButton = styled(Link)`
   text-decoration: none;
   padding: 0.6rem 1rem;
   border-radius: 12px;
-  background: rgba(31, 90, 51, 0.8);
+  background: rgba(31, 90, 51, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(31, 90, 51, 0.55);
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;

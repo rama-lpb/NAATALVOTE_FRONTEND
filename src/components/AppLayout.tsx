@@ -6,6 +6,7 @@ import { LogoNaatalVote } from '../assets/LogoNaatalVote';
 interface NavItem {
   label: string;
   to: string;
+  badge?: number;
 }
 
 interface AppLayoutProps {
@@ -121,9 +122,19 @@ const NavItemLink = styled(Link)<{ $active?: boolean; $collapsed?: boolean }>`
   font-weight: 500;
   font-size: 0.95rem;
   color: ${({ $active }) => ($active ? '#ffffff' : '#2f3b36')};
-  background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.08)')};
-  border: 1px solid ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.2)')};
-  transition: background 0.2s ease, color 0.2s ease;
+  background: ${({ $active }) =>
+    $active
+      ? 'rgba(31, 90, 51, 0.52)'
+      : 'rgba(255, 255, 255, 0.35)'};
+  border: 1px solid ${({ $active }) =>
+    $active ? 'rgba(31, 90, 51, 0.45)' : 'rgba(31, 90, 51, 0.14)'};
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: ${({ $active }) =>
+    $active
+      ? '0 4px 14px rgba(31, 90, 51, 0.2), inset 0 1px 0 rgba(255,255,255,0.12)'
+      : 'none'};
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -134,7 +145,12 @@ const NavItemLink = styled(Link)<{ $active?: boolean; $collapsed?: boolean }>`
     padding: 0.5rem 0.7rem;
   }
   &:hover {
-    background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.95)' : 'rgba(31, 90, 51, 0.16)')};
+    background: ${({ $active }) =>
+      $active ? 'rgba(31, 90, 51, 0.65)' : 'rgba(31, 90, 51, 0.1)'};
+    box-shadow: ${({ $active }) =>
+      $active
+        ? '0 6px 16px rgba(31, 90, 51, 0.25), inset 0 1px 0 rgba(255,255,255,0.15)'
+        : 'none'};
   }
   max-width: 100%;
   overflow: hidden;
@@ -168,18 +184,25 @@ const SideFooter = styled.div<{ $collapsed: boolean }>`
 
 const SideLink = styled(Link)<{ $collapsed?: boolean; $danger?: boolean }>`
   text-decoration: none;
-  color: ${({ $danger }) => ($danger ? 'rgba(176, 58, 46, 0.95)' : 'rgba(31, 90, 51, 0.9)')};
+  color: ${({ $danger }) => ($danger ? 'rgba(176, 58, 46, 0.9)' : 'rgba(31, 90, 51, 0.85)')};
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 500;
   font-size: 0.95rem;
   padding: 0.4rem 0.6rem;
   border-radius: 10px;
-  background: ${({ $danger }) => ($danger ? 'rgba(176, 58, 46, 0.12)' : 'rgba(31, 90, 51, 0.08)')};
+  background: ${({ $danger }) =>
+    $danger ? 'rgba(176, 58, 46, 0.08)' : 'rgba(255, 255, 255, 0.3)'};
+  border: 1px solid ${({ $danger }) =>
+    $danger ? 'rgba(176, 58, 46, 0.18)' : 'rgba(31, 90, 51, 0.12)'};
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  transition: background 0.2s, border-color 0.2s;
   &:hover {
-    background: ${({ $danger }) => ($danger ? 'rgba(176, 58, 46, 0.18)' : 'rgba(31, 90, 51, 0.16)')};
+    background: ${({ $danger }) =>
+      $danger ? 'rgba(176, 58, 46, 0.14)' : 'rgba(31, 90, 51, 0.1)'};
   }
   .side-label {
     display: ${({ $collapsed }) => ($collapsed ? 'none' : 'inline')};
@@ -284,8 +307,8 @@ const Body = styled.div`
 `;
 
 const ToggleButton = styled.button`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(31, 90, 51, 0.18);
+  background: rgba(255, 255, 255, 0.55);
   color: #1f5a33;
   border-radius: 10px;
   height: 36px;
@@ -294,10 +317,12 @@ const ToggleButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, border 0.2s ease;
+  transition: background 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(31, 90, 51, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
   &:hover {
-    background: rgba(31, 90, 51, 0.12);
-    border-color: rgba(31, 90, 51, 0.35);
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(31, 90, 51, 0.3);
+    box-shadow: 0 4px 12px rgba(31, 90, 51, 0.12), inset 0 1px 0 rgba(255,255,255,0.7);
   }
   i {
     font-size: 1.1rem;
@@ -310,7 +335,23 @@ const TitleRow = styled.div`
   gap: 0.8rem;
 `;
 
-export const AppLayout = ({ title, subtitle, navItems, actions, children, noScroll }: AppLayoutProps) => {
+const NavBadge = styled.span`
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(176, 58, 46, 0.85);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+`;
+
+export const AppLayout = ({ title, subtitle, navItems, actions, children }: AppLayoutProps) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -383,6 +424,9 @@ export const AppLayout = ({ title, subtitle, navItems, actions, children, noScro
                   <i className={`bi ${getIconClass(item.label, item.to)}`} />
                 </span>
                 <span className="nav-label">{item.label}</span>
+                {item.badge != null && item.badge > 0 && !collapsed && (
+                  <NavBadge>{item.badge}</NavBadge>
+                )}
               </NavItemLink>
             ))}
           </Nav>

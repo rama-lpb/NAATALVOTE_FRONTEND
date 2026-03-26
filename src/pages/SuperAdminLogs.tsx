@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
+import mockData from '../data/mockData.json';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -190,7 +191,7 @@ const Pagination = styled.div`
 
 const PageBtn = styled.button<{ $active?: boolean }>`
   border: 1px solid rgba(31, 90, 51, 0.2);
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.06)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.06)'};
   color: ${({ $active }) => $active ? '#fff' : 'rgba(31, 90, 51, 0.85)'};
   border-radius: 8px;
   padding: 0.28rem 0.6rem;
@@ -200,12 +201,13 @@ const PageBtn = styled.button<{ $active?: boolean }>`
   cursor: pointer;
 `;
 
+const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
 const navItems = [
   { label: 'Console systeme', to: '/superadmin/console' },
   { label: 'Logs immuables', to: '/superadmin/logs' },
   { label: 'Exports audit', to: '/superadmin/export' },
   { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions' },
+  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
 ];
 
 const logs = [

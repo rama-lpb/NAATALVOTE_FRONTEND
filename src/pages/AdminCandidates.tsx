@@ -95,7 +95,9 @@ const AddButton = styled(Link)`
   gap: 0.45rem;
   padding: 0.55rem 1.1rem;
   border-radius: 12px;
-  background: rgba(31, 90, 51, 0.85);
+  background: rgba(31, 90, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: 1px solid rgba(31, 90, 51, 0.6);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -103,7 +105,7 @@ const AddButton = styled(Link)`
   font-size: 0.9rem;
   box-shadow: 0 3px 10px rgba(31, 90, 51, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.95); }
+  &:hover { background: rgba(31, 90, 51, 0.72); }
 `;
 
 const CandidateList = styled.div`

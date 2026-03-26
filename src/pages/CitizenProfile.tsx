@@ -228,7 +228,9 @@ const OTPInput = styled.input`
 `;
 
 const OTPButton = styled.button`
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9), rgba(31, 90, 51, 0.7));
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65), rgba(31, 90, 51, 0.5));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: none;
   border-radius: 12px;
   padding: 0.7rem 1.5rem;
@@ -243,7 +245,7 @@ const OTPButton = styled.button`
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(31, 90, 51, 0.35);
-    background: linear-gradient(135deg, rgba(31, 90, 51, 1), rgba(31, 90, 51, 0.8));
+    background: linear-gradient(135deg, rgba(31, 90, 51, 0.72), rgba(31, 90, 51, 0.58));
   }
 
   &:active {

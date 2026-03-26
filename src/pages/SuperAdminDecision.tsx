@@ -1,7 +1,8 @@
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
+import mockData from '../data/mockData.json';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -23,7 +24,7 @@ const SideCol = styled.div`
   gap: 1rem;
 `;
 
-const BackLink = styled(Link)`
+const BackLink = styled.span`
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -31,7 +32,35 @@ const BackLink = styled(Link)`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.85rem;
   color: rgba(31, 90, 51, 0.8);
+  cursor: pointer;
   &:hover { color: rgba(31, 90, 51, 1); }
+`;
+
+const Breadcrumb = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  color: #5a6d62;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+`;
+
+const BreadLink = styled.span`
+  color: rgba(31, 90, 51, 0.8);
+  cursor: pointer;
+  &:hover { color: rgba(31, 90, 51, 1); text-decoration: underline; }
+`;
+
+const BreadSep = styled.span`
+  color: #b0bdb5;
+  font-size: 0.75rem;
+`;
+
+const BreadCurrent = styled.span`
+  color: #22312a;
+  font-weight: 500;
 `;
 
 const Panel = styled.div`
@@ -163,7 +192,9 @@ const ApproveButton = styled.button`
   gap: 0.45rem;
   padding: 0.7rem 1.3rem;
   border-radius: 12px;
-  background: rgba(31, 90, 51, 0.85);
+  background: rgba(31, 90, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: 1px solid rgba(31, 90, 51, 0.55);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -172,7 +203,7 @@ const ApproveButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(31, 90, 51, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.95); transform: translateY(-1px); }
+  &:hover { background: rgba(31, 90, 51, 0.72); transform: translateY(-1px); }
 `;
 
 const RejectButton = styled.button`
@@ -181,7 +212,9 @@ const RejectButton = styled.button`
   gap: 0.45rem;
   padding: 0.7rem 1.3rem;
   border-radius: 12px;
-  background: rgba(176, 58, 46, 0.85);
+  background: rgba(176, 58, 46, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: 1px solid rgba(176, 58, 46, 0.55);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -190,7 +223,7 @@ const RejectButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(176, 58, 46, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(176, 58, 46, 0.95); transform: translateY(-1px); }
+  &:hover { background: rgba(176, 58, 46, 0.72); transform: translateY(-1px); }
 `;
 
 const SideCard = styled.div`
@@ -256,20 +289,46 @@ const ConsequenceItem = styled.div`
   i { margin-top: 0.1rem; flex-shrink: 0; }
 `;
 
+const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
 const navItems = [
   { label: 'Console systeme', to: '/superadmin/console' },
   { label: 'Logs immuables', to: '/superadmin/logs' },
   { label: 'Exports audit', to: '/superadmin/export' },
   { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions' },
-  { label: 'Decision', to: '/superadmin/decision' },
+  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
 ];
 
 const SuperAdminDecision = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const suspId = (location.state as any)?.suspId;
+  const allSuspensions = (mockData as any).suspensions as any[];
+  const suspension = suspId
+    ? allSuspensions.find((s: any) => s.id === suspId)
+    : allSuspensions.find((s: any) => s.statut === 'EN_ATTENTE');
+
+  const operateur = suspension
+    ? (mockData as any).users.find((u: any) => u.id === suspension.operateur_id)
+    : null;
+
+  const election = suspension
+    ? (mockData as any).elections.find((e: any) => e.id === suspension.election_id)
+    : null;
+
+  const dateCreation = suspension
+    ? new Date(suspension.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '—';
+
+  const operateurNom = operateur
+    ? `${operateur.prenom} ${operateur.nom}`
+    : suspension?.operateur_id ?? 'Inconnu';
+
   const handleApprove = () => {
+    const label = suspension ? `#${suspension.id}` : 'ce dossier';
     Swal.fire({
       title: 'Valider la suspension ?',
-      html: 'Le compte citoyen <strong>CNI 2349</strong> sera <strong>suspendu immediatement</strong>. Cette decision sera enregistree dans les logs immuables avec votre identifiant.',
+      html: `Le compte citoyen <strong>${suspension?.citoyen_id ?? label}</strong> sera <strong>suspendu immediatement</strong>. Cette decision sera enregistree dans les logs immuables avec votre identifiant.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Valider la suspension',
@@ -281,7 +340,7 @@ const SuperAdminDecision = () => {
         Swal.fire({
           icon: 'success',
           title: 'Suspension validee',
-          text: 'Le compte CNI 2349 est maintenant suspendu. L\'action a ete tracee.',
+          text: `Le compte ${suspension?.citoyen_id ?? label} est maintenant suspendu. L'action a ete tracee.`,
           confirmButtonText: 'OK',
           buttonsStyling: false,
           customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
@@ -291,9 +350,10 @@ const SuperAdminDecision = () => {
   };
 
   const handleReject = () => {
+    const label = suspension ? `#${suspension.id}` : 'ce dossier';
     Swal.fire({
       title: 'Rejeter la recommandation ?',
-      html: 'Le compte <strong>CNI 2349</strong> restera actif. Vous devez fournir une justification. Elle sera visible par l\'operateur.',
+      html: `Le compte <strong>${suspension?.citoyen_id ?? label}</strong> restera actif. Vous devez fournir une justification. Elle sera visible par l'operateur.`,
       input: 'textarea',
       inputPlaceholder: 'Motif du rejet...',
       inputAttributes: { style: 'font-family: Poppins; font-size: 0.9rem;' },
@@ -323,8 +383,17 @@ const SuperAdminDecision = () => {
       subtitle="Examinez le dossier et prenez une decision definitive. Cette action est irreversible et tracee."
       navItems={navItems}
     >
+      <Breadcrumb>
+        <BreadLink onClick={() => navigate('/superadmin/suspensions')}>
+          <i className="bi bi-person-exclamation" style={{ marginRight: '0.3rem' }} />
+          Suspensions
+        </BreadLink>
+        <BreadSep><i className="bi bi-chevron-right" /></BreadSep>
+        <BreadCurrent>Dossier #{suspension?.id ?? '—'}</BreadCurrent>
+      </Breadcrumb>
+
       <div style={{ marginBottom: '0.8rem' }}>
-        <BackLink to="/superadmin/suspensions">
+        <BackLink onClick={() => navigate('/superadmin/suspensions')}>
           <i className="bi bi-arrow-left" />Retour aux suspensions
         </BackLink>
       </div>
@@ -335,48 +404,32 @@ const SuperAdminDecision = () => {
             <PanelTitle><i className="bi bi-person-exclamation" />Identite du citoyen</PanelTitle>
             <DetailRow>
               <DetailLabel><i className="bi bi-credit-card-2-front" />Citoyen</DetailLabel>
-              <DetailValue>CNI 2349 — Identite masquee (protection RGPD)</DetailValue>
+              <DetailValue>{suspension?.citoyen_id ?? '— Identite masquee (protection RGPD)'}</DetailValue>
             </DetailRow>
             <DetailRow>
               <DetailLabel><i className="bi bi-tag" />Motif</DetailLabel>
-              <DetailValue>Vote multiple confirme — 3 tentatives bloquees</DetailValue>
+              <DetailValue>{suspension?.justification ?? suspension?.motif ?? '—'}</DetailValue>
             </DetailRow>
             <DetailRow>
               <DetailLabel><i className="bi bi-calendar2-week" />Election</DetailLabel>
-              <DetailValue>Presidentielle 2025</DetailValue>
+              <DetailValue>{election?.titre ?? suspension?.election_id ?? '—'}</DetailValue>
             </DetailRow>
             <DetailRow>
               <DetailLabel><i className="bi bi-person" />Operateur</DetailLabel>
-              <DetailValue>Mamadou Diallo — Soumis le 09/03/2026 a 11:42</DetailValue>
+              <DetailValue>{operateurNom} — Soumis le {dateCreation}</DetailValue>
             </DetailRow>
-            <DetailRow>
-              <DetailLabel><i className="bi bi-wifi" />IP source</DetailLabel>
-              <DetailValue>41.220.0.12 — Dakar, Senegal</DetailValue>
-            </DetailRow>
-          </Panel>
-
-          <Panel>
-            <PanelTitle><i className="bi bi-clipboard-data" />Preuves collectees</PanelTitle>
-            <EvidenceList>
-              <EvidenceItem>
-                <i className="bi bi-x-circle-fill" />
-                Tentative 1 — 09/03/2026 11:32:14 — IP 41.220.0.12 — Bloquee automatiquement
-              </EvidenceItem>
-              <EvidenceItem>
-                <i className="bi bi-x-circle-fill" />
-                Tentative 2 — 09/03/2026 11:33:01 — IP 41.220.0.12 — Bloquee automatiquement
-              </EvidenceItem>
-              <EvidenceItem>
-                <i className="bi bi-x-circle-fill" />
-                Tentative 3 — 09/03/2026 11:33:47 — IP 41.220.0.12 — Bloquee automatiquement
-              </EvidenceItem>
-            </EvidenceList>
+            {suspension?.ip && (
+              <DetailRow>
+                <DetailLabel><i className="bi bi-wifi" />IP source</DetailLabel>
+                <DetailValue>{suspension.ip}</DetailValue>
+              </DetailRow>
+            )}
           </Panel>
 
           <Panel>
             <PanelTitle><i className="bi bi-chat-square-quote" />Justification de l'operateur</PanelTitle>
             <DetailValue style={{ lineHeight: 1.6, color: '#4a5a50', fontSize: '0.88rem', padding: '0.5rem' }}>
-              "Trois tentatives de vote successive en moins de 2 minutes depuis la meme adresse IP. Le systeme a automatiquement bloque chaque tentative. Apres analyse des logs, je confirme qu'il s'agit d'une tentative de fraude deliberee. La suspension est justifiee."
+              "{suspension?.justification ?? suspension?.motif ?? 'Aucune justification fournie.'}"
             </DetailValue>
             <Divider />
             <FieldGroup>
@@ -403,11 +456,10 @@ const SuperAdminDecision = () => {
         <SideCol>
           <SideCard>
             <CardTitle><i className="bi bi-clipboard2-data" />Resume du dossier</CardTitle>
-            <MiniRow><span>Alerte reference</span><MiniValue>#ALT-112</MiniValue></MiniRow>
-            <MiniRow><span>Tentatives</span><MiniValue style={{ color: 'rgba(176, 58, 46, 0.85)' }}>3</MiniValue></MiniRow>
-            <MiniRow><span>Duree totale</span><MiniValue>1m 33s</MiniValue></MiniRow>
-            <MiniRow><span>Operateur</span><MiniValue>M. Diallo</MiniValue></MiniRow>
-            <MiniRow><span>Soumis le</span><MiniValue>09/03/2026</MiniValue></MiniRow>
+            <MiniRow><span>Reference</span><MiniValue>#{suspension?.id ?? '—'}</MiniValue></MiniRow>
+            <MiniRow><span>Statut</span><MiniValue>{suspension?.statut ?? '—'}</MiniValue></MiniRow>
+            <MiniRow><span>Operateur</span><MiniValue>{operateurNom}</MiniValue></MiniRow>
+            <MiniRow><span>Soumis le</span><MiniValue>{dateCreation}</MiniValue></MiniRow>
           </SideCard>
 
           <ConsequenceCard>

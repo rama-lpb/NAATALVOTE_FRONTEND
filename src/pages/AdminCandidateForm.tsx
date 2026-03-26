@@ -139,7 +139,9 @@ const PrimaryButton = styled.button`
   border: 1px solid rgba(31, 90, 51, 0.55);
   border-radius: 12px;
   padding: 0.65rem 1.2rem;
-  background: rgba(31, 90, 51, 0.85);
+  background: rgba(31, 90, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 700;
@@ -147,7 +149,7 @@ const PrimaryButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(31, 90, 51, 0.22);
   transition: all 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.95); }
+  &:hover { background: rgba(31, 90, 51, 0.72); }
 `;
 
 const GhostButton = styled.button`

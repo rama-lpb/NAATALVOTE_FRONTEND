@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { AppLayout } from '../components/AppLayout';
+import mockData from '../data/mockData.json';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -130,12 +131,13 @@ const Tag = styled.span<{ $tone: 'active' | 'pending' }>`
 `;
 
 const SuperAdminConsole = () => {
+  const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
   const navItems = [
     { label: 'Console systeme', to: '/superadmin/console' },
     { label: 'Logs immuables', to: '/superadmin/logs' },
     { label: 'Exports audit', to: '/superadmin/export' },
     { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-    { label: 'Suspensions', to: '/superadmin/suspensions' },
+    { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
   ];
 
   return (

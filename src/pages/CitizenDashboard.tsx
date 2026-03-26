@@ -80,7 +80,9 @@ const ActionButton = styled(Link)`
   text-decoration: none;
   padding: 0.6rem 1rem;
   border-radius: 12px;
-  background: rgba(31, 90, 51, 0.8);
+  background: rgba(31, 90, 51, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(31, 90, 51, 0.55);
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -113,7 +115,9 @@ const RowActionButton = styled(Link)`
   text-decoration: none;
   padding: 0.5rem 0.9rem;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9) 0%, rgba(31, 90, 51, 0.75) 100%);
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65) 0%, rgba(31, 90, 51, 0.5) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(31, 90, 51, 0.4);
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -128,7 +132,7 @@ const RowActionButton = styled(Link)`
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 5px 15px rgba(31, 90, 51, 0.35);
-    background: linear-gradient(135deg, rgba(31, 90, 51, 1) 0%, rgba(31, 90, 51, 0.85) 100%);
+    background: linear-gradient(135deg, rgba(31, 90, 51, 0.72) 0%, rgba(31, 90, 51, 0.6) 100%);
   }
 `;
 
@@ -149,7 +153,7 @@ const FilterChips = styled.div`
 
 const Chip = styled.button<{ $active?: boolean }>`
   border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.2)'};
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.08)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.08)'};
   color: ${({ $active }) => $active ? '#ffffff' : 'rgba(31, 90, 51, 0.9)'};
   border-radius: 999px;
   padding: 0.35rem 0.8rem;
@@ -160,7 +164,7 @@ const Chip = styled.button<{ $active?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.9)' : 'rgba(31, 90, 51, 0.15)'};
+    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.65)' : 'rgba(31, 90, 51, 0.15)'};
     border-color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.6)' : 'rgba(31, 90, 51, 0.3)'};
   }
 `;
@@ -319,7 +323,7 @@ const Pagination = styled.div`
 
 const PageButton = styled.button<{ $active?: boolean }>`
   border: 1px solid rgba(31, 90, 51, 0.2);
-  background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.08)')};
+  background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.08)')};
   color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(31, 90, 51, 0.9)')};
   border-radius: 10px;
   padding: 0.3rem 0.6rem;

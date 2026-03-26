@@ -215,14 +215,16 @@ const SubmitButton = styled.button`
   font-size: 1.4rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   color: #ffffff;
-  background: rgba(31, 90, 51, 0.85);
+  background: rgba(31, 90, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(31, 90, 51, 0.6);
   cursor: pointer;
   margin-top: 0.6rem;
   animation: ${fadeUp} 1400ms ease-out;
   transition: background 0.2s;
   &:hover {
-    background: rgba(31, 90, 51, 0.95);
+    background: rgba(31, 90, 51, 0.72);
   }
 `;
 

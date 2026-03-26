@@ -370,7 +370,9 @@ const ActionButton = styled(Link)`
   text-decoration: none;
   padding: 0.6rem 1.1rem;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.9), rgba(31, 90, 51, 0.7));
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65), rgba(31, 90, 51, 0.5));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(31, 90, 51, 0.4);
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;

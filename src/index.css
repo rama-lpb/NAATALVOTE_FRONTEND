@@ -29,6 +29,8 @@ body {
 
 button {
   font-family: inherit;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .naatal-swal {

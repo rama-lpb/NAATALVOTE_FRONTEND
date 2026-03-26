@@ -136,7 +136,9 @@ const SendButton = styled.button`
   gap: 0.45rem;
   padding: 0.7rem 1.3rem;
   border-radius: 12px;
-  background: rgba(176, 58, 46, 0.85);
+  background: rgba(176, 58, 46, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: 1px solid rgba(176, 58, 46, 0.55);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -145,7 +147,7 @@ const SendButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(176, 58, 46, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(176, 58, 46, 0.95); }
+  &:hover { background: rgba(176, 58, 46, 0.72); }
 `;
 
 const CancelButton = styled(Link)`
@@ -256,11 +258,10 @@ const StepBullet = styled.span<{ $active?: boolean }>`
 `;
 
 const navItems = [
-  { label: 'Alertes fraude', to: '/operateur/alerts' },
+  { label: 'Dashboard', to: '/operateur/dashboard' },
+  { label: 'Mes alertes', to: '/operateur/mes-alertes' },
   { label: 'Historique', to: '/operateur/historique' },
   { label: 'Rapports', to: '/operateur/rapports' },
-  { label: 'Detail alerte', to: '/operateur/alerts/detail' },
-  { label: 'Recommandation', to: '/operateur/recommandation' },
 ];
 
 const OperatorRecommendSuspension = () => {
@@ -337,7 +338,7 @@ const OperatorRecommendSuspension = () => {
               <i className="bi bi-send" />
               Envoyer au SuperAdmin
             </SendButton>
-            <CancelButton to="/operateur/alerts/detail">
+            <CancelButton to="/operateur/mes-alertes">
               <i className="bi bi-arrow-left" />
               Retour
             </CancelButton>

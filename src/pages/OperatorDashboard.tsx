@@ -1,6 +1,32 @@
 import styled from 'styled-components';
-import { AppLayout } from '../components/AppLayout';
+import { useNavigate } from 'react-router-dom';
 
+const timeAgo = (iso: string): string => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 60) return `il y a ${mins} min`;
+  if (hours < 24) return `il y a ${hours}h`;
+  if (days === 1) return 'hier';
+  return `il y a ${days} jours`;
+};
+import { AppLayout } from '../components/AppLayout';
+import mockData from '../data/mockData.json';
+
+// Badge = mes alertes en cours (EN_ANALYSE assignées à oper-001)
+const MES_EN_COURS = (mockData as any).alertes_fraude.filter(
+  (a: any) => a.operateur_id === 'oper-001' && a.statut === 'EN_ANALYSE'
+).length;
+
+const navItems = [
+  { label: 'Dashboard', to: '/operateur/dashboard' },
+  { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: MES_EN_COURS },
+  { label: 'Historique', to: '/operateur/historique' },
+  { label: 'Rapports', to: '/operateur/rapports' },
+];
+
+/* ── Styled Components ── */
 const LayoutGrid = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -40,15 +66,6 @@ const HelperText = styled.p`
   color: #3f5e4b;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.95rem;
-`;
-
-const Filter = styled.select`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  border-radius: 999px;
-  padding: 0.45rem 0.9rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  background: rgba(255, 255, 255, 0.85);
-  color: #1f5a33;
 `;
 
 const Stats = styled.div`
@@ -105,12 +122,16 @@ const Table = styled.div`
 
 const Row = styled.div`
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.6fr;
+  grid-template-columns: 1.2fr 0.8fr 0.6fr auto;
   gap: 0.6rem;
   padding: 0.8rem 1rem;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(31, 90, 51, 0.12);
+  align-items: center;
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr auto;
+  }
 `;
 
 const RowTitle = styled.div`
@@ -126,12 +147,12 @@ const RowMeta = styled.div`
 `;
 
 const Tag = styled.span<{ $tone: 'new' | 'review' | 'resolved' }>`
-  justify-self: start;
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
+  white-space: nowrap;
   color: ${({ $tone }) =>
     $tone === 'new' ? 'rgba(122, 31, 31, 0.85)' : $tone === 'review' ? 'rgba(138, 90, 16, 0.85)' : 'rgba(42, 100, 65, 0.85)'};
   background: ${({ $tone }) =>
@@ -140,6 +161,27 @@ const Tag = styled.span<{ $tone: 'new' | 'review' | 'resolved' }>`
       : $tone === 'review'
         ? 'rgba(200, 140, 30, 0.12)'
         : 'rgba(20, 130, 80, 0.12)'};
+`;
+
+const DetailBtn = styled.button`
+  border: 1px solid rgba(31, 90, 51, 0.25);
+  border-radius: 10px;
+  padding: 0.35rem 0.75rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1f5a33;
+  background: rgba(31, 90, 51, 0.07);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  transition: all 0.2s;
+  &:hover {
+    background: rgba(31, 90, 51, 0.15);
+    border-color: rgba(31, 90, 51, 0.4);
+  }
 `;
 
 const MiniList = styled.div`
@@ -152,6 +194,22 @@ const MiniRow = styled.div`
   grid-template-columns: 1fr auto;
   gap: 0.6rem;
   align-items: center;
+`;
+
+const VoirToutesBtn = styled.button`
+  margin-top: 0.6rem;
+  background: none;
+  border: none;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(31, 90, 51, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0;
+  &:hover { color: rgba(31, 90, 51, 1); }
 `;
 
 const Bar = styled.div<{ $value: number; $color: string }>`
@@ -169,13 +227,78 @@ const Bar = styled.div<{ $value: number; $color: string }>`
   }
 `;
 
+/* ── Helpers ── */
+const TYPE_LABELS: Record<string, string> = {
+  VOTE_MULTIPLE: 'Vote multiple',
+  IP_SUSPECTE: 'IP suspecte',
+  PATTERN_SUSPECT: 'Pattern suspect',
+  CNI_INVALIDE: 'CNI invalide',
+};
+
+const ELECTION_LABELS: Record<string, string> = {
+  'elec-001': 'Presidentielle 2025',
+  'elec-002': 'Legislatives Dakar',
+  'elec-003': 'Municipales',
+};
+
+const toTone = (s: string): 'new' | 'review' | 'resolved' =>
+  s === 'NOUVELLE' ? 'new' : s === 'EN_ANALYSE' ? 'review' : 'resolved';
+
+// Labels du dashboard : vocabulaire global (pas celui de l'opérateur)
+const toLabel = (s: string) =>
+  s === 'NOUVELLE' ? 'Non assignee' : s === 'EN_ANALYSE' ? 'Pris en charge' : 'Traitee';
+
+/* ── Component ── */
 const OperatorDashboard = () => {
-  const navItems = [
-    { label: 'Alertes fraude', to: '/operateur/alerts' },
-    { label: 'Historique', to: '/operateur/historique' },
-    { label: 'Rapports', to: '/operateur/rapports' },
-    { label: 'Detail alerte', to: '/operateur/alerts/detail' },
-  ];
+  const navigate = useNavigate();
+
+  const alerts = (mockData as any).alertes_fraude as Array<{
+    id: string;
+    type_fraude: string;
+    election_id: string;
+    description: string;
+    statut: string;
+    date_detection: string;
+    ip: string | null;
+  }>;
+
+  const sorted = [...alerts].sort(
+    (a, b) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime()
+  );
+  const last5 = sorted.slice(0, 5);
+
+  const nbCritiques = alerts.filter((a) => a.statut === 'NOUVELLE').length;
+  const nbAnalyse = alerts.filter((a) => a.statut === 'EN_ANALYSE').length;
+  const nbResolues = alerts.filter((a) => a.statut === 'RESOLUE').length;
+
+  const typeCounts = alerts.reduce<Record<string, number>>((acc, a) => {
+    acc[a.type_fraude] = (acc[a.type_fraude] ?? 0) + 1;
+    return acc;
+  }, {});
+  const total = alerts.length || 1;
+
+  const typeStats = Object.entries(typeCounts)
+    .map(([type, count]) => ({ type, count, pct: Math.round((count / total) * 100) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
+
+  const typeColors: Record<string, string> = {
+    VOTE_MULTIPLE: 'rgba(176, 58, 46, 0.65)',
+    IP_SUSPECTE: 'rgba(31, 90, 51, 0.65)',
+    CNI_INVALIDE: 'rgba(100, 50, 150, 0.65)',
+    PATTERN_SUSPECT: 'rgba(138, 90, 16, 0.65)',
+  };
+
+  // Alertes traitées par l'opérateur courant (oper-001), triées par date_traitement desc
+  const recentActions = [...alerts]
+    .filter((a: any) => a.operateur_id === 'oper-001' && a.date_traitement)
+    .sort((a: any, b: any) => new Date(b.date_traitement).getTime() - new Date(a.date_traitement).getTime())
+    .slice(0, 4);
+
+  const fmtTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <AppLayout
@@ -191,56 +314,49 @@ const OperatorDashboard = () => {
               <Hello>Bonjour, Mamadou Diallo</Hello>
               <HelperText>Les alertes critiques sont priorisees automatiquement.</HelperText>
             </div>
-            <Filter>
-              <option>Aujourd'hui</option>
-              <option>7 derniers jours</option>
-              <option>30 jours</option>
-            </Filter>
           </Greeting>
 
           <Stats>
             <StatCard $accent="rgba(176, 58, 46, 0.6)">
-              <StatLabel>Alertes critiques</StatLabel>
-              <StatValue>6</StatValue>
+              <StatLabel>Non assignees</StatLabel>
+              <StatValue>{nbCritiques}</StatValue>
             </StatCard>
             <StatCard $accent="rgba(138, 90, 16, 0.6)">
-              <StatLabel>En analyse</StatLabel>
-              <StatValue>14</StatValue>
+              <StatLabel>Prises en charge</StatLabel>
+              <StatValue>{nbAnalyse}</StatValue>
             </StatCard>
             <StatCard $accent="rgba(31, 90, 51, 0.6)">
-              <StatLabel>Resolues</StatLabel>
-              <StatValue>42</StatValue>
+              <StatLabel>Traitees</StatLabel>
+              <StatValue>{nbResolues}</StatValue>
             </StatCard>
           </Stats>
 
           <Card>
-            <CardTitle>Alertes recentes</CardTitle>
+            <CardTitle>5 dernieres alertes</CardTitle>
             <Table>
-              <Row>
-                <div>
-                  <RowTitle>Vote multiple detecte</RowTitle>
-                  <RowMeta>Election Presidentielle 2025</RowMeta>
-                </div>
-                <RowMeta>CNI 2349</RowMeta>
-                <Tag $tone="new">Nouvelle</Tag>
-              </Row>
-              <Row>
-                <div>
-                  <RowTitle>IP suspecte</RowTitle>
-                  <RowMeta>Election Legislatives Dakar</RowMeta>
-                </div>
-                <RowMeta>41.220.0.12</RowMeta>
-                <Tag $tone="review">En analyse</Tag>
-              </Row>
-              <Row>
-                <div>
-                  <RowTitle>Pattern suspect</RowTitle>
-                  <RowMeta>Election Municipales</RowMeta>
-                </div>
-                <RowMeta>Cluster Est</RowMeta>
-                <Tag $tone="resolved">Resolue</Tag>
-              </Row>
+              {last5.map((alert) => (
+                <Row key={alert.id}>
+                  <div>
+                    <RowTitle>{TYPE_LABELS[alert.type_fraude] ?? alert.type_fraude}</RowTitle>
+                    <RowMeta>{ELECTION_LABELS[alert.election_id] ?? alert.election_id}</RowMeta>
+                    <div style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.72rem', color: '#a0b0a8' }}>{timeAgo(alert.date_detection)}</div>
+                  </div>
+                  <RowMeta style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    {alert.ip ?? '—'}
+                  </RowMeta>
+                  <Tag $tone={toTone(alert.statut)}>{toLabel(alert.statut)}</Tag>
+                  <DetailBtn
+                    onClick={() => navigate('/operateur/alerts/detail', { state: { alertId: alert.id } })}
+                  >
+                    <i className="bi bi-eye" />
+                    Voir detail
+                  </DetailBtn>
+                </Row>
+              ))}
             </Table>
+            <VoirToutesBtn onClick={() => navigate('/operateur/mes-alertes')}>
+              Voir toutes les alertes <i className="bi bi-arrow-right" />
+            </VoirToutesBtn>
           </Card>
         </MainColumn>
 
@@ -248,39 +364,31 @@ const OperatorDashboard = () => {
           <Card>
             <CardTitle>Alertes par type</CardTitle>
             <MiniList>
-              <MiniRow>
-                <RowMeta>Vote multiple</RowMeta>
-                <RowMeta>38%</RowMeta>
-              </MiniRow>
-              <Bar $value={38} $color="rgba(176, 58, 46, 0.65)" />
-              <MiniRow>
-                <RowMeta>IP suspecte</RowMeta>
-                <RowMeta>24%</RowMeta>
-              </MiniRow>
-              <Bar $value={24} $color="rgba(31, 90, 51, 0.65)" />
-              <MiniRow>
-                <RowMeta>CNI invalide</RowMeta>
-                <RowMeta>18%</RowMeta>
-              </MiniRow>
-              <Bar $value={18} $color="rgba(138, 90, 16, 0.65)" />
+              {typeStats.map(({ type, pct }) => (
+                <>
+                  <MiniRow key={type + '_row'}>
+                    <RowMeta>{TYPE_LABELS[type] ?? type}</RowMeta>
+                    <RowMeta>{pct}%</RowMeta>
+                  </MiniRow>
+                  <Bar key={type + '_bar'} $value={pct} $color={typeColors[type] ?? 'rgba(31, 90, 51, 0.5)'} />
+                </>
+              ))}
             </MiniList>
           </Card>
 
           <Card>
-            <CardTitle>Actions recentes</CardTitle>
+            <CardTitle>Mes actions recentes</CardTitle>
             <MiniList>
-              <MiniRow>
-                <RowMeta>Marquage compte suspect</RowMeta>
-                <RowMeta>09:12</RowMeta>
-              </MiniRow>
-              <MiniRow>
-                <RowMeta>Analyse alerte IP</RowMeta>
-                <RowMeta>08:42</RowMeta>
-              </MiniRow>
-              <MiniRow>
-                <RowMeta>Rapport genere</RowMeta>
-                <RowMeta>08:05</RowMeta>
-              </MiniRow>
+              {recentActions.length === 0 ? (
+                <RowMeta style={{ color: '#a0b0a8', fontStyle: 'italic' }}>Aucune action enregistree.</RowMeta>
+              ) : (
+                recentActions.map((a: any) => (
+                  <MiniRow key={a.id}>
+                    <RowMeta>{TYPE_LABELS[a.type_fraude] ?? a.type_fraude} — resolue</RowMeta>
+                    <RowMeta>{fmtTime(a.date_traitement)}</RowMeta>
+                  </MiniRow>
+                ))
+              )}
             </MiniList>
           </Card>
         </SideColumn>

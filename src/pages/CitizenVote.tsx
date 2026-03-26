@@ -158,7 +158,7 @@ const StepPill = styled.div<{ $active?: boolean; $done?: boolean }>`
   font-size: 0.77rem;
   font-weight: 600;
   background: ${({ $active, $done }) =>
-    $active ? 'rgba(31, 90, 51, 0.8)' : $done ? 'rgba(31, 90, 51, 0.12)' : 'rgba(31, 90, 51, 0.05)'};
+    $active ? 'rgba(31, 90, 51, 0.55)' : $done ? 'rgba(31, 90, 51, 0.12)' : 'rgba(31, 90, 51, 0.05)'};
   color: ${({ $active, $done }) =>
     $active ? '#fff' : $done ? 'rgba(31, 90, 51, 0.85)' : 'rgba(31, 90, 51, 0.38)'};
   border: 1px solid ${({ $active, $done }) =>
@@ -333,7 +333,7 @@ const VoteBtn = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
   background: ${({ $selected, $disabled }) => $disabled 
     ? 'rgba(31, 90, 51, 0.05)'
     : $selected 
-      ? 'linear-gradient(135deg, rgba(31,90,51,0.9), rgba(31,90,51,0.7))'
+      ? 'linear-gradient(135deg, rgba(31,90,51,0.65), rgba(31,90,51,0.5))'
       : 'rgba(31, 90, 51, 0.08)'};
   color: ${({ $selected, $disabled }) => $disabled 
     ? 'rgba(31,90,51,0.4)'
@@ -349,7 +349,7 @@ const VoteBtn = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
     background: ${({ $selected, $disabled }) => $disabled 
       ? 'rgba(31, 90, 51, 0.05)'
       : $selected 
-        ? 'linear-gradient(135deg, rgba(31,90,51,0.95), rgba(31,90,51,0.78))'
+        ? 'linear-gradient(135deg, rgba(31,90,51,0.72), rgba(31,90,51,0.58))'
         : 'rgba(31, 90, 51, 0.12)'};
   }
 `;

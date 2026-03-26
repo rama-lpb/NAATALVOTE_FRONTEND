@@ -21,6 +21,7 @@ import AdminStats from './pages/AdminStats';
 import AdminReports from './pages/AdminReports';
 import AdminCandidateForm from './pages/AdminCandidateForm';
 import OperatorDashboard from './pages/OperatorDashboard';
+import OperatorAlerts from './pages/OperatorAlerts';
 import OperatorHistory from './pages/OperatorHistory';
 import OperatorReports from './pages/OperatorReports';
 import OperatorAlertDetail from './pages/OperatorAlertDetail';
@@ -61,7 +62,8 @@ function App() {
         <Route path="/admin/statistiques" element={<AdminStats />} />
         <Route path="/admin/rapports" element={<AdminReports />} />
 
-        <Route path="/operateur/alerts" element={<OperatorDashboard />} />
+        <Route path="/operateur/dashboard" element={<OperatorDashboard />} />
+        <Route path="/operateur/mes-alertes" element={<OperatorAlerts />} />
         <Route path="/operateur/alerts/detail" element={<OperatorAlertDetail />} />
         <Route path="/operateur/historique" element={<OperatorHistory />} />
         <Route path="/operateur/rapports" element={<OperatorReports />} />

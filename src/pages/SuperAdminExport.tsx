@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
+import mockData from '../data/mockData.json';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -123,7 +124,9 @@ const ExportButton = styled.button`
   gap: 0.4rem;
   padding: 0.65rem 1.2rem;
   border-radius: 12px;
-  background: rgba(31, 90, 51, 0.85);
+  background: rgba(31, 90, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: 1px solid rgba(31, 90, 51, 0.55);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -132,7 +135,7 @@ const ExportButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(31, 90, 51, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.95); }
+  &:hover { background: rgba(31, 90, 51, 0.72); }
 `;
 
 const Divider = styled.div`
@@ -254,12 +257,13 @@ const archives = [
   { id: 4, title: 'Audit Legislatives Dakar 2025', meta: 'CSV chiffre · 621 450 entrees · En cours de signature', status: false, fresh: false },
 ];
 
+const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
 const navItems = [
   { label: 'Console systeme', to: '/superadmin/console' },
   { label: 'Logs immuables', to: '/superadmin/logs' },
   { label: 'Exports audit', to: '/superadmin/export' },
   { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions' },
+  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
 ];
 
 const SuperAdminExport = () => {

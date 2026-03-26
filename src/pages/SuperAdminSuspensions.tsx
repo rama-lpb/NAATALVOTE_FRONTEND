@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
+import mockData from '../data/mockData.json';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -46,7 +47,7 @@ const FilterRow = styled.div`
 
 const Chip = styled.button<{ $active?: boolean }>`
   border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.18)'};
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.06)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.06)'};
   color: ${({ $active }) => $active ? '#fff' : 'rgba(31, 90, 51, 0.8)'};
   border-radius: 999px;
   padding: 0.3rem 0.75rem;
@@ -152,8 +153,7 @@ const ActionsCell = styled.div`
   flex-wrap: wrap;
 `;
 
-const ActionBtn = styled(Link)<{ $variant: 'approve' | 'reject' | 'view' }>`
-  text-decoration: none;
+const ActionBtn = styled.button<{ $variant: 'approve' | 'reject' | 'view' }>`
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -179,23 +179,39 @@ const ActionBtn = styled(Link)<{ $variant: 'approve' | 'reject' | 'view' }>`
   &:hover { filter: brightness(1.1); }
 `;
 
+const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
 const navItems = [
   { label: 'Console systeme', to: '/superadmin/console' },
   { label: 'Logs immuables', to: '/superadmin/logs' },
   { label: 'Exports audit', to: '/superadmin/export' },
   { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions' },
+  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
 ];
 
 type SuspStatus = 'pending' | 'approved' | 'rejected';
 type FilterType = 'all' | SuspStatus;
 
-const suspensions = [
-  { id: 's1', cni: 'CNI 2349', motif: 'Vote multiple', operator: 'M. Diallo', date: '09/03/2026', status: 'pending' as SuspStatus },
-  { id: 's2', cni: 'CNI 8841', motif: 'IP suspecte', operator: 'A. Niane', date: '09/03/2026', status: 'pending' as SuspStatus },
-  { id: 's3', cni: 'CNI 7712', motif: 'CNI invalide', operator: 'M. Diallo', date: '07/03/2026', status: 'approved' as SuspStatus },
-  { id: 's4', cni: 'CNI 5519', motif: 'Pattern suspect', operator: 'K. Sow', date: '05/03/2026', status: 'rejected' as SuspStatus },
-];
+const mapStatut = (statut: string): SuspStatus => {
+  if (statut === 'EN_ATTENTE') return 'pending';
+  if (statut === 'APPROUVE') return 'approved';
+  if (statut === 'REJETE') return 'rejected';
+  return 'pending';
+};
+
+const rawSuspensions = (mockData as any).suspensions as any[];
+const suspensions = rawSuspensions.map((s: any) => {
+  const citoyen = (mockData as any).users.find((u: any) => u.id === s.citoyen_id);
+  const operateur = (mockData as any).users.find((u: any) => u.id === s.operateur_id);
+  return {
+    id: s.id,
+    cni: citoyen ? `${citoyen.prenom} ${citoyen.nom} (${citoyen.cni})` : s.citoyen_id ?? '—',
+    motif: s.motif,
+    operator: operateur ? `${operateur.prenom} ${operateur.nom}` : s.operateur_id ?? '—',
+    date: new Date(s.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    status: mapStatut(s.statut),
+    rawId: s.id,
+  };
+});
 
 const statusLabel = { pending: 'En attente', approved: 'Approuve', rejected: 'Rejete' };
 const filters: { id: FilterType; label: string }[] = [
@@ -207,8 +223,14 @@ const filters: { id: FilterType; label: string }[] = [
 
 const SuperAdminSuspensions = () => {
   const [filter, setFilter] = useState<FilterType>('all');
+  const navigate = useNavigate();
 
   const filtered = suspensions.filter((s) => filter === 'all' || s.status === filter);
+
+  const countPending = suspensions.filter((s) => s.status === 'pending').length;
+  const countApproved = suspensions.filter((s) => s.status === 'approved').length;
+  const countRejected = suspensions.filter((s) => s.status === 'rejected').length;
+  const countTotal = suspensions.length;
 
   return (
     <AppLayout
@@ -221,19 +243,19 @@ const SuperAdminSuspensions = () => {
         <SummaryRow>
           <StatCard $accent="rgba(138, 90, 16, 0.6)">
             <StatLabel>En attente</StatLabel>
-            <StatValue>2</StatValue>
+            <StatValue>{countPending}</StatValue>
           </StatCard>
           <StatCard $accent="rgba(31, 90, 51, 0.6)">
             <StatLabel>Approuvees</StatLabel>
-            <StatValue>1</StatValue>
+            <StatValue>{countApproved}</StatValue>
           </StatCard>
           <StatCard $accent="rgba(176, 58, 46, 0.5)">
             <StatLabel>Rejetees</StatLabel>
-            <StatValue>1</StatValue>
+            <StatValue>{countRejected}</StatValue>
           </StatCard>
           <StatCard $accent="rgba(91, 95, 101, 0.4)">
             <StatLabel>Total</StatLabel>
-            <StatValue>4</StatValue>
+            <StatValue>{countTotal}</StatValue>
           </StatCard>
         </SummaryRow>
 
@@ -264,15 +286,15 @@ const SuperAdminSuspensions = () => {
                 <MotifBadge>{s.motif}</MotifBadge>
                 <StatusBadge $status={s.status}>{statusLabel[s.status]}</StatusBadge>
                 <ActionsCell>
-                  <ActionBtn $variant="view" to="/superadmin/decision">
+                  <ActionBtn $variant="view" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.rawId } })}>
                     <i className="bi bi-eye" />Voir
                   </ActionBtn>
                   {s.status === 'pending' && (
                     <>
-                      <ActionBtn $variant="approve" to="/superadmin/decision">
+                      <ActionBtn $variant="approve" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.rawId } })}>
                         <i className="bi bi-check2" />Valider
                       </ActionBtn>
-                      <ActionBtn $variant="reject" to="/superadmin/decision">
+                      <ActionBtn $variant="reject" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.rawId } })}>
                         <i className="bi bi-x" />Rejeter
                       </ActionBtn>
                     </>

@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
+import mockData from '../data/mockData.json';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -57,7 +58,9 @@ const CreateButton = styled.button`
   gap: 0.4rem;
   padding: 0.55rem 1.1rem;
   border-radius: 12px;
-  background: rgba(31, 90, 51, 0.85);
+  background: rgba(31, 90, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: 1px solid rgba(31, 90, 51, 0.6);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -66,7 +69,7 @@ const CreateButton = styled.button`
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(31, 90, 51, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.95); }
+  &:hover { background: rgba(31, 90, 51, 0.72); }
 `;
 
 const Panel = styled.div`
@@ -195,12 +198,13 @@ const IconBtn = styled.button<{ $danger?: boolean }>`
   &:hover { background: ${({ $danger }) => $danger ? 'rgba(176, 58, 46, 0.12)' : 'rgba(31, 90, 51, 0.12)'}; }
 `;
 
+const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
 const navItems = [
   { label: 'Console systeme', to: '/superadmin/console' },
   { label: 'Logs immuables', to: '/superadmin/logs' },
   { label: 'Exports audit', to: '/superadmin/export' },
   { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions' },
+  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
 ];
 
 const users = [

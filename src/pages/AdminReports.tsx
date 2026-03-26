@@ -72,7 +72,7 @@ const FilterChips = styled.div`
 
 const Chip = styled.button<{ $active?: boolean }>`
   border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.18)'};
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(31, 90, 51, 0.06)'};
+  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.06)'};
   color: ${({ $active }) => $active ? '#fff' : 'rgba(31, 90, 51, 0.8)'};
   border-radius: 999px;
   padding: 0.3rem 0.75rem;
@@ -89,7 +89,9 @@ const PublishButton = styled.button`
   gap: 0.4rem;
   padding: 0.55rem 1.1rem;
   border-radius: 12px;
-  background: rgba(31, 90, 51, 0.85);
+  background: rgba(31, 90, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
   border: 1px solid rgba(31, 90, 51, 0.6);
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -98,7 +100,7 @@ const PublishButton = styled.button`
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(31, 90, 51, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.95); }
+  &:hover { background: rgba(31, 90, 51, 0.72); }
 `;
 
 const ReportList = styled.div`
