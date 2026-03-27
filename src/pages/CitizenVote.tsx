@@ -71,7 +71,7 @@ const LiveDot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(31, 90, 51, 0.8);
+  background: rgba(31, 90, 51, 0.55);
   display: inline-block;
   animation: ${pulse} 1.6s ease-in-out infinite;
 `;
@@ -121,7 +121,7 @@ const ElectionOption = styled.button<{ $active?: boolean }>`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.85rem;
   font-weight: 500;
-  color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.95)' : 'rgba(31, 90, 51, 0.7)'};
+  color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.72)' : 'rgba(31, 90, 51, 0.7)'};
   box-shadow: ${({ $active }) => $active ? '0 4px 12px rgba(31, 90, 51, 0.15)' : 'none'};
 
   &:hover {

@@ -53,7 +53,7 @@ const ACTION_COLORS: Record<string, string> = {
   EN_COURS: 'rgba(138, 90, 16, 0.85)',
   RESOLU: 'rgba(38, 76, 140, 0.85)',
   SUSPECT: 'rgba(138, 90, 16, 0.85)',
-  SUSPENSION: 'rgba(176, 58, 46, 0.85)',
+  SUSPENSION: 'rgba(176, 58, 46, 0.6)',
 };
 
 const ACTION_BG: Record<string, string> = {
@@ -73,7 +73,7 @@ const ACTION_DOT: Record<string, string> = {
 const SUSPENSION_STATUT_COLORS: Record<string, { color: string; bg: string; label: string }> = {
   EN_ATTENTE: { color: 'rgba(138, 90, 16, 0.85)', bg: 'rgba(138, 90, 16, 0.1)', label: 'En attente du SuperAdmin' },
   APPROUVE: { color: 'rgba(31, 90, 51, 0.85)', bg: 'rgba(31, 90, 51, 0.1)', label: 'Approuvee par le SuperAdmin' },
-  REJETE: { color: 'rgba(176, 58, 46, 0.85)', bg: 'rgba(176, 58, 46, 0.1)', label: 'Rejetee par le SuperAdmin' },
+  REJETE: { color: 'rgba(176, 58, 46, 0.6)', bg: 'rgba(176, 58, 46, 0.1)', label: 'Rejetee par le SuperAdmin' },
 };
 
 const PAGE_SIZE = 8;
@@ -361,7 +361,7 @@ const PageBtn = styled.button<{ $active?: boolean }>`
   transition: all 0.15s;
   &:disabled { opacity: 0.35; cursor: not-allowed; }
   &:not(:disabled):hover {
-    background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.95)' : 'rgba(31, 90, 51, 0.1)')};
+    background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.72)' : 'rgba(31, 90, 51, 0.1)')};
   }
 `;
 
@@ -896,7 +896,7 @@ const OperatorHistory = () => {
                     <span style={{
                       fontWeight: 700,
                       color: (selectedAlert as any).score_risque >= 80
-                        ? 'rgba(176, 58, 46, 0.85)'
+                        ? 'rgba(176, 58, 46, 0.6)'
                         : (selectedAlert as any).score_risque >= 55
                         ? 'rgba(138, 90, 16, 0.85)'
                         : 'rgba(31, 90, 51, 0.85)',

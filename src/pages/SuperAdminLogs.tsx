@@ -138,7 +138,7 @@ const LogType = styled.span<{ $type: string }>`
   color: ${({ $type }) =>
     $type === 'CONNEXION' ? 'rgba(38, 76, 140, 0.85)' :
     $type === 'VOTE' ? 'rgba(31, 90, 51, 0.85)' :
-    $type === 'SUSPENSION' ? 'rgba(176, 58, 46, 0.85)' :
+    $type === 'SUSPENSION' ? 'rgba(176, 58, 46, 0.6)' :
     $type === 'MODIFICATION' ? 'rgba(138, 90, 16, 0.85)' :
     'rgba(91, 95, 101, 0.75)'};
 `;

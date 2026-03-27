@@ -32,6 +32,7 @@ import SuperAdminExport from './pages/SuperAdminExport';
 import SuperAdminUsers from './pages/SuperAdminUsers';
 import SuperAdminSuspensions from './pages/SuperAdminSuspensions';
 import SuperAdminDecision from './pages/SuperAdminDecision';
+import SuperAdminUserLogs from './pages/SuperAdminUserLogs';
 import './index.css';
 
 function App() {
@@ -75,6 +76,7 @@ function App() {
         <Route path="/superadmin/utilisateurs" element={<SuperAdminUsers />} />
         <Route path="/superadmin/suspensions" element={<SuperAdminSuspensions />} />
         <Route path="/superadmin/decision" element={<SuperAdminDecision />} />
+        <Route path="/superadmin/utilisateurs/:userId/logs" element={<SuperAdminUserLogs />} />
       </Routes>
     </Router>
   );

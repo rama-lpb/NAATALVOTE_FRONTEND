@@ -349,7 +349,7 @@ const OperatorRecommendSuspension = () => {
           <InfoCard>
             <CardTitle><i className="bi bi-clipboard-data" />Resume du dossier</CardTitle>
             <MiniRow><MiniLabel>Alerte reference</MiniLabel><MiniValue>#ALT-112</MiniValue></MiniRow>
-            <MiniRow><MiniLabel>Tentatives</MiniLabel><MiniValue style={{ color: 'rgba(176, 58, 46, 0.85)' }}>3</MiniValue></MiniRow>
+            <MiniRow><MiniLabel>Tentatives</MiniLabel><MiniValue style={{ color: 'rgba(176, 58, 46, 0.6)' }}>3</MiniValue></MiniRow>
             <MiniRow><MiniLabel>Detecte par</MiniLabel><MiniValue>Systeme auto</MiniValue></MiniRow>
             <MiniRow><MiniLabel>Operateur</MiniLabel><MiniValue>Mamadou Diallo</MiniValue></MiniRow>
           </InfoCard>

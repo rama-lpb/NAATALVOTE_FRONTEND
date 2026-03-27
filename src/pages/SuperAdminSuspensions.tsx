@@ -127,7 +127,7 @@ const MotifBadge = styled.span`
   font-size: 0.7rem;
   font-weight: 700;
   background: rgba(176, 58, 46, 0.08);
-  color: rgba(176, 58, 46, 0.85);
+  color: rgba(176, 58, 46, 0.6);
   white-space: nowrap;
 `;
 
@@ -144,7 +144,7 @@ const StatusBadge = styled.span<{ $status: 'pending' | 'approved' | 'rejected' }
   color: ${({ $status }) =>
     $status === 'pending' ? 'rgba(138, 90, 16, 0.85)' :
     $status === 'approved' ? 'rgba(31, 90, 51, 0.85)' :
-    'rgba(176, 58, 46, 0.85)'};
+    'rgba(176, 58, 46, 0.6)'};
 `;
 
 const ActionsCell = styled.div`
@@ -170,7 +170,7 @@ const ActionBtn = styled.button<{ $variant: 'approve' | 'reject' | 'view' }>`
     'rgba(91, 95, 101, 0.08)'};
   color: ${({ $variant }) =>
     $variant === 'approve' ? 'rgba(31, 90, 51, 0.85)' :
-    $variant === 'reject' ? 'rgba(176, 58, 46, 0.85)' :
+    $variant === 'reject' ? 'rgba(176, 58, 46, 0.6)' :
     'rgba(91, 95, 101, 0.75)'};
   border: 1px solid ${({ $variant }) =>
     $variant === 'approve' ? 'rgba(31, 90, 51, 0.2)' :

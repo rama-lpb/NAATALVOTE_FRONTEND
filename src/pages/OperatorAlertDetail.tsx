@@ -408,7 +408,7 @@ const AntecedentBadge = styled.span<{ $s: string }>`
   font-weight: 600;
   white-space: nowrap;
   color: ${({ $s }) =>
-    $s === 'NOUVELLE' ? 'rgba(176, 58, 46, 0.85)' :
+    $s === 'NOUVELLE' ? 'rgba(176, 58, 46, 0.6)' :
     $s === 'EN_ANALYSE' ? 'rgba(138, 90, 16, 0.85)' :
     'rgba(31, 90, 51, 0.85)'};
   background: ${({ $s }) =>
@@ -472,7 +472,7 @@ const ScoreValue = styled.span<{ $score: number }>`
   font-weight: 700;
   font-size: 1.1rem;
   color: ${({ $score }) =>
-    $score >= 80 ? 'rgba(176, 58, 46, 0.85)' :
+    $score >= 80 ? 'rgba(176, 58, 46, 0.6)' :
     $score >= 55 ? 'rgba(138, 90, 16, 0.85)' :
     'rgba(31, 90, 51, 0.85)'};
 `;
@@ -501,7 +501,7 @@ const VpnTag = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
-  color: rgba(176, 58, 46, 0.85);
+  color: rgba(176, 58, 46, 0.6);
 `;
 
 const TentativeTimeline = styled.div`
@@ -542,7 +542,7 @@ const TentativeResult = styled.span`
   padding: 0.15rem 0.5rem;
   border-radius: 6px;
   background: rgba(176, 58, 46, 0.1);
-  color: rgba(176, 58, 46, 0.85);
+  color: rgba(176, 58, 46, 0.6);
   white-space: nowrap;
 `;
 
@@ -731,7 +731,7 @@ const OperatorAlertDetail = () => {
   };
 
   const statusColor =
-    statut === 'NOUVELLE' ? 'rgba(176, 58, 46, 0.85)' :
+    statut === 'NOUVELLE' ? 'rgba(176, 58, 46, 0.6)' :
     statut === 'EN_ANALYSE' ? 'rgba(138, 90, 16, 0.85)' :
     'rgba(31, 90, 51, 0.85)';
 

@@ -362,12 +362,12 @@ const GenerateBtn = styled.button`
   font-size: 0.82rem;
   font-weight: 600;
   color: #fff;
-  background: rgba(31, 90, 51, 0.8);
+  background: rgba(31, 90, 51, 0.55);
   border: none;
   cursor: pointer;
   transition: background 0.18s;
   justify-self: start;
-  &:hover { background: rgba(31, 90, 51, 0.95); }
+  &:hover { background: rgba(31, 90, 51, 0.72); }
 `;
 
 /* ── Component ── */
@@ -760,7 +760,7 @@ const OperatorReports = () => {
                       <i className="bi bi-x-circle-fill" style={{ color: 'rgba(176, 58, 46, 0.7)' }} />
                       Rejetees
                     </OutcomeLabel>
-                    <OutcomeCount $color="rgba(176, 58, 46, 0.85)">{suspRejete}</OutcomeCount>
+                    <OutcomeCount $color="rgba(176, 58, 46, 0.6)">{suspRejete}</OutcomeCount>
                   </OutcomeRow>
                   {suspApprouve + suspRejete > 0 && (
                     <div style={{

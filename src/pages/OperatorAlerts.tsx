@@ -120,7 +120,7 @@ const TypeIcon = styled.div<{ $type: string }>`
     $type === 'CNI_INVALIDE' ? 'rgba(100, 50, 150, 0.1)' :
     'rgba(31, 90, 51, 0.1)'};
   color: ${({ $type }) =>
-    $type === 'VOTE_MULTIPLE' ? 'rgba(176, 58, 46, 0.85)' :
+    $type === 'VOTE_MULTIPLE' ? 'rgba(176, 58, 46, 0.6)' :
     $type === 'IP_SUSPECTE' ? 'rgba(138, 90, 16, 0.85)' :
     $type === 'CNI_INVALIDE' ? 'rgba(100, 50, 150, 0.85)' :
     'rgba(31, 90, 51, 0.85)'};
@@ -156,7 +156,7 @@ const StatusBadge = styled.span<{ $s: string }>`
   font-weight: 600;
   white-space: nowrap;
   color: ${({ $s }) =>
-    $s === 'NOUVELLE' ? 'rgba(176, 58, 46, 0.85)' :
+    $s === 'NOUVELLE' ? 'rgba(176, 58, 46, 0.6)' :
     $s === 'EN_ANALYSE' ? 'rgba(138, 90, 16, 0.85)' :
     'rgba(31, 90, 51, 0.85)'};
   background: ${({ $s }) =>

@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
 import mockData from '../data/mockData.json';
@@ -215,6 +216,7 @@ const users = [
 ];
 
 const SuperAdminUsers = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'all' | 'admin' | 'operator'>('all');
   const [search, setSearch] = useState('');
 
@@ -301,7 +303,7 @@ const SuperAdminUsers = () => {
                 <LastLogin>{u.lastLogin}</LastLogin>
                 <StatusDot $active={u.active}>{u.active ? 'Actif' : 'Inactif'}</StatusDot>
                 <ActionsCell>
-                  <IconBtn title="Voir logs"><i className="bi bi-journal-text" /></IconBtn>
+                  <IconBtn title="Voir logs" onClick={() => navigate(`/superadmin/utilisateurs/${u.id}/logs`)}><i className="bi bi-journal-text" /></IconBtn>
                   <IconBtn $danger title="Desactiver" onClick={() => handleDeactivate(u.name)} disabled={!u.active}>
                     <i className="bi bi-person-x" />
                   </IconBtn>

@@ -2,12 +2,112 @@ import styled from 'styled-components';
 import { Link, useLocation } from 'react-router-dom';
 import { type ReactNode, useState } from 'react';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
+import mockData from '../data/mockData.json';
 
 interface NavItem {
   label: string;
   to: string;
   badge?: number;
 }
+
+interface Notif {
+  id: string;
+  icon: string;
+  text: string;
+  sub?: string;
+  type: 'info' | 'warning' | 'success' | 'danger';
+}
+
+type MD = {
+  alertes_fraude: { id: string; statut: string; operateur_id: string | null; }[];
+  suspensions: { id: string; statut: string; operateur_id: string; decision_commentaire: string | null; }[];
+  elections: { id: string; titre: string; statut: string; date_debut: string; date_fin: string; votes_count: number; }[];
+  candidats: { id: string; election_id: string; }[];
+};
+const md = mockData as unknown as MD;
+
+const getNotifications = (role: string): Notif[] => {
+  const rLow = role.toLowerCase();
+  const alerts = md.alertes_fraude;
+  const suspensions = md.suspensions;
+  const elections = md.elections;
+  const candidats = md.candidats;
+  const notifs: Notif[] = [];
+
+  if (rLow.includes('operateur')) {
+    const newAlerts = alerts.filter((a) => a.statut === 'NOUVELLE' && !a.operateur_id);
+    if (newAlerts.length > 0) {
+      notifs.push({ id: 'new-alerts', icon: 'bi-shield-exclamation',
+        text: `${newAlerts.length} nouvelle${newAlerts.length > 1 ? 's' : ''} alerte${newAlerts.length > 1 ? 's' : ''} non assignée${newAlerts.length > 1 ? 's' : ''}`,
+        sub: 'En attente de prise en charge', type: 'warning' });
+    }
+    const myAnalysis = alerts.filter((a) => a.statut === 'EN_ANALYSE' && a.operateur_id === 'oper-001');
+    if (myAnalysis.length > 0) {
+      notifs.push({ id: 'my-analysis', icon: 'bi-hourglass-split',
+        text: `${myAnalysis.length} alerte${myAnalysis.length > 1 ? 's' : ''} en cours d'analyse`,
+        sub: 'Mes dossiers actifs', type: 'info' });
+    }
+    const myResolved = alerts.filter((a) => a.statut === 'RESOLUE' && a.operateur_id === 'oper-001');
+    if (myResolved.length > 0) {
+      notifs.push({ id: 'my-resolved', icon: 'bi-check-circle',
+        text: `${myResolved.length} alerte${myResolved.length > 1 ? 's' : ''} clôturée${myResolved.length > 1 ? 's' : ''}`,
+        sub: 'Dossiers résolus', type: 'success' });
+    }
+    suspensions.filter((s) => s.operateur_id === 'oper-001').forEach((s) => {
+      if (s.statut === 'EN_ATTENTE')
+        notifs.push({ id: `susp-pending-${s.id}`, icon: 'bi-clock-history',
+          text: 'Suspension soumise — en attente du SuperAdmin',
+          sub: `Dossier ${s.id} • pas encore traité`, type: 'warning' });
+      else if (s.statut === 'APPROUVE')
+        notifs.push({ id: `susp-approved-${s.id}`, icon: 'bi-person-check',
+          text: 'Votre suspension a été approuvée',
+          sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'success' });
+      else if (s.statut === 'REJETE')
+        notifs.push({ id: `susp-rejected-${s.id}`, icon: 'bi-person-x',
+          text: 'Votre suspension a été rejetée',
+          sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'danger' });
+    });
+  } else if (rLow.includes('super')) {
+    const pending = suspensions.filter((s) => s.statut === 'EN_ATTENTE');
+    if (pending.length > 0)
+      notifs.push({ id: 'susp-pending-total', icon: 'bi-person-exclamation',
+        text: `${pending.length} suspension${pending.length > 1 ? 's' : ''} en attente de validation`,
+        sub: 'Requiert votre décision', type: 'warning' });
+    suspensions.filter((s) => s.statut === 'APPROUVE').forEach((s) =>
+      notifs.push({ id: `approved-${s.id}`, icon: 'bi-check2-circle',
+        text: 'Suspension approuvée',
+        sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'success' }));
+    suspensions.filter((s) => s.statut === 'REJETE').forEach((s) =>
+      notifs.push({ id: `rejected-${s.id}`, icon: 'bi-x-circle',
+        text: 'Suspension rejetée',
+        sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'danger' }));
+  } else if (rLow.includes('admin')) {
+    elections.filter((e) => e.statut === 'EN_COURS').forEach((e) =>
+      notifs.push({ id: `elec-encours-${e.id}`, icon: 'bi-calendar2-check',
+        text: `Élection en cours : ${e.titre}`,
+        sub: `${(e.votes_count as number).toLocaleString('fr-FR')} votes enregistrés`, type: 'success' }));
+    elections.filter((e) => e.statut === 'PROGRAMMEE').forEach((e) =>
+      notifs.push({ id: `elec-prog-${e.id}`, icon: 'bi-calendar2-plus',
+        text: `Élection programmée : ${e.titre}`,
+        sub: `Début : ${new Date(e.date_debut).toLocaleDateString('fr-FR')}`, type: 'info' }));
+    const activeIds = elections.filter((e) => e.statut === 'EN_COURS').map((e) => e.id);
+    const activeCands = candidats.filter((c) => activeIds.includes(c.election_id));
+    if (activeCands.length > 0)
+      notifs.push({ id: 'candidats-count', icon: 'bi-people',
+        text: `${activeCands.length} candidat${activeCands.length > 1 ? 's' : ''} inscrit${activeCands.length > 1 ? 's' : ''} aux élections en cours`,
+        sub: 'Élections actives', type: 'info' });
+  } else {
+    elections.filter((e) => e.statut === 'EN_COURS').forEach((e) =>
+      notifs.push({ id: `vote-open-${e.id}`, icon: 'bi-check2-square',
+        text: `Élection ouverte : ${e.titre}`,
+        sub: `Votez avant le ${new Date(e.date_fin).toLocaleDateString('fr-FR')}`, type: 'warning' }));
+    elections.filter((e) => e.statut === 'CLOTUREE').forEach((e) =>
+      notifs.push({ id: `results-${e.id}`, icon: 'bi-bar-chart',
+        text: `Résultats disponibles : ${e.titre}`,
+        sub: `${(e.votes_count as number).toLocaleString('fr-FR')} votes comptabilisés`, type: 'success' }));
+  }
+  return notifs;
+};
 
 interface AppLayoutProps {
   role: string;
@@ -209,90 +309,133 @@ const SideLink = styled(Link)<{ $collapsed?: boolean; $danger?: boolean }>`
   }
 `;
 
-const Content = styled.div`
+const RightCol = styled.div`
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  overflow: auto;
-  padding: 1.2rem 1.5rem 1.5rem 1.5rem;
+  overflow: hidden;
+`;
+
+const TopBarWrap = styled.div`
+  padding: 1rem 1.5rem 0;
+  flex-shrink: 0;
   @media (max-width: 768px) {
-    padding: 1rem 0.8rem;
+    padding: 0.7rem 0.8rem 0;
+  }
+`;
+
+const ScrollArea = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1.5rem 1.5rem;
+  @media (max-width: 768px) {
+    padding: 0 0.8rem 1rem;
   }
 `;
 
 const TopBar = styled.div`
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
-  padding: 1rem 1.6rem;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 14px;
+  padding: 0.6rem 1.1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 14px 30px rgba(15, 27, 18, 0.08);
-  border: 1px solid rgba(31, 90, 51, 0.14);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(15, 27, 18, 0.06);
+  border: 1px solid rgba(31, 90, 51, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   margin-bottom: 1.4rem;
-  gap: 1rem;
+  gap: 0.8rem;
   flex-wrap: wrap;
   @media (max-width: 768px) {
-    padding: 0.8rem 1rem;
-    border-radius: 12px;
-    gap: 0.8rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 10px;
+    gap: 0.6rem;
   }
 `;
 
 const TopRight = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  flex-wrap: wrap;
+  gap: 0.6rem;
 `;
-
-const SearchField = styled.input`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  border-radius: 999px;
-  padding: 0.55rem 1rem;
-  font-size: 0.95rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #2f3b36;
-  background: rgba(255, 255, 255, 0.85);
-  outline: none;
-  min-width: 220px;
-  transition: all 0.2s ease;
-  @media (max-width: 768px) {
-    min-width: 100%;
-    font-size: 0.9rem;
-    padding: 0.5rem 0.8rem;
-  }
-  &:focus {
-    border-color: rgba(31, 90, 51, 0.45);
-    box-shadow: 0 0 0 3px rgba(31, 90, 51, 0.12);
-  }
-`;
-
-
 
 const TitleGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.06rem;
 `;
 
 const Title = styled.h1`
   margin: 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 2rem;
-  color: #22312a;
+  font-size: 1.05rem;
+  color: #2e4a38;
   font-weight: 600;
+  letter-spacing: 0.01em;
   @media (max-width: 768px) {
-    font-size: 1.5rem;
+    font-size: 0.95rem;
   }
 `;
 
-const Subtitle = styled.p`
-  margin: 0;
+
+const NotifBtn = styled.button`
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 90, 51, 0.14);
+  background: rgba(255, 255, 255, 0.5);
+  color: rgba(31, 90, 51, 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.18s;
+  &:hover {
+    background: rgba(31, 90, 51, 0.08);
+    color: rgba(31, 90, 51, 0.9);
+    border-color: rgba(31, 90, 51, 0.25);
+  }
+`;
+
+const UserChip = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(31, 90, 51, 0.13);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: default;
+`;
+
+const UserAvatar = styled.div<{ $color: string }>`
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+`;
+
+const UserRole = styled.span`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #335a42;
-  font-size: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3a5040;
+  white-space: nowrap;
   @media (max-width: 768px) {
-    font-size: 0.85rem;
+    display: none;
   }
 `;
 
@@ -302,8 +445,20 @@ const Actions = styled.div`
   flex-wrap: wrap;
 `;
 
+const PageHeader = styled.div`
+  margin-bottom: 1.2rem;
+`;
+
+
+const PageSubtitle = styled.p`
+  margin: 0;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.88rem;
+  color: #6b8070;
+`;
+
 const Body = styled.div`
-  padding-top: 0.4rem;
+  padding-top: 0.2rem;
 `;
 
 const ToggleButton = styled.button`
@@ -351,9 +506,202 @@ const NavBadge = styled.span`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
 `;
 
-export const AppLayout = ({ title, subtitle, navItems, actions, children }: AppLayoutProps) => {
+const NotifWrap = styled.div`
+  position: relative;
+`;
+
+const NotifBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: rgba(176, 58, 46, 0.85);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border: 2px solid #fff;
+`;
+
+const NotifOverlay = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'block' : 'none')};
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+`;
+
+const NotifDropdown = styled.div<{ $open: boolean }>`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 16px;
+  border: 1px solid rgba(31, 90, 51, 0.12);
+  box-shadow: 0 16px 40px rgba(12, 24, 18, 0.13);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  pointer-events: ${({ $open }) => ($open ? 'all' : 'none')};
+  transform: ${({ $open }) => ($open ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)')};
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  transform-origin: top right;
+`;
+
+const NotifHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(31, 90, 51, 0.08);
+  flex-shrink: 0;
+`;
+
+const NotifTitle = styled.div`
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #1a2e20;
+`;
+
+const MarkReadBtn = styled.button`
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(31, 90, 51, 0.7);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  &:hover { background: rgba(31, 90, 51, 0.06); }
+`;
+
+const NotifList = styled.div`
+  overflow-y: auto;
+  flex: 1;
+  padding: 0.3rem 0;
+`;
+
+const NotifEmpty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: rgba(31, 90, 51, 0.35);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.82rem;
+  gap: 0.5rem;
+  i { font-size: 1.8rem; }
+`;
+
+const NotifItem = styled.div<{ $read?: boolean; $type: 'info' | 'warning' | 'success' | 'danger' }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  background: ${({ $read }) => ($read ? 'transparent' : 'rgba(31, 90, 51, 0.025)')};
+  border-left: 3px solid ${({ $type }) =>
+    $type === 'warning' ? 'rgba(138, 90, 16, 0.45)' :
+    $type === 'success' ? 'rgba(31, 90, 51, 0.45)' :
+    $type === 'danger' ? 'rgba(176, 58, 46, 0.45)' :
+    'rgba(38, 76, 140, 0.4)'};
+  &:hover { background: rgba(31, 90, 51, 0.04); }
+`;
+
+const NotifIconWrap = styled.div<{ $type: 'info' | 'warning' | 'success' | 'danger' }>`
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  background: ${({ $type }) =>
+    $type === 'warning' ? 'rgba(138, 90, 16, 0.09)' :
+    $type === 'success' ? 'rgba(31, 90, 51, 0.09)' :
+    $type === 'danger' ? 'rgba(176, 58, 46, 0.09)' :
+    'rgba(38, 76, 140, 0.09)'};
+  color: ${({ $type }) =>
+    $type === 'warning' ? 'rgba(138, 90, 16, 0.8)' :
+    $type === 'success' ? 'rgba(31, 90, 51, 0.75)' :
+    $type === 'danger' ? 'rgba(176, 58, 46, 0.7)' :
+    'rgba(38, 76, 140, 0.75)'};
+`;
+
+const NotifContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const NotifText = styled.div<{ $read?: boolean }>`
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.78rem;
+  font-weight: ${({ $read }) => ($read ? 500 : 600)};
+  color: ${({ $read }) => ($read ? '#7a8a80' : '#1a2e20')};
+  line-height: 1.35;
+`;
+
+const NotifSub = styled.div`
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.7rem;
+  color: #9aaa9f;
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const NotifUnreadDot = styled.div`
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(31, 90, 51, 0.55);
+  flex-shrink: 0;
+  margin-top: 4px;
+`;
+
+export const AppLayout = ({ role, title, subtitle, navItems, actions, children }: AppLayoutProps) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+
+  const notifications = getNotifications(role);
+  const unreadCount = notifications.filter((n) => !readIds.has(n.id)).length;
+
+  const handleMarkAllRead = () => setReadIds(new Set(notifications.map((n) => n.id)));
+  const handleNotifClick = (id: string) => setReadIds((prev) => new Set([...prev, id]));
+
+  const getAvatarInitials = (r: string) =>
+    r.split(' ').filter((w) => w.length > 2).map((w) => w[0].toUpperCase()).slice(0, 2).join('');
+
+  const getRoleColor = (r: string): string => {
+    const rLow = r.toLowerCase();
+    if (rLow.includes('super')) return 'rgba(72, 52, 160, 0.65)';
+    if (rLow.includes('admin')) return 'rgba(38, 76, 140, 0.65)';
+    if (rLow.includes('operateur')) return 'rgba(31, 90, 51, 0.6)';
+    return 'rgba(31, 90, 51, 0.55)';
+  };
+
+  const initials = getAvatarInitials(role);
+  const avatarColor = getRoleColor(role);
 
   const iconMap: Record<string, string> = {
     dashboard: 'bi-speedometer2',
@@ -441,24 +789,81 @@ export const AppLayout = ({ title, subtitle, navItems, actions, children }: AppL
             </SideLink>
           </SideFooter>
         </Sidebar>
-        <Content>
-          <TopBar>
-            <TitleRow>
-              <ToggleButton onClick={() => setCollapsed((prev) => !prev)} aria-label="Toggle sidebar">
-                <i className="bi bi-list" />
-              </ToggleButton>
-              <TitleGroup>
-                <Title>{title}</Title>
-                {subtitle ? <Subtitle>{subtitle}</Subtitle> : null}
-              </TitleGroup>
-            </TitleRow>
-            <TopRight>
-              <SearchField placeholder="Recherche" />
-              {actions ? <Actions>{actions}</Actions> : null}
-            </TopRight>
-          </TopBar>
-          <Body>{children}</Body>
-        </Content>
+        <RightCol>
+          <TopBarWrap>
+            <TopBar>
+              <TitleRow>
+                <ToggleButton onClick={() => setCollapsed((prev) => !prev)} aria-label="Toggle sidebar">
+                  <i className="bi bi-list" />
+                </ToggleButton>
+                <TitleGroup>
+                  <Title>
+                    <span style={{ color: 'rgba(31,90,51,0.4)', marginRight: '0.4rem', fontSize: '0.75rem' }}>
+                      <i className="bi bi-house-door" />
+                    </span>
+                    {title}
+                  </Title>
+                </TitleGroup>
+              </TitleRow>
+              <TopRight>
+                {actions && <Actions>{actions}</Actions>}
+                <NotifWrap>
+                  <NotifOverlay $open={notifOpen} onClick={() => setNotifOpen(false)} />
+                  <NotifBtn title="Notifications" onClick={() => setNotifOpen((p) => !p)}>
+                    <i className="bi bi-bell" />
+                  </NotifBtn>
+                  {unreadCount > 0 && <NotifBadge>{unreadCount > 9 ? '9+' : unreadCount}</NotifBadge>}
+                  <NotifDropdown $open={notifOpen}>
+                    <NotifHeader>
+                      <NotifTitle>Notifications {unreadCount > 0 && `(${unreadCount})`}</NotifTitle>
+                      {unreadCount > 0 && (
+                        <MarkReadBtn onClick={handleMarkAllRead}>Tout marquer lu</MarkReadBtn>
+                      )}
+                    </NotifHeader>
+                    <NotifList>
+                      {notifications.length === 0 ? (
+                        <NotifEmpty>
+                          <i className="bi bi-bell-slash" />
+                          Aucune notification
+                        </NotifEmpty>
+                      ) : (
+                        notifications.map((n) => {
+                          const isRead = readIds.has(n.id);
+                          return (
+                            <NotifItem key={n.id} $read={isRead} $type={n.type} onClick={() => handleNotifClick(n.id)}>
+                              <NotifIconWrap $type={n.type}>
+                                <i className={`bi ${n.icon}`} />
+                              </NotifIconWrap>
+                              <NotifContent>
+                                <NotifText $read={isRead}>{n.text}</NotifText>
+                                {n.sub && <NotifSub>{n.sub}</NotifSub>}
+                              </NotifContent>
+                              {!isRead && <NotifUnreadDot />}
+                            </NotifItem>
+                          );
+                        })
+                      )}
+                    </NotifList>
+                  </NotifDropdown>
+                </NotifWrap>
+                <UserChip>
+                  <UserAvatar $color={avatarColor}>{initials}</UserAvatar>
+                  <UserRole>{role}</UserRole>
+                </UserChip>
+              </TopRight>
+            </TopBar>
+          </TopBarWrap>
+          <ScrollArea>
+            <Body>
+              {subtitle && (
+                <PageHeader>
+                  <PageSubtitle>{subtitle}</PageSubtitle>
+                </PageHeader>
+              )}
+              {children}
+            </Body>
+          </ScrollArea>
+        </RightCol>
       </Shell>
     </Frame>
   );
