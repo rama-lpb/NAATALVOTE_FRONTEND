@@ -12,8 +12,10 @@
   "dependencies": {
     "@types/react-router-dom": "^5.3.3",
     "@types/styled-components": "^5.1.36",
+    "@reduxjs/toolkit": "^2.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^7.13.1",
     "react-transition-group": "^4.4.5",
     "sweetalert2": "^11.10.7",

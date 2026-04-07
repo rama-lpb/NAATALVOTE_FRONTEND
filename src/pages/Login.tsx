@@ -8,6 +8,8 @@ import {
   hasMultipleRoles, 
   getRoleDashboardPath
 } from '../data/mockData';
+import { useAppDispatch } from '../store/hooks';
+import { setSession } from '../store/authSlice';
 
 const fadeUp = keyframes`
   from {
@@ -505,6 +507,7 @@ const PopupSecondary = styled.button`
 
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const direction = 'none';
 
   const [cni, setCni] = useState('');
@@ -576,38 +579,22 @@ const Login = () => {
         setIsLoading(false);
         setShowOtpPopup(false);
         if (user && user.telephones.includes(phone)) {
-          // Check if user has multiple roles
-          if (hasMultipleRoles(user)) {
-            // Store user info with all roles in sessionStorage
-            sessionStorage.setItem('user', JSON.stringify({
+          dispatch(setSession({
+            user: {
               id: user.id,
-              cni: user.cni,
               nom: user.nom,
               prenom: user.prenom,
               email: user.email,
-              telephones: user.telephones,
-              date_naissance: user.date_naissance,
-              adresse: user.adresse,
               roles: user.roles,
-              currentRole: user.roles[0]
-            }));
+            },
+            currentRole: user.roles[0],
+          }));
+          // Check if user has multiple roles
+          if (hasMultipleRoles(user)) {
             // Redirect to portal for role selection
             navigate('/portal');
           } else {
-            // Single role - redirect directly to dashboard
-            sessionStorage.setItem('user', JSON.stringify({
-              id: user.id,
-              cni: user.cni,
-              nom: user.nom,
-              prenom: user.prenom,
-              email: user.email,
-              telephones: user.telephones,
-              date_naissance: user.date_naissance,
-              adresse: user.adresse,
-              roles: user.roles,
-              currentRole: user.roles[0]
-            }));
-            window.location.href = getRoleDashboardPath(user.roles[0]);
+            navigate(getRoleDashboardPath(user.roles[0]));
           }
         } else {
           setOtpError('Code OTP invalide');

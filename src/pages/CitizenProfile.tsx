@@ -1,7 +1,10 @@
 import styled from 'styled-components';
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
 import { data } from '../data/mockData';
+import { useAppSelector } from '../store/hooks';
 
 interface UserData {
   id: string;
@@ -40,6 +43,10 @@ const ProfileHeader = styled.div`
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid rgba(31, 90, 51, 0.1);
+  @media (max-width: 720px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 `;
 
 const AvatarCircle = styled.div`
@@ -65,6 +72,9 @@ const HeaderContent = styled.div`
   flex: 1;
   gap: 1.5rem;
   flex-wrap: wrap;
+  @media (max-width: 720px) {
+    width: 100%;
+  }
 `;
 
 const UserInfo = styled.div``;
@@ -101,6 +111,7 @@ const StatusBadge = styled.span<{ $active: boolean }>`
 const StatsContainer = styled.div`
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
 const StatBox = styled.div`
@@ -173,58 +184,18 @@ const InfoValue = styled.div`
   font-weight: 500;
 `;
 
-const OTPContainer = styled.div`
+const SecurityContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
 `;
 
-const OTPLine = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  flex-wrap: wrap;
-`;
-
-const OTPField = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  flex: 1;
-  min-width: 200px;
-`;
-
-const OTPLabel = styled.label`
+const SecurityNote = styled.p`
+  margin: 0;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #4a6d5a;
-`;
-
-const OTPInput = styled.input`
-  border: 1px solid rgba(31, 90, 51, 0.25);
-  border-radius: 12px;
-  padding: 0.7rem 1rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 1.1rem;
-  background: rgba(255, 255, 255, 0.95);
-  color: #22312a;
-  width: 100%;
-  text-align: center;
-  letter-spacing: 0.4rem;
-  outline: none;
-  transition: all 0.2s;
-
-  &:focus {
-    border-color: rgba(31, 90, 51, 0.6);
-    box-shadow: 0 0 0 4px rgba(31, 90, 51, 0.12);
-  }
-
-  &::placeholder {
-    letter-spacing: normal;
-    color: #bbb;
-    font-size: 0.9rem;
-  }
+  font-size: 0.9rem;
+  color: #6b7a72;
+  line-height: 1.5;
 `;
 
 const OTPButton = styled.button`
@@ -300,6 +271,65 @@ const LoadingText = styled.p`
   padding: 2rem;
 `;
 
+const EmptyState = styled.div`
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px rgba(12, 24, 18, 0.08);
+  border: 1px solid rgba(31, 90, 51, 0.1);
+  display: grid;
+  gap: 0.8rem;
+  text-align: center;
+`;
+
+const EmptyTitle = styled.h3`
+  margin: 0;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a2e20;
+`;
+
+const EmptySub = styled.p`
+  margin: 0;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  color: #6b7a72;
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+`;
+
+const PrimaryLink = styled(Link)`
+  text-decoration: none;
+  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65), rgba(31, 90, 51, 0.5));
+  border: 1px solid rgba(31, 90, 51, 0.25);
+  border-radius: 12px;
+  padding: 0.7rem 1.1rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+`;
+
+const SecondaryLink = styled(Link)`
+  text-decoration: none;
+  background: rgba(31, 90, 51, 0.07);
+  border: 1px solid rgba(31, 90, 51, 0.16);
+  border-radius: 12px;
+  padding: 0.7rem 1.1rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(31, 90, 51, 0.85);
+`;
+
 const navItems = [
   { label: 'Tableau de bord', to: '/citoyen/dashboard' },
   { label: 'Elections', to: '/citoyen/elections' },
@@ -310,23 +340,24 @@ const navItems = [
 ];
 
 const CitizenProfile = () => {
-  const [currentOtp, setCurrentOtp] = useState('');
-  const [newOtp, setNewOtp] = useState('');
   const [otpMessage, setOtpMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
-  // Récupérer les données utilisateur depuis sessionStorage
-  const userData = useMemo(() => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        return JSON.parse(storedUser) as UserData;
-      } catch (e) {
-        console.error('Erreur parsing user:', e);
-      }
-    }
-    return null;
-  }, []);
+  const sessionUser = useAppSelector((s) => s.auth.user);
+  const currentRole = useAppSelector((s) => s.auth.currentRole);
+
+  const userData = useMemo<UserData | null>(() => {
+    if (!sessionUser) return null;
+    return {
+      id: sessionUser.id,
+      nom: sessionUser.nom,
+      prenom: sessionUser.prenom,
+      email: sessionUser.email,
+      roles: sessionUser.roles,
+      currentRole: currentRole ?? sessionUser.roles[0] ?? 'CITOYEN',
+    };
+  }, [sessionUser, currentRole]);
 
   // Si pas de session, utiliser les données mockées (pour démo)
   const user = useMemo(() => {
@@ -347,39 +378,50 @@ const CitizenProfile = () => {
     return null;
   }, [userData]);
 
-  const handleCurrentOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setCurrentOtp(value);
+  const handleRegenerateOtp = async () => {
+    if (isRegenerating) return;
     setOtpMessage('');
-  };
+    setIsSuccess(false);
 
-  const handleNewOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setNewOtp(value);
-    setOtpMessage('');
-  };
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'Régénérer le code OTP ?',
+      text: 'Un nouveau code OTP sera généré. Utilisez-le pour vos prochaines validations.',
+      showCancelButton: true,
+      confirmButtonText: 'Régénérer',
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'naatal-swal',
+        confirmButton: 'swal-confirm',
+        cancelButton: 'swal-cancel',
+      },
+    });
+    if (!result.isConfirmed) return;
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (currentOtp.length !== 6) {
-      setOtpMessage('Veuillez saisir votre code OTP actuel (6 chiffres)');
-      setIsSuccess(false);
-      return;
+    setIsRegenerating(true);
+    const regeneratedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(regeneratedOtp);
+      }
+    } catch {
+      // Ignore clipboard errors (permissions, insecure context, etc.)
     }
-    if (newOtp.length !== 6) {
-      setOtpMessage('Veuillez saisir le nouveau code OTP (6 chiffres)');
-      setIsSuccess(false);
-      return;
-    }
-    if (currentOtp === newOtp) {
-      setOtpMessage('Le nouveau code doit etre different de l\'actuel');
-      setIsSuccess(false);
-      return;
-    }
-    setOtpMessage('Code OTP modifie avec succes!');
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Nouveau code OTP',
+      html: `<div style="font-family:Poppins,Arial,Helvetica,sans-serif;color:#22312a;font-size:1.1rem;font-weight:700;letter-spacing:0.22rem;text-align:center;padding:0.4rem 0;">${regeneratedOtp}</div><div style="font-family:Poppins,Arial,Helvetica,sans-serif;color:#6b7a72;font-size:0.9rem;text-align:center;">(Copié si autorisé par le navigateur)</div>`,
+      confirmButtonText: 'OK',
+      buttonsStyling: false,
+      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+    });
+
+    setOtpMessage('Un nouveau code OTP a été généré.');
     setIsSuccess(true);
-    setCurrentOtp('');
-    setNewOtp('');
+    setIsRegenerating(false);
   };
 
   // Formatage du nom complet
@@ -390,18 +432,67 @@ const CitizenProfile = () => {
   const phone = user?.telephones && user.telephones.length > 0 ? user.telephones[0] : '';
   
   // Formatage de la date de naissance
-  const birthDate = user?.date_naissance ? new Date(user.date_naissance).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }) : '';
+  const birthDate = useMemo(() => {
+    if (!user?.date_naissance) return '';
+    const d = new Date(user.date_naissance);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }, [user]);
+
+  if (!userData) {
+    return (
+      <AppLayout
+        role="Citoyen"
+        title="Mon profil"
+        subtitle="Informations personnelles et paramètres de sécurité."
+        navItems={navItems}
+      >
+        <ProfileContainer>
+          <EmptyState>
+            <EmptyTitle>Session expirée</EmptyTitle>
+            <EmptySub>Reconnectez-vous pour accéder à votre profil citoyen.</EmptySub>
+            <ActionRow>
+              <PrimaryLink to="/login">Se connecter</PrimaryLink>
+              <SecondaryLink to="/">Accueil</SecondaryLink>
+            </ActionRow>
+          </EmptyState>
+        </ProfileContainer>
+      </AppLayout>
+    );
+  }
+
+  const isCitizenSession =
+    (userData.currentRole || '').toUpperCase() === 'CITOYEN' ||
+    (userData.roles || []).some((r) => String(r).toUpperCase() === 'CITOYEN');
+
+  if (!isCitizenSession) {
+    return (
+      <AppLayout
+        role="Citoyen"
+        title="Mon profil"
+        subtitle="Informations personnelles et paramètres de sécurité."
+        navItems={navItems}
+      >
+        <ProfileContainer>
+          <EmptyState>
+            <EmptyTitle>Rôle incorrect</EmptyTitle>
+            <EmptySub>Vous n’êtes pas connecté en tant que citoyen.</EmptySub>
+            <ActionRow>
+              <PrimaryLink to="/portal">Changer de rôle</PrimaryLink>
+              <SecondaryLink to="/login">Se reconnecter</SecondaryLink>
+            </ActionRow>
+          </EmptyState>
+        </ProfileContainer>
+      </AppLayout>
+    );
+  }
 
   if (!user) {
     return (
       <AppLayout
         role="Citoyen"
         title="Mon profil"
-        subtitle="Informations personnelles et parametres de securite."
+        subtitle="Informations personnelles et paramètres de sécurité."
         navItems={navItems}
       >
         <LoadingText>Chargement des informations...</LoadingText>
@@ -413,7 +504,7 @@ const CitizenProfile = () => {
     <AppLayout
       role="Citoyen"
       title="Mon profil"
-      subtitle="Informations personnelles et parametres de securite."
+      subtitle="Informations personnelles et paramètres de sécurité."
       navItems={navItems}
     >
       <ProfileContainer>
@@ -424,8 +515,8 @@ const CitizenProfile = () => {
             <HeaderContent>
               <UserInfo>
                 <UserName>{fullName || 'Utilisateur'}</UserName>
-                <UserMeta>Citoyen — Senegal</UserMeta>
-                <StatusBadge $active style={{ marginTop: '0.5rem' }}>
+                <UserMeta>Citoyen — Sénégal</UserMeta>
+                <StatusBadge $active={true} style={{ marginTop: '0.5rem' }}>
                   Eligible — Compte actif
                 </StatusBadge>
               </UserInfo>
@@ -493,48 +584,27 @@ const CitizenProfile = () => {
               <i className="bi bi-shield-lock-fill" />
             </SecurityIcon>
             <SectionTitle style={{ margin: 0 }}>
-              Modifier le code OTP
+              Code OTP
             </SectionTitle>
           </HeaderWithIcon>
-          
-          <form onSubmit={handleOtpSubmit}>
-            <OTPContainer>
-              <OTPLine>
-                <OTPField>
-                  <OTPLabel>Code OTP actuel</OTPLabel>
-                  <OTPInput
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="------"
-                    value={currentOtp}
-                    onChange={handleCurrentOtpChange}
-                    maxLength={6}
-                  />
-                </OTPField>
-                <OTPField>
-                  <OTPLabel>Nouveau code OTP</OTPLabel>
-                  <OTPInput
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="------"
-                    value={newOtp}
-                    onChange={handleNewOtpChange}
-                    maxLength={6}
-                  />
-                </OTPField>
-                <OTPButton type="submit">
-                  <i className="bi bi-check2-circle" style={{ marginRight: '0.4rem' }} />
-                  Confirmer
-                </OTPButton>
-              </OTPLine>
-              {otpMessage && (
-                <OTPMessage $success={isSuccess}>
-                  <i className={`bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'}`} />
-                  {otpMessage}
-                </OTPMessage>
-              )}
-            </OTPContainer>
-          </form>
+
+          <SecurityContainer>
+            <SecurityNote>
+              Votre code OTP est régénéré à la demande. Pour des raisons de sécurité, il n’est pas modifiable manuellement.
+            </SecurityNote>
+            <div>
+              <OTPButton type="button" onClick={handleRegenerateOtp} disabled={isRegenerating}>
+                <i className="bi bi-arrow-repeat" style={{ marginRight: '0.4rem' }} />
+                {isRegenerating ? 'Génération…' : 'Régénérer un OTP'}
+              </OTPButton>
+            </div>
+            {otpMessage && (
+              <OTPMessage $success={isSuccess}>
+                <i className={`bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'}`} />
+                {otpMessage}
+              </OTPMessage>
+            )}
+          </SecurityContainer>
         </ProfileCard>
       </ProfileContainer>
     </AppLayout>

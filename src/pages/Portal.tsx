@@ -1,8 +1,10 @@
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { getRoleDisplayName, getRoleDashboardPath, getRoleColor, type UserRole } from '../data/mockData';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { logout, setCurrentRole } from '../store/authSlice';
 
 const fadeUp = keyframes`
   from {
@@ -150,15 +152,6 @@ const LogoutLink = styled.button`
   }
 `;
 
-interface UserSession {
-  id: string;
-  nom: string;
-  prenom: string;
-  email: string;
-  roles: UserRole[];
-  currentRole: UserRole;
-}
-
 // Role-specific descriptions
 const roleDescriptions: Record<UserRole, string> = {
   CITOYEN: 'Consultez les elections, votez une seule fois et suivez les resultats en direct.',
@@ -169,37 +162,24 @@ const roleDescriptions: Record<UserRole, string> = {
 
 const Portal = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserSession | null>(null);
-
-  // Get user from sessionStorage
-  const storedUser = sessionStorage.getItem('user');
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((s) => s.auth.user);
   
   useEffect(() => {
-    if (!storedUser) {
+    if (!user) {
       navigate('/login');
       return;
     }
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-    } catch (e) {
-      console.error('Error parsing user session:', e);
-      navigate('/login');
-    }
-  }, [storedUser, navigate]);
+  }, [user, navigate]);
 
   const handleRoleSelect = (role: UserRole) => {
-    if (user) {
-      // Update current role in session
-      const updatedUser = { ...user, currentRole: role };
-      sessionStorage.setItem('user', JSON.stringify(updatedUser));
-      // Redirect to the role's dashboard
-      navigate(getRoleDashboardPath(role));
-    }
+    if (!user) return;
+    dispatch(setCurrentRole(role));
+    navigate(getRoleDashboardPath(role));
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('user');
+    dispatch(logout());
     navigate('/login');
   };
 
