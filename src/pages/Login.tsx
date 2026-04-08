@@ -2,14 +2,10 @@ import styled, { keyframes } from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
 import { useState, type FormEvent } from 'react';
-import { 
-  getPhonesByCNI, 
-  findUserByCNI,
-  hasMultipleRoles, 
-  getRoleDashboardPath
-} from '../data/mockData';
+import { api, type UserDto } from '../services/api';
 import { useAppDispatch } from '../store/hooks';
 import { setSession } from '../store/authSlice';
+import { getPhonesByCNI, getRoleDashboardPath } from '../data/mockData';
 
 const fadeUp = keyframes`
   from {
@@ -518,25 +514,24 @@ const Login = () => {
   const [availablePhones, setAvailablePhones] = useState<string[]>([]);
   const [hasSearchedPhones, setHasSearchedPhones] = useState(false);
   const [showOtpPopup, setShowOtpPopup] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
   const [otpError, setOtpError] = useState('');
+  const [loginError, setLoginError] = useState('');
 
-  // Look up phone numbers by CNI
   const simulatePhoneLookup = async (cniNumber: string) => {
     if (cniNumber.length < 5) return;
     
     setIsLoadingPhones(true);
     setHasSearchedPhones(true);
+    setLoginError('');
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Use centralized mock data to get phone numbers
-    const phones = getPhonesByCNI(cniNumber);
-    setAvailablePhones(phones.length > 0 ? phones : []);
-    
-    setIsLoadingPhones(false);
+    try {
+      setAvailablePhones(getPhonesByCNI(cniNumber));
+    } catch {
+      setAvailablePhones([]);
+    } finally {
+      setIsLoadingPhones(false);
+    }
   };
 
   const validateForm = () => {
@@ -556,52 +551,64 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      // Generate a random 6-digit OTP for each connection attempt
-      const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(newOtp);
-      setEnteredOtp('');
-      setOtpError('');
-      setShowOtpPopup(true);
+      setIsLoading(true);
+      setLoginError('');
+      
+      try {
+        const result = await api.auth.login(cni, phone);
+        
+        if (result.success && result.requiresOtp) {
+          setEnteredOtp('');
+          setOtpError('');
+          setShowOtpPopup(true);
+        } else {
+          setLoginError(result.message || 'Erreur lors de la connexion');
+        }
+      } catch (error) {
+        setLoginError('Erreur de connexion au serveur');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleOtpVerification = () => {
-    if (enteredOtp === generatedOtp) {
-      setIsLoading(true);
+  const handleOtpVerification = async () => {
+    setIsLoading(true);
+    setOtpError('');
+    
+    try {
+      const result = await api.auth.verifyOtp(cni, phone, enteredOtp);
       
-      // Find user by CNI from mock data
-      const user = findUserByCNI(cni);
-      
-      setTimeout(() => {
-        setIsLoading(false);
-        setShowOtpPopup(false);
-        if (user && user.telephones.includes(phone)) {
-          dispatch(setSession({
-            user: {
-              id: user.id,
-              nom: user.nom,
-              prenom: user.prenom,
-              email: user.email,
-              roles: user.roles,
-            },
-            currentRole: user.roles[0],
-          }));
-          // Check if user has multiple roles
-          if (hasMultipleRoles(user)) {
-            // Redirect to portal for role selection
-            navigate('/portal');
-          } else {
-            navigate(getRoleDashboardPath(user.roles[0]));
-          }
+      setShowOtpPopup(false);
+      if (result.success && result.user) {
+        const roles = (result.user.roles ?? []) as any[];
+        const firstRole = roles[0] as any;
+        dispatch(setSession({
+          token: result.token,
+          user: {
+            id: result.user.id,
+            nom: result.user.nom,
+            prenom: result.user.prenom,
+            email: result.user.email,
+            roles,
+          },
+          currentRole: firstRole,
+        }));
+        if (roles.length > 1) {
+          navigate('/portal');
         } else {
-          setOtpError('Code OTP invalide');
+          navigate(getRoleDashboardPath(firstRole));
         }
-      }, 1200);
-    } else {
+      } else {
+        setOtpError('Code OTP invalide');
+      }
+    } catch (error) {
       setOtpError('Code OTP invalide');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -711,8 +718,8 @@ const Login = () => {
               Un code de vérification a été envoyé au numéro : <strong>{phone}</strong>
             </PopupText>
             <OtpDisplay>
-              <OtpLabel>Code OTP généré (simulation)</OtpLabel>
-              <OtpCode>{generatedOtp}</OtpCode>
+              <OtpLabel>Code OTP envoyé</OtpLabel>
+              <OtpCode>Vérifiez vos messages puis saisissez le code.</OtpCode>
             </OtpDisplay>
             <FieldGroup>
               <FieldLabel htmlFor="popup-otp">Entrez le code OTP</FieldLabel>

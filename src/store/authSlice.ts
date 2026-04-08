@@ -10,16 +10,19 @@ export type AuthUser = {
 };
 
 export type AuthState = {
+  token: string | null;
   user: AuthUser | null;
   currentRole: UserRole | null;
 };
 
 const initialState: AuthState = {
+  token: null,
   user: null,
   currentRole: null,
 };
 
 type SetSessionPayload = {
+  token?: string;
   user: AuthUser;
   currentRole?: UserRole;
 };
@@ -29,6 +32,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setSession(state, action: PayloadAction<SetSessionPayload>) {
+      state.token = action.payload.token ?? state.token;
       state.user = action.payload.user;
       state.currentRole = action.payload.currentRole ?? action.payload.user.roles[0] ?? null;
     },
@@ -38,6 +42,7 @@ const authSlice = createSlice({
       state.currentRole = action.payload;
     },
     logout(state) {
+      state.token = null;
       state.user = null;
       state.currentRole = null;
     },
@@ -46,4 +51,3 @@ const authSlice = createSlice({
 
 export const { setSession, setCurrentRole, logout } = authSlice.actions;
 export const authReducer = authSlice.reducer;
-

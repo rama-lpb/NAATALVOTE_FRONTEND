@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { useState } from 'react';
+import { useElections } from '../hooks/useApi';
 
 const Panel = styled.div`
   background: rgba(255, 255, 255, 0.9);
@@ -400,6 +401,7 @@ const SkeletonBadge = styled.div`
 `;
 
 const CitizenElections = () => {
+  const { elections, loading, error, refetch } = useElections();
   const navItems = [
     { label: 'Tableau de bord', to: '/citoyen/dashboard' },
     { label: 'Elections', to: '/citoyen/elections' },
@@ -414,73 +416,40 @@ const CitizenElections = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [currentPage, setCurrentPage] = useState(1);
-  // isLoading is kept for potential future async data loading
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
   const itemsPerPage = 2;
 
-  const elections = [
-    {
-      id: 'pres-2025',
-      title: 'Presidentielle 2025',
-      status: 'live' as const,
-      start: '08/03/2025',
-      end: '12/03/2025',
-      region: 'National',
-      type: 'Presidentielle',
-      participation: 62,
-      hasVoted: false,
-      resultsAvailable: false,
-      candidateCount: 6,
-    },
-    {
-      id: 'leg-2025-dkr',
-      title: 'Legislatives Dakar',
-      status: 'scheduled' as const,
-      start: '20/03/2025',
-      end: '22/03/2025',
-      region: 'Dakar',
-      type: 'Legislative',
-      participation: 0,
-      hasVoted: false,
-      resultsAvailable: false,
-      candidateCount: 12,
-    },
-    {
-      id: 'mun-2025-pk',
-      title: 'Municipales Pikine',
-      status: 'closed' as const,
-      start: '20/01/2025',
-      end: '02/02/2025',
-      region: 'Pikine',
-      type: 'Municipale',
-      participation: 71,
-      hasVoted: true,
-      resultsAvailable: true,
-      candidateCount: 8,
-    },
-    {
-      id: 'reg-2025-dkr',
-      title: 'Regionales Dakar',
-      status: 'live' as const,
-      start: '15/03/2025',
-      end: '18/03/2025',
-      region: 'Dakar',
-      type: 'Regionale',
-      participation: 45,
-      hasVoted: false,
-      resultsAvailable: false,
-      candidateCount: 4,
-    },
-  ];
-
-  const getStatusLabel = (status: 'live' | 'scheduled' | 'closed') => {
-    if (status === 'live') return 'En cours';
-    if (status === 'scheduled') return 'Programmee';
-    return 'Cloturee';
+  const getStatusLabel = (statut: string): 'live' | 'scheduled' | 'closed' => {
+    if (statut === 'EN_COURS') return 'live';
+    if (statut === 'PROGRAMMEE') return 'scheduled';
+    return 'closed';
   };
 
-  const filteredElections = elections.filter(election => 
+  const getTypeLabel = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      PRESIDENTIELLE: 'Presidentielle',
+      LEGISLATIVE: 'Legislative',
+      MUNICIPALE: 'Municipale',
+      REGIONALE: 'Regionale',
+    };
+    return typeMap[type] || type;
+  };
+
+  const apiElections = elections.map(e => ({
+    id: e.id,
+    title: e.titre,
+    status: getStatusLabel(e.statut) as 'live' | 'scheduled' | 'closed',
+    start: new Date(e.date_debut).toLocaleDateString('fr-FR'),
+    end: new Date(e.date_fin).toLocaleDateString('fr-FR'),
+    region: e.region || 'National',
+    type: getTypeLabel(e.type),
+    participation: e.total_electeurs > 0 ? Math.round((e.votes_count / e.total_electeurs) * 100) : 0,
+    hasVoted: false,
+    resultsAvailable: e.statut === 'CLOTUREE',
+    candidateCount: e.candidat_ids?.length || 0,
+  }));
+
+  const filteredElections = apiElections.filter(election => 
     (activeFilter === 'all' || election.status === activeFilter) &&
     (typeFilter === 'all' || election.type === typeFilter) &&
     (election.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -494,6 +463,10 @@ const CitizenElections = () => {
     currentPage * itemsPerPage
   );
 
+  const activeCount = apiElections.filter(e => e.status === 'live').length;
+  const nextElection = apiElections.filter(e => e.status === 'scheduled')[0];
+  const totalElections = apiElections.length;
+
   return (
     <AppLayout
       role="Citoyen"
@@ -505,19 +478,19 @@ const CitizenElections = () => {
         <SummaryRow>
           <SummaryCard>
             <SummaryLabel>Scrutins actifs</SummaryLabel>
-            <SummaryValue>2</SummaryValue>
+            <SummaryValue>{activeCount}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Prochain scrutin</SummaryLabel>
-            <SummaryValue>15/03/2025</SummaryValue>
+            <SummaryValue>{nextElection?.start || 'N/A'}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Total scrutins</SummaryLabel>
-            <SummaryValue>{elections.length}</SummaryValue>
+            <SummaryValue>{totalElections}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Taux moyen national</SummaryLabel>
-            <SummaryValue>64%</SummaryValue>
+            <SummaryValue>{activeCount > 0 ? '45%' : 'N/A'}</SummaryValue>
           </SummaryCard>
         </SummaryRow>
         <HeaderRow>
@@ -607,8 +580,7 @@ const CitizenElections = () => {
             </ViewToggle>
           </FiltersAndControls>
         </HeaderRow>
-        {/* Loading/Empty/Content States */}
-        {isLoading ? (
+        {loading ? (
           <Grid $viewMode={viewMode}>
             {[1, 2].map((i) => (
               <SkeletonCard key={i}>
@@ -626,6 +598,19 @@ const CitizenElections = () => {
                 </div>
               </SkeletonCard>
             ))}
+          </Grid>
+        ) : error ? (
+          <Grid $viewMode={viewMode}>
+            <EmptyState style={{ gridColumn: '1 / -1' }}>
+              <EmptyIcon>
+                <i className="bi bi-exclamation-triangle" />
+              </EmptyIcon>
+              <EmptyTitle>Erreur de chargement</EmptyTitle>
+              <EmptyText>{error}</EmptyText>
+              <FilterChip $active onClick={refetch}>
+                Reessayer
+              </FilterChip>
+            </EmptyState>
           </Grid>
         ) : filteredElections.length === 0 ? (
           /* Empty State */
