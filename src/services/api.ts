@@ -99,7 +99,7 @@ export const api = {
       return handleResponse(res);
     },
     listPaged: async (page = 0, size = 20): Promise<PagedResponse<ElectionDto>> => {
-      const res = await fetch(`${API_BASE}/elections/paged?page=${page}&size=${size}`);
+      const res = await fetch(`${API_BASE}/elections/paged?page=${page}&size=${size}`, { headers: authHeaders() });
       return handleResponse(res);
     },
     get: async (id: string): Promise<ElectionDto> => {
@@ -147,7 +147,7 @@ export const api = {
       return handleResponse(res);
     },
     listPaged: async (page = 0, size = 20): Promise<PagedResponse<CandidateDto>> => {
-      const res = await fetch(`${API_BASE}/candidats/paged?page=${page}&size=${size}`);
+      const res = await fetch(`${API_BASE}/candidats/paged?page=${page}&size=${size}`, { headers: authHeaders() });
       return handleResponse(res);
     },
     get: async (id: string): Promise<CandidateDto> => {
