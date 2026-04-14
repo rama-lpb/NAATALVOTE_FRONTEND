@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
 const timeAgo = (iso: string): string => {
@@ -13,19 +13,8 @@ const timeAgo = (iso: string): string => {
 };
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
-
-// Badge = mes alertes en cours (pas encore traitées)
-const MES_EN_COURS = (mockData as any).alertes_fraude.filter(
-  (a: any) => a.operateur_id === 'oper-001' && a.statut === 'EN_ANALYSE'
-).length;
-
-const navItems = [
-  { label: 'Dashboard', to: '/operateur/dashboard' },
-  { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: MES_EN_COURS },
-  { label: 'Historique', to: '/operateur/historique' },
-  { label: 'Rapports', to: '/operateur/rapports' },
-];
+import { api, type ElectionDto } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 /* ── Styled Components ── */
 const FiltersBar = styled.div`
@@ -249,15 +238,6 @@ const TYPE_ICONS: Record<string, string> = {
   CNI_INVALIDE: 'bi-card-text',
 };
 
-const ELECTION_LABELS: Record<string, string> = {
-  'elec-001': 'Presidentielle 2025',
-  'elec-002': 'Legislatives Dakar',
-  'elec-003': 'Municipales',
-};
-
-// Mes alertes = uniquement celles que j'ai prises en charge
-const MON_ID = 'oper-001';
-
 // Vocabulaire propre à "Mes alertes"
 const MY_STATUS_LABEL: Record<string, string> = {
   EN_ANALYSE: 'En cours',
@@ -267,21 +247,47 @@ const MY_STATUS_LABEL: Record<string, string> = {
 /* ── Component ── */
 const OperatorAlerts = () => {
   const navigate = useNavigate();
+  const operatorId = useAppSelector((s) => s.auth.user?.id ?? null);
 
-  // Toutes les alertes du mock, pré-filtrées sur mon id
-  const mesAlertes = useMemo(
-    () => (mockData as any).alertes_fraude.filter((a: any) => a.operateur_id === MON_ID) as Array<{
-      id: string;
-      type_fraude: string;
-      citoyen_id: string | null;
-      election_id: string;
-      description: string;
-      statut: string;
-      date_detection: string;
-      ip: string | null;
-    }>,
-    []
-  );
+  const [alerts, setAlerts] = useState<Awaited<ReturnType<typeof api.operateur.listAlerts>>>([]);
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([api.operateur.listAlerts(), api.elections.list()])
+      .then(([a, e]) => {
+        if (cancelled) return;
+        setAlerts(a);
+        setElections(e);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAlerts([]);
+        setElections([]);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const electionsById = useMemo(() => {
+    const out: Record<string, string> = {};
+    elections.forEach((e) => { out[e.id] = e.titre; });
+    return out;
+  }, [elections]);
+
+  const navItems = useMemo(() => {
+    const badge = operatorId ? alerts.filter((a) => a.operateur_id === operatorId && a.statut === 'EN_ANALYSE').length : 0;
+    return [
+      { label: 'Dashboard', to: '/operateur/dashboard' },
+      { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: badge || undefined },
+      { label: 'Historique', to: '/operateur/historique' },
+      { label: 'Rapports', to: '/operateur/rapports' },
+    ];
+  }, [alerts, operatorId]);
+
+  const mesAlertes = useMemo(() => {
+    if (!operatorId) return [];
+    return alerts.filter((a) => a.operateur_id === operatorId);
+  }, [alerts, operatorId]);
 
   const PAGE_SIZE = 6;
   const [filterType, setFilterType] = useState('');
@@ -349,9 +355,9 @@ const OperatorAlerts = () => {
 
         <FilterSelect value={filterElection} onChange={handleFilter(setFilterElection)}>
           <option value="">Toutes les elections</option>
-          <option value="elec-001">Presidentielle 2025</option>
-          <option value="elec-002">Legislatives Dakar</option>
-          <option value="elec-003">Municipales</option>
+          {elections.map((e) => (
+            <option key={e.id} value={e.id}>{e.titre}</option>
+          ))}
         </FilterSelect>
 
         <FilterInput
@@ -390,7 +396,7 @@ const OperatorAlerts = () => {
                 <AlertMeta>
                   <span><i className="bi bi-calendar2" style={{ marginRight: '0.3rem' }} />{formatDate(alert.date_detection)}</span>
                   <span style={{ color: '#a0b0a8', fontSize: '0.75rem' }}>({timeAgo(alert.date_detection)})</span>
-                  <span><i className="bi bi-flag" style={{ marginRight: '0.3rem' }} />{ELECTION_LABELS[alert.election_id] ?? alert.election_id}</span>
+                  <span><i className="bi bi-flag" style={{ marginRight: '0.3rem' }} />{alert.election_id ? (electionsById[alert.election_id] ?? alert.election_id) : '—'}</span>
                   {alert.ip && <span><i className="bi bi-wifi" style={{ marginRight: '0.3rem' }} />{alert.ip}</span>}
                   <span style={{ color: '#8a9a90', fontStyle: 'italic', fontSize: '0.78rem' }}>{alert.description}</span>
                 </AlertMeta>

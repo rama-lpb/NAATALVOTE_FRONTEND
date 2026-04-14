@@ -3,7 +3,6 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
-import { data } from '../data/mockData';
 import { useAppSelector } from '../store/hooks';
 
 interface UserData {
@@ -359,24 +358,7 @@ const CitizenProfile = () => {
     };
   }, [sessionUser, currentRole]);
 
-  // Si pas de session, utiliser les données mockées (pour démo)
-  const user = useMemo(() => {
-    if (userData && userData.id) {
-      // Essayer de trouver l'utilisateur complet dans les mock data
-      const mockUser = data.users.find(u => u.id === userData.id);
-      if (mockUser) {
-        return {
-          ...userData,
-          cni: mockUser.cni,
-          telephones: mockUser.telephones,
-          date_naissance: mockUser.date_naissance,
-          adresse: mockUser.adresse
-        };
-      }
-      return userData;
-    }
-    return null;
-  }, [userData]);
+  const user = userData ?? null;
 
   const handleRegenerateOtp = async () => {
     if (isRegenerating) return;

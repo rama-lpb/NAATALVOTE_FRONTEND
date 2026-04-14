@@ -1,18 +1,8 @@
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
-
-/* ─── Nav ─────────────────────────────────────────────── */
-const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
-const navItems = [
-  { label: 'Console systeme', to: '/superadmin/console' },
-  { label: 'Logs immuables', to: '/superadmin/logs' },
-  { label: 'Exports audit', to: '/superadmin/export' },
-  { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
-];
+import { api } from '../services/api';
 
 /* ─── Mock data ────────────────────────────────────────── */
 const users: Record<string, { initials: string; name: string; email: string; role: string; color: string }> = {
@@ -382,13 +372,56 @@ const PageBtn = styled.button<{ $active?: boolean; $disabled?: boolean }>`
   &:hover:not(:disabled) { background: ${({ $active }) => $active ? 'rgba(31,90,51,0.65)' : 'rgba(31,90,51,0.12)'}; }
 `;
 
+const ROLE_COLORS: Record<string, string> = {
+  SUPERADMIN: 'rgba(176, 58, 46, 0.7)',
+  ADMIN: 'rgba(38, 76, 140, 0.7)',
+  OPERATEUR: 'rgba(138, 90, 16, 0.7)',
+  CITOYEN: 'rgba(91, 95, 101, 0.5)',
+};
+
+const fmtHorodatage = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+};
+
 /* ─── Component ────────────────────────────────────────── */
 const SuperAdminUserLogs = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
 
-  const user = userId ? users[userId] : null;
-  const logs = userId ? (allLogs[userId] ?? []) : [];
+  const [apiUser, setApiUser] = useState<{ id: string; nom: string; prenom: string; email: string; roles: string[] } | null>(null);
+  const [allLogs, setAllLogs] = useState<{
+    id: string; type_action: string; utilisateur_id: string;
+    description: string; horodatage: string; adresse_ip: string;
+    signature_cryptographique: string;
+  }[]>([]);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (!userId) { setLoadingUser(false); return; }
+    api.superadmin.listUsers()
+      .then(users => setApiUser(users.find(u => u.id === userId) ?? null))
+      .catch(() => setApiUser(null))
+      .finally(() => setLoadingUser(false));
+    api.superadmin.listLogs()
+      .then(logs => setAllLogs(logs.filter(l => l.utilisateur_id === userId)))
+      .catch(() => setAllLogs([]))
+      .finally(() => setLoadingLogs(false));
+    api.superadmin.listSuspensions()
+      .then(s => setPendingCount(s.filter(x => x.statut === 'EN_ATTENTE').length))
+      .catch(() => {});
+  }, [userId]);
+
+  const navItems = [
+    { label: 'Console systeme', to: '/superadmin/console' },
+    { label: 'Logs immuables', to: '/superadmin/logs' },
+    { label: 'Exports audit', to: '/superadmin/export' },
+    { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
+    { label: 'Suspensions', to: '/superadmin/suspensions', badge: pendingCount },
+  ];
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('TOUS');
@@ -396,12 +429,15 @@ const SuperAdminUserLogs = () => {
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
 
-  const filtered = logs.filter((l) => {
-    const matchType = typeFilter === 'TOUS' || l.type === typeFilter;
-    const matchSearch = l.desc.toLowerCase().includes(search.toLowerCase()) ||
-                        l.ip.includes(search);
-    const matchFrom = !dateFrom || l.date >= dateFrom;
-    const matchTo   = !dateTo   || l.date <= dateTo;
+  const loading = loadingUser || loadingLogs;
+
+  const filtered = allLogs.filter((l) => {
+    const matchType = typeFilter === 'TOUS' || l.type_action === typeFilter;
+    const matchSearch = l.description.toLowerCase().includes(search.toLowerCase())
+      || l.adresse_ip.includes(search);
+    const horoDate = l.horodatage.slice(0, 10);
+    const matchFrom = !dateFrom || horoDate >= dateFrom;
+    const matchTo   = !dateTo   || horoDate <= dateTo;
     return matchType && matchSearch && matchFrom && matchTo;
   });
 
@@ -411,7 +447,7 @@ const SuperAdminUserLogs = () => {
 
   const resetPage = () => setPage(1);
 
-  if (!user) {
+  if (!loading && !apiUser) {
     return (
       <AppLayout role="Super Admin" title="Logs utilisateur" subtitle="" navItems={navItems}>
         <EmptyState>Utilisateur introuvable.</EmptyState>
@@ -419,15 +455,19 @@ const SuperAdminUserLogs = () => {
     );
   }
 
+  const primaryRole = apiUser ? (['SUPERADMIN','ADMIN','OPERATEUR'].find(r => apiUser.roles.includes(r)) ?? apiUser.roles[0] ?? 'CITOYEN') : '';
+  const initials = apiUser ? `${apiUser.prenom.charAt(0)}${apiUser.nom.charAt(0)}`.toUpperCase() : '??';
+  const displayName = apiUser ? `${apiUser.prenom} ${apiUser.nom}` : '…';
+
   const statsByType = LOG_TYPES.slice(1).map((t) => ({
     label: t,
-    count: logs.filter((l) => l.type === t).length,
+    count: allLogs.filter((l) => l.type_action === t).length,
   })).filter((s) => s.count > 0);
 
   return (
     <AppLayout
       role="Super Admin"
-      title={`Logs — ${user.name}`}
+      title={`Logs — ${displayName}`}
       subtitle="Historique complet et immuable de toutes les actions de cet utilisateur."
       navItems={navItems}
     >
@@ -441,14 +481,14 @@ const SuperAdminUserLogs = () => {
 
         {/* User card */}
         <UserCard>
-          <Avatar $color={user.color}>{user.initials}</Avatar>
+          <Avatar $color={ROLE_COLORS[primaryRole] ?? 'rgba(91,95,101,0.5)'}>{initials}</Avatar>
           <UserMeta>
-            <UserName>{user.name}</UserName>
-            <UserSub>{user.email}</UserSub>
+            <UserName>{displayName}</UserName>
+            <UserSub>{apiUser?.email ?? '…'}</UserSub>
           </UserMeta>
-          <RoleBadge $role={user.role}>{user.role === 'Administrateur' ? 'Admin' : 'Operateur'}</RoleBadge>
+          <RoleBadge $role={primaryRole}>{primaryRole}</RoleBadge>
           <StatPills>
-            <StatPill><i className="bi bi-journal-text" /> {logs.length} actions totales</StatPill>
+            <StatPill><i className="bi bi-journal-text" /> {allLogs.length} actions totales</StatPill>
             {statsByType.map((s) => (
               <StatPill key={s.label}>{s.label} : {s.count}</StatPill>
             ))}
@@ -495,17 +535,19 @@ const SuperAdminUserLogs = () => {
             <TH>Signature</TH>
           </TableHeader>
 
-          {paginated.length === 0 ? (
+          {loading ? (
+            <EmptyState>Chargement…</EmptyState>
+          ) : paginated.length === 0 ? (
             <EmptyState>Aucun log ne correspond aux filtres appliques.</EmptyState>
           ) : (
             paginated.map((log) => (
               <LogRow key={log.id}>
-                <div><LogType $type={log.type}>{log.type}</LogType></div>
-                <LogDesc title={log.desc}>{log.desc}</LogDesc>
-                <LogIP>{log.ip}</LogIP>
-                <LogTime>{log.date.split('-').reverse().join('/')} {log.time}</LogTime>
-                <HashBadge title="Hash HMAC-SHA256 verifie">
-                  <i className="bi bi-check2" />{log.hash}
+                <div><LogType $type={log.type_action}>{log.type_action}</LogType></div>
+                <LogDesc title={log.description}>{log.description}</LogDesc>
+                <LogIP>{log.adresse_ip}</LogIP>
+                <LogTime>{fmtHorodatage(log.horodatage)}</LogTime>
+                <HashBadge title={log.signature_cryptographique}>
+                  <i className="bi bi-check2" />{log.signature_cryptographique.slice(0, 6)}
                 </HashBadge>
               </LogRow>
             ))

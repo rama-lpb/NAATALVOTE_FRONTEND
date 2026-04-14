@@ -1,23 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
-
-/* ── Badge ── */
-const MES_EN_COURS = (mockData as any).alertes_fraude.filter(
-  (a: any) => a.operateur_id === 'oper-001' && a.statut === 'EN_ANALYSE'
-).length;
-
-const navItems = [
-  { label: 'Dashboard', to: '/operateur/dashboard' },
-  { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: MES_EN_COURS },
-  { label: 'Historique', to: '/operateur/historique' },
-  { label: 'Rapports', to: '/operateur/rapports' },
-];
-
-/* ── Constants ── */
-const MON_ID = 'oper-001';
+import { api, type ElectionDto } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const TYPE_LABELS: Record<string, string> = {
   VOTE_MULTIPLE: 'Vote multiple',
@@ -31,12 +17,6 @@ const TYPE_ICONS: Record<string, string> = {
   IP_SUSPECTE: 'bi-wifi-off',
   PATTERN_SUSPECT: 'bi-graph-down',
   CNI_INVALIDE: 'bi-card-text',
-};
-
-const ELECTION_LABELS: Record<string, string> = {
-  'elec-001': 'Presidentielle 2025',
-  'elec-002': 'Legislatives Dakar',
-  'elec-003': 'Municipales',
 };
 
 type ActionCategory = 'all' | 'EN_COURS' | 'RESOLU' | 'SUSPECT' | 'SUSPENSION';
@@ -547,10 +527,10 @@ const NoDecisionYet = styled.div`
 
 /* ── Helpers ── */
 const getActionCategory = (alert: any, suspensions: any[]): ActionCategory => {
-  const hasSusp = suspensions.some((s: any) => s.alert_id === alert.id);
+  const hasSusp = !!alert.citoyen_id && suspensions.some((s: any) => s.citoyen_id === alert.citoyen_id);
   if (hasSusp) return 'SUSPENSION';
-  if (alert.action_operateur === 'SUSPECT') return 'SUSPECT';
   if (alert.statut === 'RESOLUE') return 'RESOLU';
+  if (alert.type_fraude === 'IP_SUSPECTE' || alert.type_fraude === 'PATTERN_SUSPECT') return 'SUSPECT';
   return 'EN_COURS';
 };
 
@@ -581,6 +561,46 @@ const formatDateTime = (iso: string) => {
 
 /* ── Component ── */
 const OperatorHistory = () => {
+  const operatorId = useAppSelector((s) => s.auth.user?.id ?? null);
+
+  const [alerts, setAlerts] = useState<Awaited<ReturnType<typeof api.operateur.listAlerts>>>([]);
+  const [suspensions, setSuspensions] = useState<Awaited<ReturnType<typeof api.operateur.listSuspensions>>>([]);
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([api.operateur.listAlerts(), api.operateur.listSuspensions(), api.elections.list()])
+      .then(([a, s, e]) => {
+        if (cancelled) return;
+        setAlerts(a);
+        setSuspensions(s);
+        setElections(e);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAlerts([]);
+        setSuspensions([]);
+        setElections([]);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const electionsById = useMemo(() => {
+    const out: Record<string, string> = {};
+    elections.forEach((e) => { out[e.id] = e.titre; });
+    return out;
+  }, [elections]);
+
+  const navItems = useMemo(() => {
+    const badge = operatorId ? alerts.filter((a) => a.operateur_id === operatorId && a.statut === 'EN_ANALYSE').length : 0;
+    return [
+      { label: 'Dashboard', to: '/operateur/dashboard' },
+      { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: badge || undefined },
+      { label: 'Historique', to: '/operateur/historique' },
+      { label: 'Rapports', to: '/operateur/rapports' },
+    ];
+  }, [alerts, operatorId]);
+
   const [filterAction, setFilterAction] = useState<ActionCategory>('all');
   const [filterType, setFilterType] = useState('');
   const [filterElection, setFilterElection] = useState('');
@@ -589,15 +609,10 @@ const OperatorHistory = () => {
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const allAlerts = useMemo(
-    () => (mockData as any).alertes_fraude.filter((a: any) => a.operateur_id === MON_ID),
-    []
-  );
-
-  const suspensions = useMemo(
-    () => (mockData as any).suspensions.filter((s: any) => s.operateur_id === MON_ID),
-    []
-  );
+  const allAlerts = useMemo(() => {
+    if (!operatorId) return [];
+    return alerts.filter((a) => a.operateur_id === operatorId);
+  }, [alerts, operatorId]);
 
   const filtered = useMemo(() => {
     return allAlerts
@@ -674,11 +689,9 @@ const OperatorHistory = () => {
   const hasFilters = filterAction !== 'all' || filterType || filterElection || filterDate || search;
 
   /* ── Drawer data ── */
-  const selectedAlert = selectedId
-    ? (mockData as any).alertes_fraude.find((a: any) => a.id === selectedId)
-    : null;
-  const selectedSusp = selectedId
-    ? suspensions.find((s: any) => s.alert_id === selectedId) ?? null
+  const selectedAlert = selectedId ? allAlerts.find((a: any) => a.id === selectedId) ?? null : null;
+  const selectedSusp = selectedAlert?.citoyen_id
+    ? suspensions.find((s: any) => s.citoyen_id === selectedAlert.citoyen_id) ?? null
     : null;
   const selectedCategory = selectedAlert
     ? getActionCategory(selectedAlert, suspensions)
@@ -727,9 +740,9 @@ const OperatorHistory = () => {
 
           <FilterSelect value={filterElection} onChange={handleFilter(setFilterElection)}>
             <option value="">Toutes les elections</option>
-            <option value="elec-001">Presidentielle 2025</option>
-            <option value="elec-002">Legislatives Dakar</option>
-            <option value="elec-003">Municipales</option>
+            {elections.map((e) => (
+              <option key={e.id} value={e.id}>{e.titre}</option>
+            ))}
           </FilterSelect>
 
           <FilterInput
@@ -788,7 +801,7 @@ const OperatorHistory = () => {
                   </ActionBadge>
                   <HistTitle>{TYPE_LABELS[alert.type_fraude] ?? alert.type_fraude}</HistTitle>
                   <HistMeta>
-                    {ELECTION_LABELS[alert.election_id] ?? alert.election_id}
+                    {alert.election_id ? (electionsById[alert.election_id] ?? alert.election_id) : '—'}
                     {alert.ip && <> · {alert.ip}</>}
                     {' · '}
                     <span style={{ fontFamily: 'monospace', fontSize: '0.72rem' }}>{alert.id}</span>
@@ -867,7 +880,7 @@ const OperatorHistory = () => {
               </DrawerRow>
               <DrawerRow>
                 <DrawerLabel>Election</DrawerLabel>
-                <DrawerValue>{ELECTION_LABELS[selectedAlert.election_id] ?? selectedAlert.election_id}</DrawerValue>
+                <DrawerValue>{selectedAlert.election_id ? (electionsById[selectedAlert.election_id] ?? selectedAlert.election_id) : '—'}</DrawerValue>
               </DrawerRow>
               <DrawerRow>
                 <DrawerLabel>Detectee le</DrawerLabel>
@@ -974,26 +987,12 @@ const OperatorHistory = () => {
                   <DrawerLabel>Dossier cree</DrawerLabel>
                   <DrawerValue>{formatDate(selectedSusp.date_creation)}</DrawerValue>
                 </DrawerRow>
-                {selectedSusp.date_decision && (
-                  <DrawerRow>
-                    <DrawerLabel>Decision le</DrawerLabel>
-                    <DrawerValue>{formatDateTime(selectedSusp.date_decision)}</DrawerValue>
-                  </DrawerRow>
-                )}
-                {selectedSusp.decision_commentaire ? (
-                  <>
-                    <DrawerRow>
-                      <DrawerLabel>Commentaire</DrawerLabel>
-                      <DrawerValue />
-                    </DrawerRow>
-                    <DecisionComment>{selectedSusp.decision_commentaire}</DecisionComment>
-                  </>
-                ) : (
-                  <NoDecisionYet>
-                    <i className="bi bi-clock" />
-                    En attente de la decision du SuperAdmin.
-                  </NoDecisionYet>
-                )}
+                <NoDecisionYet>
+                  <i className={selectedSusp.statut === 'EN_ATTENTE' ? 'bi bi-clock' : 'bi bi-check2-circle'} />
+                  {selectedSusp.statut === 'EN_ATTENTE'
+                    ? 'En attente de la decision du SuperAdmin.'
+                    : 'Decision prise par le SuperAdmin.'}
+                </NoDecisionYet>
               </DrawerSection>
             ) : selectedCategory === 'SUSPENSION' ? null : (
               <DrawerSection>

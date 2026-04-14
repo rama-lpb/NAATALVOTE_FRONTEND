@@ -1,7 +1,10 @@
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
+import { api } from '../services/api';
+import { useAppSelector } from '../store/hooks';
+import { useState, useRef } from 'react';
 
 const FormGrid = styled.div`
   display: grid;
@@ -110,19 +113,6 @@ const Textarea = styled.textarea`
   }
 `;
 
-const SelectField = styled.select`
-  width: 100%;
-  border: 1px solid rgba(31, 90, 51, 0.22);
-  border-radius: 12px;
-  padding: 0.7rem 0.9rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  color: #22312a;
-  background: rgba(255, 255, 255, 0.9);
-  outline: none;
-  box-sizing: border-box;
-  cursor: pointer;
-`;
-
 const ActionRow = styled.div`
   display: flex;
   gap: 0.7rem;
@@ -147,7 +137,8 @@ const SendButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(176, 58, 46, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(176, 58, 46, 0.72); }
+  &:hover:not(:disabled) { background: rgba(176, 58, 46, 0.72); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const CancelButton = styled(Link)`
@@ -265,8 +256,30 @@ const navItems = [
 ];
 
 const OperatorRecommendSuspension = () => {
-  const handleSend = () => {
-    Swal.fire({
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentUser = useAppSelector(s => s.auth.user);
+  const justificationRef = useRef<HTMLTextAreaElement>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Context passed from OperatorAlertDetail
+  const state = (location.state as { alertId?: string; type?: string; citoyen_id?: string } | null) ?? {};
+  const alertId = state.alertId ?? '—';
+  const typeFraude = state.type ?? '—';
+  const citoyenId = state.citoyen_id ?? null;
+
+  const handleSend = async () => {
+    const justification = justificationRef.current?.value?.trim() ?? '';
+    if (!justification) {
+      Swal.fire({ icon: 'warning', title: 'Justification requise', text: 'Veuillez saisir une justification detaillee.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+      return;
+    }
+    if (!citoyenId || !currentUser?.id) {
+      Swal.fire({ icon: 'error', title: 'Donnees manquantes', text: 'Impossible de soumettre : citoyen ou operateur introuvable.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+      return;
+    }
+
+    const confirm = await Swal.fire({
       title: 'Envoyer la recommandation ?',
       html: 'La recommandation sera transmise au <strong>Super Administrateur</strong> pour validation. Vous ne pourrez pas suspendre le compte directement.',
       icon: 'warning',
@@ -275,18 +288,30 @@ const OperatorRecommendSuspension = () => {
       cancelButtonText: 'Annuler',
       buttonsStyling: false,
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Recommandation envoyee',
-          text: 'Le SuperAdmin a ete notifie et prendra une decision.',
-          confirmButtonText: 'OK',
-          buttonsStyling: false,
-          customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
-        });
-      }
     });
+
+    if (!confirm.isConfirmed) return;
+
+    setSubmitting(true);
+    try {
+      await api.operateur.recommendSuspension({
+        citoyen_id: citoyenId,
+        motif: justification,
+        operateur_id: currentUser.id,
+      });
+      Swal.fire({
+        icon: 'success',
+        title: 'Recommandation envoyee',
+        text: 'Le SuperAdmin a ete notifie et prendra une decision.',
+        confirmButtonText: 'OK',
+        buttonsStyling: false,
+        customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+      }).then(() => navigate('/operateur/mes-alertes'));
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Erreur', text: 'La recommandation n\'a pas pu etre soumise.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -301,42 +326,32 @@ const OperatorRecommendSuspension = () => {
           <SectionTitle><i className="bi bi-person-dash" />Dossier de suspension</SectionTitle>
           <DetailRow>
             <DetailLabel><i className="bi bi-person" />Citoyen</DetailLabel>
-            <DetailValue>CNI 2349 — Identite masquee</DetailValue>
+            <DetailValue>{citoyenId ?? 'Identite masquee'}</DetailValue>
           </DetailRow>
           <DetailRow>
             <DetailLabel><i className="bi bi-tag" />Type fraude</DetailLabel>
-            <DetailValue>Vote multiple confirme (3 tentatives)</DetailValue>
+            <DetailValue>{typeFraude}</DetailValue>
           </DetailRow>
           <DetailRow>
-            <DetailLabel><i className="bi bi-calendar2-week" />Election</DetailLabel>
-            <DetailValue>Presidentielle 2025</DetailValue>
-          </DetailRow>
-          <DetailRow>
-            <DetailLabel><i className="bi bi-wifi" />Preuves IP</DetailLabel>
-            <DetailValue>3 tentatives en 1m33s depuis 41.220.0.12</DetailValue>
+            <DetailLabel><i className="bi bi-bell" />Alerte ref.</DetailLabel>
+            <DetailValue>#{alertId}</DetailValue>
           </DetailRow>
 
           <Divider />
 
           <FieldGroup>
-            <Label><i className="bi bi-chat-square-text" />Niveau de gravite recommande <Required>*</Required></Label>
-            <SelectField defaultValue="high">
-              <option value="high">Haute — Suspension immediate recommandee</option>
-              <option value="medium">Moyenne — Surveillance renforcee</option>
-              <option value="low">Faible — Simple mise en garde</option>
-            </SelectField>
-          </FieldGroup>
-
-          <FieldGroup>
             <Label><i className="bi bi-pencil" />Justification detaillee <Required>*</Required></Label>
-            <Textarea placeholder="Decrivez precisement les preuves, le contexte et les raisons qui motivent cette recommandation de suspension..." />
+            <Textarea
+              ref={justificationRef}
+              placeholder="Decrivez precisement les preuves, le contexte et les raisons qui motivent cette recommandation de suspension..."
+            />
             <Helper>Cette justification sera visible par le SuperAdmin et sera archivee dans les logs immuables.</Helper>
           </FieldGroup>
 
           <ActionRow>
-            <SendButton onClick={handleSend}>
+            <SendButton onClick={handleSend} disabled={submitting}>
               <i className="bi bi-send" />
-              Envoyer au SuperAdmin
+              {submitting ? 'Envoi en cours…' : 'Envoyer au SuperAdmin'}
             </SendButton>
             <CancelButton to="/operateur/mes-alertes">
               <i className="bi bi-arrow-left" />
@@ -348,10 +363,10 @@ const OperatorRecommendSuspension = () => {
         <SidePanel>
           <InfoCard>
             <CardTitle><i className="bi bi-clipboard-data" />Resume du dossier</CardTitle>
-            <MiniRow><MiniLabel>Alerte reference</MiniLabel><MiniValue>#ALT-112</MiniValue></MiniRow>
-            <MiniRow><MiniLabel>Tentatives</MiniLabel><MiniValue style={{ color: 'rgba(176, 58, 46, 0.6)' }}>3</MiniValue></MiniRow>
+            <MiniRow><MiniLabel>Alerte reference</MiniLabel><MiniValue>#{alertId}</MiniValue></MiniRow>
+            <MiniRow><MiniLabel>Type</MiniLabel><MiniValue style={{ color: 'rgba(176, 58, 46, 0.6)' }}>{typeFraude}</MiniValue></MiniRow>
             <MiniRow><MiniLabel>Detecte par</MiniLabel><MiniValue>Systeme auto</MiniValue></MiniRow>
-            <MiniRow><MiniLabel>Operateur</MiniLabel><MiniValue>Mamadou Diallo</MiniValue></MiniRow>
+            <MiniRow><MiniLabel>Operateur</MiniLabel><MiniValue>{currentUser ? `${currentUser.prenom} ${currentUser.nom}` : '—'}</MiniValue></MiniRow>
           </InfoCard>
 
           <WarningCard>

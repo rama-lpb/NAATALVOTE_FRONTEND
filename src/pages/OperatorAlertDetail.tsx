@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
+import { api, type ElectionDto } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const timeAgo = (iso: string): string => {
   const diff = Date.now() - new Date(iso).getTime();
@@ -29,12 +30,6 @@ const TYPE_ICONS: Record<string, string> = {
   IP_SUSPECTE: 'bi-wifi-off',
   PATTERN_SUSPECT: 'bi-graph-down',
   CNI_INVALIDE: 'bi-card-text',
-};
-
-const ELECTION_LABELS: Record<string, string> = {
-  'elec-001': 'Presidentielle 2025',
-  'elec-002': 'Legislatives Dakar',
-  'elec-003': 'Municipales',
 };
 
 type Severity = 'critical' | 'medium' | 'low';
@@ -583,51 +578,75 @@ const NotFound = styled.div`
 `;
 
 /* ── Component ── */
-const MES_EN_COURS = (mockData as any).alertes_fraude.filter(
-  (a: any) => a.operateur_id === 'oper-001' && a.statut === 'EN_ANALYSE'
-).length;
-
-const navItems = [
-  { label: 'Dashboard', to: '/operateur/dashboard' },
-  { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: MES_EN_COURS },
-  { label: 'Historique', to: '/operateur/historique' },
-  { label: 'Rapports', to: '/operateur/rapports' },
-];
-
 const OperatorAlertDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const operatorId = useAppSelector((s) => s.auth.user?.id ?? null);
+
+  const [alerts, setAlerts] = useState<Awaited<ReturnType<typeof api.operateur.listAlerts>>>([]);
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([api.operateur.listAlerts(), api.elections.list()])
+      .then(([a, e]) => {
+        if (cancelled) return;
+        setAlerts(a);
+        setElections(e);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAlerts([]);
+        setElections([]);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const electionsById = useMemo(() => {
+    const out: Record<string, string> = {};
+    elections.forEach((e) => { out[e.id] = e.titre; });
+    return out;
+  }, [elections]);
+
+  const navItems = useMemo(() => {
+    const badge = operatorId ? alerts.filter((a) => a.operateur_id === operatorId && a.statut === 'EN_ANALYSE').length : 0;
+    return [
+      { label: 'Dashboard', to: '/operateur/dashboard' },
+      { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: badge || undefined },
+      { label: 'Historique', to: '/operateur/historique' },
+      { label: 'Rapports', to: '/operateur/rapports' },
+    ];
+  }, [alerts, operatorId]);
 
   const alertId: string | undefined = (location.state as any)?.alertId;
-  const alerts = (mockData as any).alertes_fraude as Array<{
-    id: string;
-    type_fraude: string;
-    citoyen_id: string | null;
-    election_id: string;
-    description: string;
-    statut: string;
-    date_detection: string;
-    operateur_id: string | null;
-    ip: string | null;
-  }>;
+  const raw = useMemo(() => {
+    if (alerts.length === 0) return null;
+    return alertId ? alerts.find((a) => a.id === alertId) ?? null : alerts[0];
+  }, [alerts, alertId]);
 
-  const users = (mockData as any).users as Array<{
-    id: string; nom: string; prenom: string; cni: string;
-  }>;
-
-  const raw = alertId ? alerts.find((a) => a.id === alertId) : alerts[0];
-  // Si NOUVELLE → l'opérateur doit confirmer la prise en charge manuellement
-  const wasNouvelle = raw?.statut === 'NOUVELLE';
-  const [taken, setTaken] = useState(!wasNouvelle);
-  const [statut, setStatut] = useState(raw?.statut ?? 'NOUVELLE');
+  const [taken, setTaken] = useState(false);
+  const [statut, setStatut] = useState('NOUVELLE');
   const [note, setNote] = useState('');
+
+  useEffect(() => {
+    if (!raw) return;
+    const wasNouvelle = raw.statut === 'NOUVELLE';
+    setTaken(!wasNouvelle);
+    setStatut(raw.statut);
+  }, [raw?.id]);
 
   if (!raw) {
     return (
       <AppLayout role="Operateur de securite" title="Detail de l'alerte" navItems={navItems}>
         <NotFound>
           <i className="bi bi-shield-x" />
-          Alerte introuvable. Revenez a la liste des alertes.
+          {loading ? 'Chargement des alertes…' : 'Alerte introuvable. Revenez a la liste des alertes.'}
         </NotFound>
       </AppLayout>
     );
@@ -645,7 +664,7 @@ const OperatorAlertDetail = () => {
   const device = (raw as any).device ?? null;
 
   const severity = getSeverity(raw.type_fraude);
-  const citoyen = raw.citoyen_id ? users.find((u) => u.id === raw.citoyen_id) : null;
+  const citoyenId = raw.citoyen_id ?? null;
   const dateDetection = new Date(raw.date_detection);
   const formattedDate = dateDetection.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     + ' a ' + dateDetection.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -658,8 +677,8 @@ const OperatorAlertDetail = () => {
         .sort((a, b) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime())
     : [];
 
-  const byCitoyen = raw.citoyen_id
-    ? otherAlerts.filter((a) => a.citoyen_id === raw.citoyen_id)
+  const byCitoyen = citoyenId
+    ? otherAlerts.filter((a) => a.citoyen_id === citoyenId)
         .sort((a, b) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime())
     : [];
 
@@ -678,6 +697,26 @@ const OperatorAlertDetail = () => {
   const antStatutLabel = (s: string) =>
     s === 'NOUVELLE' ? 'Non assignee' : s === 'EN_ANALYSE' ? 'En cours' : 'Traitee';
 
+  const treat = async (nextStatut: string, description: string) => {
+    try {
+      if (operatorId) {
+        await api.operateur.treatAlert(raw.id, { statut: nextStatut, operateur_id: operatorId, description });
+      }
+      setTaken(true);
+      setStatut(nextStatut);
+      setAlerts((prev) => prev.map((a) => a.id === raw.id ? { ...a, statut: nextStatut, operateur_id: operatorId ?? a.operateur_id } : a));
+    } catch {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur',
+        text: 'Impossible de mettre à jour le statut de l’alerte.',
+        confirmButtonText: 'OK',
+        buttonsStyling: false,
+        customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+      });
+    }
+  };
+
   const handleTakeCharge = () => {
     Swal.fire({
       title: 'Prendre en charge cette alerte ?',
@@ -690,8 +729,7 @@ const OperatorAlertDetail = () => {
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
     }).then((r) => {
       if (r.isConfirmed) {
-        setTaken(true);
-        setStatut('EN_ANALYSE');
+        void treat('EN_ANALYSE', note?.trim() ? `Prise en charge — ${note.trim()}` : 'Prise en charge');
       }
     });
   };
@@ -707,7 +745,7 @@ const OperatorAlertDetail = () => {
       buttonsStyling: false,
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
     }).then((r) => {
-      if (r.isConfirmed) setStatut('RESOLUE');
+      if (r.isConfirmed) void treat('RESOLUE', note?.trim() ? `Suspect — ${note.trim()}` : 'Suspect');
     });
   };
 
@@ -722,7 +760,7 @@ const OperatorAlertDetail = () => {
       buttonsStyling: false,
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
     }).then((r) => {
-      if (r.isConfirmed) setStatut('RESOLUE');
+      if (r.isConfirmed) void treat('RESOLUE', note?.trim() ? `Fausse alerte — ${note.trim()}` : 'Fausse alerte');
     });
   };
 
@@ -810,14 +848,12 @@ const OperatorAlertDetail = () => {
             <DetailRow>
               <DetailLabel><i className="bi bi-person" />Citoyen</DetailLabel>
               <DetailValue>
-                {citoyen
-                  ? `${citoyen.prenom} ${citoyen.nom} — CNI ${citoyen.cni}`
-                  : raw.citoyen_id ?? 'Identite masquee'}
+                {citoyenId ? `ID ${citoyenId}` : 'Identite masquee'}
               </DetailValue>
             </DetailRow>
             <DetailRow>
               <DetailLabel><i className="bi bi-calendar2-week" />Election</DetailLabel>
-              <DetailValue>{ELECTION_LABELS[raw.election_id] ?? raw.election_id}</DetailValue>
+              <DetailValue>{raw.election_id ? (electionsById[raw.election_id] ?? raw.election_id) : '—'}</DetailValue>
             </DetailRow>
             {raw.ip && (
               <DetailRow>
@@ -935,7 +971,7 @@ const OperatorAlertDetail = () => {
                     </AntecedentIcon>
                     <AntecedentInfo>
                       <AntecedentTitle>{TYPE_LABELS[a.type_fraude] ?? a.type_fraude}</AntecedentTitle>
-                      <AntecedentMeta>{fmtShort(a.date_detection)} — {ELECTION_LABELS[a.election_id] ?? a.election_id}</AntecedentMeta>
+                      <AntecedentMeta>{fmtShort(a.date_detection)} — {a.election_id ? (electionsById[a.election_id] ?? a.election_id) : '—'}</AntecedentMeta>
                     </AntecedentInfo>
                     <AntecedentBadge $s={a.statut}>{antStatutLabel(a.statut)}</AntecedentBadge>
                     <AntecedentLink title="Voir le detail">
@@ -962,7 +998,7 @@ const OperatorAlertDetail = () => {
                     </AntecedentIcon>
                     <AntecedentInfo>
                       <AntecedentTitle>{TYPE_LABELS[a.type_fraude] ?? a.type_fraude}</AntecedentTitle>
-                      <AntecedentMeta>{fmtShort(a.date_detection)} — {ELECTION_LABELS[a.election_id] ?? a.election_id}</AntecedentMeta>
+                      <AntecedentMeta>{fmtShort(a.date_detection)} — {a.election_id ? (electionsById[a.election_id] ?? a.election_id) : '—'}</AntecedentMeta>
                     </AntecedentInfo>
                     <AntecedentBadge $s={a.statut}>{antStatutLabel(a.statut)}</AntecedentBadge>
                     <AntecedentLink title="Voir le detail">
@@ -989,7 +1025,7 @@ const OperatorAlertDetail = () => {
                   <AntecedentInfo>
                     <AntecedentTitle>{TYPE_LABELS[a.type_fraude] ?? a.type_fraude}</AntecedentTitle>
                     <AntecedentMeta>
-                      {fmtShort(a.date_detection)} — {ELECTION_LABELS[a.election_id] ?? a.election_id}
+                      {fmtShort(a.date_detection)} — {a.election_id ? (electionsById[a.election_id] ?? a.election_id) : '—'}
                       {a.ip ? ` — IP ${a.ip}` : ''}
                     </AntecedentMeta>
                   </AntecedentInfo>
@@ -1023,12 +1059,12 @@ const OperatorAlertDetail = () => {
         <SideCol>
           <InfoCard>
             <InfoTitle>Election concernee</InfoTitle>
-            <InfoValue>{ELECTION_LABELS[raw.election_id] ?? raw.election_id}</InfoValue>
+            <InfoValue>{raw.election_id ? (electionsById[raw.election_id] ?? raw.election_id) : '—'}</InfoValue>
           </InfoCard>
-          {citoyen && (
+          {citoyenId && (
             <InfoCard>
               <InfoTitle>Citoyen concerne</InfoTitle>
-              <InfoValue>{citoyen.prenom} {citoyen.nom}</InfoValue>
+              <InfoValue>{citoyenId}</InfoValue>
             </InfoCard>
           )}
           <InfoCard>

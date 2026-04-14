@@ -222,10 +222,17 @@ export const api = {
   },
 
   auth: {
+    lookupPhones: async (cni: string): Promise<{ success: boolean; telephones: string[]; message: string }> => {
+      const res = await fetch(`${API_BASE}/auth/lookup?cni=${encodeURIComponent(cni)}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return handleResponse(res);
+    },
     login: async (cni: string, telephone: string): Promise<{
       success: boolean;
       message: string;
       requiresOtp: boolean;
+      otp?: string;
     }> => {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -256,6 +263,14 @@ export const api = {
         body: JSON.stringify({ cni, telephone, otp }),
       });
       return handleResponse(res);
+    },
+    logout: async (): Promise<{ success: boolean }> => {
+      const res = await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      if (!res.ok) return { success: false };
+      return res.json();
     },
   },
 
@@ -310,11 +325,42 @@ export const api = {
       });
       return handleResponse(res);
     },
+    listSuspensions: async (): Promise<{
+      id: string;
+      citoyen_id: string;
+      motif: string;
+      operateur_id: string;
+      statut: string;
+      date_creation: string;
+    }[]> => {
+      const res = await fetch(`${API_BASE}/operateur/suspensions`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    recommendSuspension: async (data: {
+      citoyen_id: string;
+      motif: string;
+      operateur_id: string;
+    }): Promise<{ success: boolean; id: string; statut: string }> => {
+      const res = await fetch(`${API_BASE}/operateur/suspensions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
   },
 
   superadmin: {
     listUsers: async (): Promise<UserDto[]> => {
       const res = await fetch(`${API_BASE}/superadmin/users`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    updateRoles: async (id: string, roles: string[]): Promise<{ success: boolean }> => {
+      const res = await fetch(`${API_BASE}/superadmin/users/${id}/roles`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ roles }),
+      });
       return handleResponse(res);
     },
     listLogs: async (): Promise<{
@@ -327,6 +373,32 @@ export const api = {
       signature_cryptographique: string;
     }[]> => {
       const res = await fetch(`${API_BASE}/superadmin/logs`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    listSuspensions: async (): Promise<{
+      id: string;
+      citoyen_id: string;
+      motif: string;
+      operateur_id: string;
+      superadmin_id: string | null;
+      statut: string;
+      date_creation: string;
+      date_decision: string | null;
+      justification: string;
+    }[]> => {
+      const res = await fetch(`${API_BASE}/superadmin/suspensions`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    decideSuspension: async (id: string, data: {
+      statut: string;
+      superadmin_id?: string;
+      justification: string;
+    }): Promise<{ success: boolean }> => {
+      const res = await fetch(`${API_BASE}/superadmin/suspensions/${id}/decision`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(data),
+      });
       return handleResponse(res);
     },
   },

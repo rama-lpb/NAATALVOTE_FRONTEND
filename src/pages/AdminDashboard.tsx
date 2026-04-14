@@ -2,6 +2,8 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { useRef, useEffect, useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
+import { api, type ElectionDto } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -36,15 +38,6 @@ const HelperText = styled.p`
   font-size: 0.95rem;
 `;
 
-const Filter = styled.select`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  border-radius: 999px;
-  padding: 0.45rem 0.9rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  background: rgba(255, 255, 255, 0.85);
-  color: #1f5a33;
-`;
-
 const Stats = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -59,10 +52,7 @@ const StatCard = styled.div<{ $accent: string }>`
   border: 1px solid rgba(31, 90, 51, 0.1);
   border-left: 6px solid ${({ $accent }) => $accent};
   transition: transform 0.2s;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
+  &:hover { transform: translateY(-2px); }
 `;
 
 const StatLabel = styled.p`
@@ -97,222 +87,6 @@ const CardTitle = styled.h2`
   font-weight: 600;
 `;
 
-const ReportChart = styled.div`
-  min-height: 260px;
-  height: 260px;
-  border-radius: 18px;
-  background: #ffffff;
-  border: 1px solid rgba(31, 90, 51, 0.1);
-  display: flex;
-  flex-direction: column;
-  padding: 1rem 1rem 0.5rem;
-  position: relative;
-  overflow: hidden;
-`;
-
-const ChartSvg = styled.svg`
-  width: 100%;
-  height: 100%;
-`;
-
-const ChartContainer = styled.div`
-  width: 100%;
-  height: 100%;
-  position: relative;
-`;
-
-// Données dynamiques pour le graphique
-const participationData = [
-  { month: 'Jan', value: 45 },
-  { month: 'Fev', value: 52 },
-  { month: 'Mar', value: 38 },
-  { month: 'Avr', value: 61 },
-  { month: 'Mai', value: 55 },
-  { month: 'Juin', value: 48 },
-  { month: 'Juil', value: 72 },
-  { month: 'Aout', value: 65 },
-  { month: 'Sep', value: 58 },
-  { month: 'Oct', value: 63 },
-  { month: 'Nov', value: 70 },
-  { month: 'Dec', value: 75 },
-];
-
-// Composant Graphique dynamique
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ParticipationChart = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 600, height: 160 });
-  
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const { width } = containerRef.current.getBoundingClientRect();
-        setDimensions({ width: Math.max(width - 20, 300), height: 160 });
-      }
-    };
-    
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
-  
-  const padding = { top: 20, right: 20, bottom: 35, left: 45 };
-  const chartWidth = dimensions.width - padding.left - padding.right;
-  const chartHeight = dimensions.height - padding.top - padding.bottom;
-  const maxValue = 100;
-  
-  // Générer les points
-  const points = participationData.map((item, index) => ({
-    x: padding.left + (index / (participationData.length - 1)) * chartWidth,
-    y: padding.top + chartHeight - (item.value / maxValue) * chartHeight,
-    ...item
-  }));
-  
-  // Générer le chemin pour la zone filled
-  const areaPath = points.map((p, i) => 
-    i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
-  ).join(' ') + ` L ${points[points.length - 1].x} ${padding.top + chartHeight} L ${points[0].x} ${padding.top + chartHeight} Z`;
-  
-  // Générer le chemin pour la ligne
-  const linePath = points.map((p, i) => 
-    i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
-  ).join(' ');
-  
-  return (
-    <ChartContainer ref={containerRef}>
-      <ChartSvg viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} preserveAspectRatio="none">
-        {/* Grille horizontale */}
-        {[0, 25, 50, 75, 100].map((val, i) => (
-          <g key={i}>
-            <line
-              x1={padding.left}
-              y1={padding.top + chartHeight - (val / maxValue) * chartHeight}
-              x2={dimensions.width - padding.right}
-              y2={padding.top + chartHeight - (val / maxValue) * chartHeight}
-              stroke="rgba(31, 90, 51, 0.06)"
-              strokeWidth="1"
-              strokeDasharray="3"
-            />
-            <text
-              x={padding.left - 6}
-              y={padding.top + chartHeight - (val / maxValue) * chartHeight + 3}
-              fill="rgba(31, 90, 51, 0.35)"
-              fontSize="8"
-              fontFamily="Poppins"
-              textAnchor="end"
-            >
-              {val}
-            </text>
-          </g>
-        ))}
-        
-        {/* Zone sous la courbe */}
-        <path d={areaPath} fill="rgba(31, 90, 51, 0.06)" />
-        
-        {/* Courbe principale */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke="rgba(31, 90, 51, 0.75)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        
-        {/* Points sur la courbe */}
-        {points.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r="4"
-            fill={i === points.length - 1 ? 'rgba(31, 90, 51, 0.9)' : 'rgba(31, 90, 51, 0.7)'}
-            stroke="#fff"
-            strokeWidth="1.5"
-          />
-        ))}
-        
-        {/* Axes */}
-        <line
-          x1={padding.left}
-          y1={padding.top}
-          x2={padding.left}
-          y2={padding.top + chartHeight}
-          stroke="rgba(31, 90, 51, 0.2)"
-          strokeWidth="1"
-        />
-        <line
-          x1={padding.left}
-          y1={padding.top + chartHeight}
-          x2={dimensions.width - padding.right}
-          y2={padding.top + chartHeight}
-          stroke="rgba(31, 90, 51, 0.2)"
-          strokeWidth="1"
-        />
-        
-        {/* Labels Axe X */}
-        {points.map((p, i) => (
-          <text
-            key={i}
-            x={p.x}
-            y={padding.top + chartHeight + 16}
-            fill="rgba(31, 90, 51, 0.35)"
-            fontSize="7.5"
-            fontFamily="Poppins"
-            textAnchor="middle"
-          >
-            {p.month}
-          </text>
-        ))}
-        
-        {/* Titre de l'axe Y */}
-        <text
-          x={10}
-          y={padding.top + chartHeight / 2}
-          fill="rgba(31, 90, 51, 0.5)"
-          fontSize="8"
-          fontFamily="Poppins"
-          textAnchor="middle"
-          transform={`rotate(-90, 10, ${padding.top + chartHeight / 2})`}
-        >
-          %
-        </text>
-      </ChartSvg>
-    </ChartContainer>
-  );
-};
-
-const ChartLegend = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid rgba(31, 90, 51, 0.1);
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.75rem;
-  color: #5a6d62;
-`;
-
-const LegendDot = styled.span<{ $color: string }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background: ${({ $color }) => $color};
-`;
-
-const LegendLine = styled.span<{ $color: string }>`
-  width: 20px;
-  height: 3px;
-  border-radius: 2px;
-  background: ${({ $color }) => $color};
-`;
-
 const Table = styled.div`
   display: grid;
   gap: 0.8rem;
@@ -328,11 +102,7 @@ const Row = styled.div`
   background: rgba(31, 90, 51, 0.04);
   border: 1px solid rgba(31, 90, 51, 0.08);
   transition: all 0.2s;
-
-  &:hover {
-    background: rgba(31, 90, 51, 0.08);
-    border-color: rgba(31, 90, 51, 0.15);
-  }
+  &:hover { background: rgba(31, 90, 51, 0.08); border-color: rgba(31, 90, 51, 0.15); }
 `;
 
 const RowTitle = styled.div`
@@ -379,11 +149,7 @@ const ActionButton = styled(Link)`
   font-weight: 600;
   font-size: 0.9rem;
   transition: all 0.2s;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(31, 90, 51, 0.3);
-  }
+  &:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(31, 90, 51, 0.3); }
 `;
 
 const SecondaryButton = styled(Link)`
@@ -397,10 +163,7 @@ const SecondaryButton = styled(Link)`
   font-weight: 500;
   font-size: 0.9rem;
   transition: all 0.2s;
-
-  &:hover {
-    background: rgba(31, 90, 51, 0.08);
-  }
+  &:hover { background: rgba(31, 90, 51, 0.08); }
 `;
 
 const HeaderSection = styled.div`
@@ -421,14 +184,113 @@ const StatusDot = styled.span<{ $color: string }>`
   margin-right: 0.5rem;
 `;
 
+const ReportChart = styled.div`
+  min-height: 200px;
+  height: 200px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(31, 90, 51, 0.1);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1rem 0.5rem;
+  position: relative;
+  overflow: hidden;
+`;
+
+const ChartSvg = styled.svg`
+  width: 100%;
+  height: 100%;
+`;
+
+const ChartContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  position: relative;
+`;
+
+const getStatutTone = (statut: string): 'success' | 'info' | 'pending' =>
+  statut === 'EN_COURS' ? 'success' : statut === 'PROGRAMMEE' ? 'info' : 'pending';
+
+const getStatutLabel = (statut: string) =>
+  statut === 'EN_COURS' ? 'En cours' : statut === 'PROGRAMMEE' ? 'Programmee' : 'Cloturee';
+
+const VotesChart = ({ elections }: { elections: ElectionDto[] }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(400);
+
+  useEffect(() => {
+    const update = () => {
+      if (containerRef.current) setWidth(Math.max(containerRef.current.getBoundingClientRect().width - 20, 200));
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const data = elections.slice(0, 6);
+  if (data.length === 0) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8a9a90', fontFamily: 'Poppins, sans-serif', fontSize: '0.85rem' }}>Aucune election</div>;
+
+  const maxVotes = Math.max(...data.map(e => e.votes_count), 1);
+  const pad = { top: 15, right: 10, bottom: 35, left: 40 };
+  const h = 160;
+  const chartW = width - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+  const barW = Math.max((chartW / data.length) * 0.55, 8);
+  const gap = chartW / data.length;
+
+  return (
+    <ChartContainer ref={containerRef}>
+      <ChartSvg viewBox={`0 0 ${width} ${h}`} preserveAspectRatio="none">
+        {[0, 25, 50, 75, 100].map((pct, i) => {
+          const y = pad.top + chartH - (pct / 100) * chartH;
+          return (
+            <g key={i}>
+              <line x1={pad.left} y1={y} x2={width - pad.right} y2={y} stroke="rgba(31,90,51,0.06)" strokeWidth="1" />
+              <text x={pad.left - 4} y={y + 3} fill="rgba(31,90,51,0.35)" fontSize="7" fontFamily="Poppins" textAnchor="end">{Math.round(maxVotes * pct / 100)}</text>
+            </g>
+          );
+        })}
+        {data.map((e, i) => {
+          const barH = Math.max((e.votes_count / maxVotes) * chartH, 1);
+          const x = pad.left + i * gap + (gap - barW) / 2;
+          const y = pad.top + chartH - barH;
+          const label = e.titre.length > 10 ? e.titre.slice(0, 10) + '…' : e.titre;
+          return (
+            <g key={e.id}>
+              <rect x={x} y={y} width={barW} height={barH} fill="rgba(31,90,51,0.55)" rx="3" />
+              <text x={x + barW / 2} y={pad.top + chartH + 14} fill="rgba(31,90,51,0.45)" fontSize="7" fontFamily="Poppins" textAnchor="middle">{label}</text>
+            </g>
+          );
+        })}
+      </ChartSvg>
+    </ChartContainer>
+  );
+};
+
+const navItems = [
+  { label: 'Tableau admin', to: '/admin/dashboard' },
+  { label: 'Programmer election', to: '/admin/election/create' },
+  { label: 'Candidats', to: '/admin/candidats' },
+  { label: 'Statistiques', to: '/admin/statistiques' },
+  { label: 'Rapports', to: '/admin/rapports' },
+];
+
 const AdminDashboard = () => {
-  const navItems = [
-    { label: 'Tableau admin', to: '/admin/dashboard' },
-    { label: 'Programmer election', to: '/admin/election/create' },
-    { label: 'Candidats', to: '/admin/candidats' },
-    { label: 'Statistiques', to: '/admin/statistiques' },
-    { label: 'Rapports', to: '/admin/rapports' },
-  ];
+  const currentUser = useAppSelector(s => s.auth.user);
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.admin.listElections()
+      .then(setElections)
+      .catch(() => setElections([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const active = elections.filter(e => e.statut === 'EN_COURS');
+  const totalVotes = elections.reduce((s, e) => s + e.votes_count, 0);
+  const totalElecteurs = elections.reduce((s, e) => s + e.total_electeurs, 0);
+  const participationRate = totalElecteurs > 0 ? Math.round((totalVotes / totalElecteurs) * 100) : 0;
 
   return (
     <AppLayout
@@ -447,14 +309,9 @@ const AdminDashboard = () => {
         <MainColumn>
           <Greeting>
             <div>
-              <Hello>Bonjour, Awa Ndiaye</Hello>
-              <HelperText>Voici l'activite des scrutins programs aujourd'hui.</HelperText>
+              <Hello>Bonjour, {currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Administrateur'}</Hello>
+              <HelperText>Voici l'activite des scrutins programmes aujourd'hui.</HelperText>
             </div>
-            <Filter>
-              <option>Mensuel</option>
-              <option>Trimestriel</option>
-              <option>Annuel</option>
-            </Filter>
           </Greeting>
 
           <Stats>
@@ -463,76 +320,64 @@ const AdminDashboard = () => {
                 <StatusDot $color="rgba(31, 90, 51, 0.7)" />
                 Scrutins actifs
               </StatLabel>
-              <StatValue>4</StatValue>
+              <StatValue>{loading ? '…' : active.length}</StatValue>
             </StatCard>
             <StatCard $accent="rgba(31, 90, 51, 0.7)">
               <StatLabel>Taux de participation</StatLabel>
-              <StatValue>61%</StatValue>
+              <StatValue>{loading ? '…' : `${participationRate}%`}</StatValue>
             </StatCard>
             <StatCard $accent="rgba(138, 90, 16, 0.7)">
-              <StatLabel>Alertes en cours</StatLabel>
-              <StatValue>18</StatValue>
+              <StatLabel>Total elections</StatLabel>
+              <StatValue>{loading ? '…' : elections.length}</StatValue>
             </StatCard>
             <StatCard $accent="rgba(107, 111, 114, 0.7)">
-              <StatLabel>Rapports publies</StatLabel>
-              <StatValue>12</StatValue>
+              <StatLabel>Votes enregistres</StatLabel>
+              <StatValue>{loading ? '…' : totalVotes.toLocaleString('fr-FR')}</StatValue>
             </StatCard>
           </Stats>
 
           <Card>
             <HeaderSection>
-              <CardTitle>Activite recente</CardTitle>
-              <ActionButton to="/admin/statistiques">Exporter</ActionButton>
+              <CardTitle>Votes par election</CardTitle>
+              <ActionButton to="/admin/statistiques">Statistiques</ActionButton>
             </HeaderSection>
             <ReportChart>
-              <ParticipationChart />
-              <ChartLegend>
-                <LegendItem>
-                  <LegendLine $color="rgba(31, 90, 51, 0.7)" />
-                  <span>Taux de participation (%)</span>
-                </LegendItem>
-                <LegendItem>
-                  <LegendDot $color="rgba(31, 90, 51, 0.9)" />
-                  <span>Derniere valeur</span>
-                </LegendItem>
-              </ChartLegend>
+              {loading ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8a9a90', fontFamily: 'Poppins, sans-serif', fontSize: '0.85rem' }}>Chargement…</div>
+              ) : (
+                <VotesChart elections={elections} />
+              )}
             </ReportChart>
           </Card>
 
           <Card>
             <HeaderSection>
-              <CardTitle>Scrutins programs</CardTitle>
+              <CardTitle>Scrutins programmes</CardTitle>
               <ActionRow>
                 <SecondaryButton to="/admin/candidats">Voir candidats</SecondaryButton>
                 <ActionButton to="/admin/election/create">Creer election</ActionButton>
               </ActionRow>
             </HeaderSection>
-            <Table>
-              <Row>
-                <div>
-                  <RowTitle>Presidentielle 2025</RowTitle>
-                  <RowMeta>Debut le 08/03/2025 — Fin le 12/03/2025</RowMeta>
-                </div>
-                <RowMeta>Region nationale</RowMeta>
-                <Tag $tone="success">En cours</Tag>
-              </Row>
-              <Row>
-                <div>
-                  <RowTitle>Legislatives Dakar</RowTitle>
-                  <RowMeta>Debut le 20/03/2025 — Fin le 22/03/2025</RowMeta>
-                </div>
-                <RowMeta>Dakar</RowMeta>
-                <Tag $tone="info">Programmee</Tag>
-              </Row>
-              <Row>
-                <div>
-                  <RowTitle>Municipales Pikine</RowTitle>
-                  <RowMeta>Cloturee le 02/02/2025</RowMeta>
-                </div>
-                <RowMeta>Pikine</RowMeta>
-                <Tag $tone="pending">Cloturee</Tag>
-              </Row>
-            </Table>
+            {loading ? (
+              <RowMeta>Chargement…</RowMeta>
+            ) : elections.length === 0 ? (
+              <RowMeta>Aucune election trouvee.</RowMeta>
+            ) : (
+              <Table>
+                {elections.slice(0, 5).map(e => (
+                  <Row key={e.id}>
+                    <div>
+                      <RowTitle>{e.titre}</RowTitle>
+                      <RowMeta>
+                        Debut le {new Date(e.date_debut).toLocaleDateString('fr-FR')} — Fin le {new Date(e.date_fin).toLocaleDateString('fr-FR')}
+                      </RowMeta>
+                    </div>
+                    <RowMeta>{e.region || 'National'}</RowMeta>
+                    <Tag $tone={getStatutTone(e.statut)}>{getStatutLabel(e.statut)}</Tag>
+                  </Row>
+                ))}
+              </Table>
+            )}
           </Card>
         </MainColumn>
       </LayoutGrid>

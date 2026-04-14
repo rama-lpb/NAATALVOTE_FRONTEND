@@ -2,7 +2,9 @@ import styled from 'styled-components';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
+import { api } from '../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { useAppSelector } from '../store/hooks';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -111,25 +113,6 @@ const DetailValue = styled.div`
   color: #22312a;
 `;
 
-const EvidenceList = styled.div`
-  display: grid;
-  gap: 0.5rem;
-`;
-
-const EvidenceItem = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: 10px;
-  background: rgba(176, 58, 46, 0.04);
-  border: 1px solid rgba(176, 58, 46, 0.12);
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.82rem;
-  color: #3a1a1a;
-  i { color: rgba(176, 58, 46, 0.7); margin-top: 0.1rem; flex-shrink: 0; }
-`;
-
 const Divider = styled.div`
   height: 1px;
   background: rgba(31, 90, 51, 0.1);
@@ -203,7 +186,8 @@ const ApproveButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(31, 90, 51, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(31, 90, 51, 0.72); transform: translateY(-1px); }
+  &:hover:not(:disabled) { background: rgba(31, 90, 51, 0.72); transform: translateY(-1px); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const RejectButton = styled.button`
@@ -223,7 +207,8 @@ const RejectButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(176, 58, 46, 0.2);
   transition: all 0.2s;
-  &:hover { background: rgba(176, 58, 46, 0.72); transform: translateY(-1px); }
+  &:hover:not(:disabled) { background: rgba(176, 58, 46, 0.72); transform: translateY(-1px); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const SideCard = styled.div`
@@ -289,92 +274,104 @@ const ConsequenceItem = styled.div`
   i { margin-top: 0.1rem; flex-shrink: 0; }
 `;
 
-const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
 const navItems = [
   { label: 'Console systeme', to: '/superadmin/console' },
   { label: 'Logs immuables', to: '/superadmin/logs' },
   { label: 'Exports audit', to: '/superadmin/export' },
   { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
+  { label: 'Suspensions', to: '/superadmin/suspensions' },
 ];
 
 const SuperAdminDecision = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const currentUser = useAppSelector(s => s.auth.user);
+  const justificationRef = useRef<HTMLTextAreaElement>(null);
 
-  const suspId = (location.state as any)?.suspId;
-  const allSuspensions = (mockData as any).suspensions as any[];
-  const suspension = suspId
-    ? allSuspensions.find((s: any) => s.id === suspId)
-    : allSuspensions.find((s: any) => s.statut === 'EN_ATTENTE');
+  const suspId = (location.state as any)?.suspId as string | undefined;
 
-  const operateur = suspension
-    ? (mockData as any).users.find((u: any) => u.id === suspension.operateur_id)
-    : null;
+  const [suspension, setSuspension] = useState<{
+    id: string; citoyen_id: string; motif: string; operateur_id: string;
+    statut: string; date_creation: string; justification: string;
+  } | null>(null);
+  const [operateurLabel, setOperateurLabel] = useState('—');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const election = suspension
-    ? (mockData as any).elections.find((e: any) => e.id === suspension.election_id)
-    : null;
+  useEffect(() => {
+    Promise.all([
+      api.superadmin.listSuspensions(),
+      api.superadmin.listUsers(),
+    ]).then(([suspensions, users]) => {
+      const findName = (id: string) => {
+        const u = users.find(u => u.id === id);
+        return u ? `${u.prenom} ${u.nom}` : id.slice(0, 8) + '…';
+      };
+      const found = suspId
+        ? suspensions.find(s => s.id === suspId)
+        : suspensions.find(s => s.statut === 'EN_ATTENTE');
+      if (found) {
+        setSuspension(found);
+        setOperateurLabel(findName(found.operateur_id));
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [suspId]);
 
-  const dateCreation = suspension
-    ? new Date(suspension.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '—';
-
-  const operateurNom = operateur
-    ? `${operateur.prenom} ${operateur.nom}`
-    : suspension?.operateur_id ?? 'Inconnu';
+  const decide = async (statut: 'APPROUVE' | 'REJETE', justification: string) => {
+    if (!suspension) return;
+    setSubmitting(true);
+    try {
+      await api.superadmin.decideSuspension(suspension.id, {
+        statut,
+        superadmin_id: currentUser?.id,
+        justification,
+      });
+      navigate('/superadmin/suspensions');
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Erreur', text: 'La decision n\'a pas pu etre enregistree.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleApprove = () => {
-    const label = suspension ? `#${suspension.id}` : 'ce dossier';
+    const justification = justificationRef.current?.value?.trim() ?? '';
+    if (!justification) {
+      Swal.fire({ icon: 'warning', title: 'Justification requise', text: 'Veuillez saisir une justification avant de valider.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+      return;
+    }
     Swal.fire({
       title: 'Valider la suspension ?',
-      html: `Le compte citoyen <strong>${suspension?.citoyen_id ?? label}</strong> sera <strong>suspendu immediatement</strong>. Cette decision sera enregistree dans les logs immuables avec votre identifiant.`,
+      html: `Le compte citoyen sera <strong>suspendu immediatement</strong>. Cette decision sera enregistree dans les logs immuables avec votre identifiant.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Valider la suspension',
       cancelButtonText: 'Annuler',
       buttonsStyling: false,
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Suspension validee',
-          text: `Le compte ${suspension?.citoyen_id ?? label} est maintenant suspendu. L'action a ete tracee.`,
-          confirmButtonText: 'OK',
-          buttonsStyling: false,
-          customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
-        });
-      }
-    });
+    }).then(r => { if (r.isConfirmed) decide('APPROUVE', justification); });
   };
 
   const handleReject = () => {
-    const label = suspension ? `#${suspension.id}` : 'ce dossier';
+    const justification = justificationRef.current?.value?.trim() ?? '';
+    if (!justification) {
+      Swal.fire({ icon: 'warning', title: 'Justification requise', text: 'Veuillez saisir une justification avant de rejeter.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+      return;
+    }
     Swal.fire({
       title: 'Rejeter la recommandation ?',
-      html: `Le compte <strong>${suspension?.citoyen_id ?? label}</strong> restera actif. Vous devez fournir une justification. Elle sera visible par l'operateur.`,
-      input: 'textarea',
-      inputPlaceholder: 'Motif du rejet...',
-      inputAttributes: { style: 'font-family: Poppins; font-size: 0.9rem;' },
+      html: `Le compte restera actif. Votre justification sera visible par l'operateur.`,
       showCancelButton: true,
       confirmButtonText: 'Rejeter',
       cancelButtonText: 'Annuler',
       buttonsStyling: false,
       customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          icon: 'info',
-          title: 'Recommandation rejetee',
-          text: 'L\'operateur sera notifie. L\'action a ete tracee dans les logs.',
-          confirmButtonText: 'OK',
-          buttonsStyling: false,
-          customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
-        });
-      }
-    });
+    }).then(r => { if (r.isConfirmed) decide('REJETE', justification); });
   };
+
+  const dateCreation = suspension
+    ? new Date(suspension.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '—';
 
   return (
     <AppLayout
@@ -389,7 +386,7 @@ const SuperAdminDecision = () => {
           Suspensions
         </BreadLink>
         <BreadSep><i className="bi bi-chevron-right" /></BreadSep>
-        <BreadCurrent>Dossier #{suspension?.id ?? '—'}</BreadCurrent>
+        <BreadCurrent>Dossier #{suspension?.id?.slice(0, 8) ?? '—'}</BreadCurrent>
       </Breadcrumb>
 
       <div style={{ marginBottom: '0.8rem' }}>
@@ -398,101 +395,91 @@ const SuperAdminDecision = () => {
         </BackLink>
       </div>
 
-      <LayoutGrid>
-        <MainCol>
-          <Panel>
-            <PanelTitle><i className="bi bi-person-exclamation" />Identite du citoyen</PanelTitle>
-            <DetailRow>
-              <DetailLabel><i className="bi bi-credit-card-2-front" />Citoyen</DetailLabel>
-              <DetailValue>{suspension?.citoyen_id ?? '— Identite masquee (protection RGPD)'}</DetailValue>
-            </DetailRow>
-            <DetailRow>
-              <DetailLabel><i className="bi bi-tag" />Motif</DetailLabel>
-              <DetailValue>{suspension?.justification ?? suspension?.motif ?? '—'}</DetailValue>
-            </DetailRow>
-            <DetailRow>
-              <DetailLabel><i className="bi bi-calendar2-week" />Election</DetailLabel>
-              <DetailValue>{election?.titre ?? suspension?.election_id ?? '—'}</DetailValue>
-            </DetailRow>
-            <DetailRow>
-              <DetailLabel><i className="bi bi-person" />Operateur</DetailLabel>
-              <DetailValue>{operateurNom} — Soumis le {dateCreation}</DetailValue>
-            </DetailRow>
-            {suspension?.ip && (
+      {loading ? (
+        <Panel><DetailValue style={{ color: '#8a9a90', fontFamily: 'Poppins, sans-serif' }}>Chargement du dossier…</DetailValue></Panel>
+      ) : !suspension ? (
+        <Panel><DetailValue style={{ color: '#8a9a90', fontFamily: 'Poppins, sans-serif' }}>Dossier introuvable.</DetailValue></Panel>
+      ) : (
+        <LayoutGrid>
+          <MainCol>
+            <Panel>
+              <PanelTitle><i className="bi bi-person-exclamation" />Identite du citoyen</PanelTitle>
               <DetailRow>
-                <DetailLabel><i className="bi bi-wifi" />IP source</DetailLabel>
-                <DetailValue>{suspension.ip}</DetailValue>
+                <DetailLabel><i className="bi bi-credit-card-2-front" />Citoyen</DetailLabel>
+                <DetailValue>{suspension.citoyen_id}</DetailValue>
               </DetailRow>
-            )}
-          </Panel>
+              <DetailRow>
+                <DetailLabel><i className="bi bi-tag" />Motif</DetailLabel>
+                <DetailValue>{suspension.motif}</DetailValue>
+              </DetailRow>
+              <DetailRow>
+                <DetailLabel><i className="bi bi-person" />Operateur</DetailLabel>
+                <DetailValue>{operateurLabel} — Soumis le {dateCreation}</DetailValue>
+              </DetailRow>
+              <DetailRow>
+                <DetailLabel><i className="bi bi-flag" />Statut actuel</DetailLabel>
+                <DetailValue>{suspension.statut}</DetailValue>
+              </DetailRow>
+            </Panel>
 
-          <Panel>
-            <PanelTitle><i className="bi bi-chat-square-quote" />Justification de l'operateur</PanelTitle>
-            <DetailValue style={{ lineHeight: 1.6, color: '#4a5a50', fontSize: '0.88rem', padding: '0.5rem' }}>
-              "{suspension?.justification ?? suspension?.motif ?? 'Aucune justification fournie.'}"
-            </DetailValue>
-            <Divider />
-            <FieldGroup>
-              <Label>
-                <i className="bi bi-pencil" />
-                Votre justification (SuperAdmin) <Required>*</Required>
-              </Label>
-              <Textarea placeholder="Expliquez votre decision. Cette justification sera archivee dans les logs immuables et sera consultable lors d'un audit..." />
-              <Helper>Obligatoire pour valider ou rejeter. Sera archive dans les logs avec votre identifiant.</Helper>
-            </FieldGroup>
-            <ActionRow>
-              <ApproveButton onClick={handleApprove}>
-                <i className="bi bi-check-circle" />
-                Valider la suspension
-              </ApproveButton>
-              <RejectButton onClick={handleReject}>
-                <i className="bi bi-x-circle" />
-                Rejeter
-              </RejectButton>
-            </ActionRow>
-          </Panel>
-        </MainCol>
+            <Panel>
+              <PanelTitle><i className="bi bi-chat-square-quote" />Justification de l'operateur</PanelTitle>
+              <DetailValue style={{ lineHeight: 1.6, color: '#4a5a50', fontSize: '0.88rem', padding: '0.5rem' }}>
+                "{suspension.justification || 'Aucune justification fournie.'}"
+              </DetailValue>
+              <Divider />
+              <FieldGroup>
+                <Label>
+                  <i className="bi bi-pencil" />
+                  Votre justification (SuperAdmin) <Required>*</Required>
+                </Label>
+                <Textarea ref={justificationRef} placeholder="Expliquez votre decision. Cette justification sera archivee dans les logs immuables et sera consultable lors d'un audit..." />
+                <Helper>Obligatoire pour valider ou rejeter. Sera archive dans les logs avec votre identifiant.</Helper>
+              </FieldGroup>
+              {suspension.statut === 'EN_ATTENTE' && (
+                <ActionRow>
+                  <ApproveButton onClick={handleApprove} disabled={submitting}>
+                    <i className="bi bi-check-circle" />
+                    Valider la suspension
+                  </ApproveButton>
+                  <RejectButton onClick={handleReject} disabled={submitting}>
+                    <i className="bi bi-x-circle" />
+                    Rejeter
+                  </RejectButton>
+                </ActionRow>
+              )}
+            </Panel>
+          </MainCol>
 
-        <SideCol>
-          <SideCard>
-            <CardTitle><i className="bi bi-clipboard2-data" />Resume du dossier</CardTitle>
-            <MiniRow><span>Reference</span><MiniValue>#{suspension?.id ?? '—'}</MiniValue></MiniRow>
-            <MiniRow><span>Statut</span><MiniValue>{suspension?.statut ?? '—'}</MiniValue></MiniRow>
-            <MiniRow><span>Operateur</span><MiniValue>{operateurNom}</MiniValue></MiniRow>
-            <MiniRow><span>Soumis le</span><MiniValue>{dateCreation}</MiniValue></MiniRow>
-          </SideCard>
+          <SideCol>
+            <SideCard>
+              <CardTitle><i className="bi bi-clipboard2-data" />Resume du dossier</CardTitle>
+              <MiniRow><span>Reference</span><MiniValue>#{suspension.id.slice(0, 8)}</MiniValue></MiniRow>
+              <MiniRow><span>Statut</span><MiniValue>{suspension.statut}</MiniValue></MiniRow>
+              <MiniRow><span>Operateur</span><MiniValue>{operateurLabel}</MiniValue></MiniRow>
+              <MiniRow><span>Soumis le</span><MiniValue>{dateCreation}</MiniValue></MiniRow>
+            </SideCard>
 
-          <ConsequenceCard>
-            <ConsequenceTitle>
-              <i className="bi bi-exclamation-triangle-fill" />
-              Consequences si valide
-            </ConsequenceTitle>
-            <ConsequenceItem>
-              <i className="bi bi-dot" />
-              Le compte sera suspendu immediatement
-            </ConsequenceItem>
-            <ConsequenceItem>
-              <i className="bi bi-dot" />
-              Le citoyen ne pourra plus se connecter
-            </ConsequenceItem>
-            <ConsequenceItem>
-              <i className="bi bi-dot" />
-              L'action sera tracee dans les logs
-            </ConsequenceItem>
-            <ConsequenceItem>
-              <i className="bi bi-dot" />
-              Decision irreversible sans intervention manuelle en BDD
-            </ConsequenceItem>
-          </ConsequenceCard>
+            <ConsequenceCard>
+              <ConsequenceTitle>
+                <i className="bi bi-exclamation-triangle-fill" />
+                Consequences si valide
+              </ConsequenceTitle>
+              <ConsequenceItem><i className="bi bi-dot" />Le compte sera suspendu immediatement</ConsequenceItem>
+              <ConsequenceItem><i className="bi bi-dot" />Le citoyen ne pourra plus se connecter</ConsequenceItem>
+              <ConsequenceItem><i className="bi bi-dot" />L'action sera tracee dans les logs</ConsequenceItem>
+              <ConsequenceItem><i className="bi bi-dot" />Decision irreversible sans intervention manuelle en BDD</ConsequenceItem>
+            </ConsequenceCard>
 
-          <SideCard>
-            <CardTitle><i className="bi bi-shield-check" />Securite de la decision</CardTitle>
-            <MiniRow><span>Logs</span><MiniValue>Immuables</MiniValue></MiniRow>
-            <MiniRow><span>Signature</span><MiniValue>HMAC-SHA256</MiniValue></MiniRow>
-            <MiniRow><span>Auditabilite</span><MiniValue>100%</MiniValue></MiniRow>
-          </SideCard>
-        </SideCol>
-      </LayoutGrid>
+            <SideCard>
+              <CardTitle><i className="bi bi-shield-check" />Securite de la decision</CardTitle>
+              <MiniRow><span>Logs</span><MiniValue>Immuables</MiniValue></MiniRow>
+              <MiniRow><span>Signature</span><MiniValue>HMAC-SHA256</MiniValue></MiniRow>
+              <MiniRow><span>Auditabilite</span><MiniValue>100%</MiniValue></MiniRow>
+            </SideCard>
+          </SideCol>
+        </LayoutGrid>
+      )}
     </AppLayout>
   );
 };

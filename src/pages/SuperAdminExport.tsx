@@ -1,8 +1,8 @@
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
+import { api } from '../services/api';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -257,17 +257,23 @@ const archives = [
   { id: 4, title: 'Audit Legislatives Dakar 2025', meta: 'CSV chiffre · 621 450 entrees · En cours de signature', status: false, fresh: false },
 ];
 
-const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
-const navItems = [
-  { label: 'Console systeme', to: '/superadmin/console' },
-  { label: 'Logs immuables', to: '/superadmin/logs' },
-  { label: 'Exports audit', to: '/superadmin/export' },
-  { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
-];
-
 const SuperAdminExport = () => {
   const [scope, setScope] = useState('all');
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    api.superadmin.listSuspensions()
+      .then(s => setPendingCount(s.filter(x => x.statut === 'EN_ATTENTE').length))
+      .catch(() => {});
+  }, []);
+
+  const navItems = [
+    { label: 'Console systeme', to: '/superadmin/console' },
+    { label: 'Logs immuables', to: '/superadmin/logs' },
+    { label: 'Exports audit', to: '/superadmin/export' },
+    { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
+    { label: 'Suspensions', to: '/superadmin/suspensions', badge: pendingCount },
+  ];
 
   const handleExport = () => {
     Swal.fire({

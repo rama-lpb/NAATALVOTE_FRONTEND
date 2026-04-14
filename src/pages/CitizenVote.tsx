@@ -1,8 +1,10 @@
 import styled, { keyframes } from 'styled-components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
+import { api, type ElectionDto, type CandidateDto } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 /* ─── Animations ─────────────────────────────────────── */
 const fadeUp = keyframes`
@@ -401,16 +403,6 @@ const Dot = styled.span`
 `;
 
 /* ─── Data ───────────────────────────────────────────── */
-type Candidate = {
-  id: string;
-  initials: string;
-  name: string;
-  party: string;
-  program: string;
-  bg: string;
-  accent: string;
-  route: string;
-};
 const navItems = [
   { label: 'Tableau de bord', to: '/citoyen/dashboard' },
   { label: 'Elections', to: '/citoyen/elections' },
@@ -420,121 +412,23 @@ const navItems = [
   { label: 'Profil', to: '/citoyen/profil' },
 ];
 
-const elections = [
-  {
-    id: 'pres-2025',
-    title: 'Presidentielle 2025',
-    schedule: "Cloture le 12 mars 2026 a 18h00",
-    status: 'live' as const,
-    candidateCount: 3,
-    daysLeft: '3j 06h',
-  },
-  {
-    id: 'leg-2025-dkr',
-    title: 'Legislatives Dakar',
-    schedule: 'Debut le 20 mars 2026',
-    status: 'scheduled' as const,
-    candidateCount: 12,
-    daysLeft: '10j 02h',
-  },
-  {
-    id: 'reg-2025-dkr',
-    title: 'Regionales Dakar',
-    schedule: 'En cours - Cloture 18 mars',
-    status: 'live' as const,
-    candidateCount: 4,
-    daysLeft: '5j 12h',
-  },
-];
-
-const candidatesByElection: Record<string, Candidate[]> = {
-  'pres-2025': [
-    {
-      id: 'c1',
-      initials: 'AN',
-      name: 'Aicha Ndiaye',
-      party: 'Union Civique',
-      program: 'Cohésion nationale, éducation gratuite et services sociaux universels.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/c1',
-    },
-    {
-      id: 'c2',
-      initials: 'MD',
-      name: 'Moussa Diop',
-      party: 'Coalition Verte',
-      program: 'Transition écologique, énergies renouvelables et territoires résilients.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/c2',
-    },
-    {
-      id: 'c3',
-      initials: 'MS',
-      name: 'Mariam Sow',
-      party: 'Renouveau National',
-      program: 'Services publics modernisés, emploi des jeunes et égalité des chances.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/c3',
-    },
-  ],
-  'leg-2025-dkr': [
-    {
-      id: 'l1',
-      initials: 'FB',
-      name: 'Fatou Ba',
-      party: 'Alliance Populaire',
-      program: 'Developpement local et infrastructures pour Dakar.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/l1',
-    },
-    {
-      id: 'l2',
-      initials: 'SK',
-      name: 'Seydou Kane',
-      party: 'Voix du Peuple',
-      program: 'Education et sante pour tous les quartiers.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/l2',
-    },
-    {
-      id: 'l3',
-      initials: 'NM',
-      name: 'Ndeye Marie',
-      party: 'Unisson Senegal',
-      program: 'Emploi youth et entrepreneuriat local.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/l3',
-    },
-  ],
-  'reg-2025-dkr': [
-    {
-      id: 'r1',
-      initials: 'DK',
-      name: 'Dakar Knowledge',
-      party: 'Citoyen Actif',
-      program: 'Gestion participative et transparence.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/r1',
-    },
-    {
-      id: 'r2',
-      initials: 'RT',
-      name: 'Renaissance Team',
-      party: 'Ensemble Dakar',
-      program: 'Urbanisme durable et transport.',
-      bg: 'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
-      accent: '#1f5a33',
-      route: '/citoyen/candidats/r2',
-    },
-  ],
+const formatDateFin = (iso: string): string => {
+  try {
+    const d = new Date(iso);
+    return `Cloture le ${d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} a ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  } catch { return iso; }
 };
+
+const daysLeft = (iso: string): string => {
+  const diff = new Date(iso).getTime() - Date.now();
+  if (diff <= 0) return 'Terminee';
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  return d > 0 ? `${d}j ${h}h` : `${h}h`;
+};
+
+const toInitials = (prenom: string, nom: string) =>
+  `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase() || '??';
 
 /* ─── Swal step HTML helpers ─────────────────────────── */
 const swalConfirmHtml = (name: string, party: string, initials: string, accent: string) => `
@@ -616,18 +510,59 @@ const swalStep4Html = (name: string) => `
 /* ─── Component ──────────────────────────────────────── */
 const CitizenVote = () => {
   const navigate = useNavigate();
+  const userId = useAppSelector((s) => s.auth.user?.id ?? null);
+
+  const [apiElections, setApiElections] = useState<ElectionDto[]>([]);
+  const [candidates, setCandidates] = useState<CandidateDto[]>([]);
+  const [loadingElections, setLoadingElections] = useState(true);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [votedElections, setVotedElections] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedElection, setSelectedElection] = useState<string>('pres-2025');
-  // State pour suivre si l'utilisateur a déjà voted
-  const [hasVoted, setHasVoted] = useState<boolean>(false);
+  const [selectedElection, setSelectedElection] = useState<string>('');
 
-  const currentElection = elections.find(e => e.id === selectedElection);
-  const liveElections = elections.filter(e => e.status === 'live');
-  const electionCandidates = candidatesByElection[selectedElection] || candidatesByElection['pres-2025'];
+  /* Charger les élections EN_COURS au montage */
+  useEffect(() => {
+    api.elections.list()
+      .then((data) => {
+        const live = data.filter((e) => e.statut === 'EN_COURS');
+        setApiElections(live);
+        if (live.length > 0) setSelectedElection(live[0].id);
+      })
+      .catch(() => {
+        Swal.fire({ icon: 'error', title: 'Erreur', text: 'Impossible de charger les élections.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+      })
+      .finally(() => setLoadingElections(false));
+  }, []);
 
-  const openVoteFlow = async (cand: Candidate) => {
+  /* Charger les candidats quand l'élection change */
+  useEffect(() => {
+    if (!selectedElection) return;
+    setLoadingCandidates(true);
+    setSelectedId(null);
+    api.elections.getCandidates(selectedElection)
+      .then(setCandidates)
+      .catch(() => setCandidates([]))
+      .finally(() => setLoadingCandidates(false));
+  }, [selectedElection]);
+
+  /* Vérifier le statut de vote quand l'élection change */
+  useEffect(() => {
+    if (!userId || !selectedElection) return;
+    api.citoyen.voteStatus(userId, selectedElection)
+      .then((s) => {
+        if (s.a_vote) setVotedElections((prev) => new Set(prev).add(selectedElection));
+      })
+      .catch(() => {});
+  }, [userId, selectedElection]);
+
+  const currentElection = apiElections.find((e) => e.id === selectedElection);
+  const hasVoted = votedElections.has(selectedElection);
+
+  const openVoteFlow = async (cand: CandidateDto) => {
     setSelectedId(cand.id);
 
+    const candName = `${cand.prenom} ${cand.nom}`;
+    const candInitials = toInitials(cand.prenom, cand.nom);
     const swalBase = {
       buttonsStyling: false,
       showCancelButton: true,
@@ -637,8 +572,8 @@ const CitizenVote = () => {
     /* Step 1 — Afficher le candidat */
     const r1 = await Swal.fire({
       ...swalBase,
-      title: 'Voter pour ' + cand.name,
-      html: swalConfirmHtml(cand.name, cand.party, cand.initials, cand.accent),
+      title: 'Voter pour ' + candName,
+      html: swalConfirmHtml(candName, cand.parti_politique, candInitials, '#1f5a33'),
       confirmButtonText: 'Continuer',
       cancelButtonText: 'Annuler',
     });
@@ -654,10 +589,10 @@ const CitizenVote = () => {
             Vous êtes sur le point de voter pour
           </p>
           <p style="margin:0.5rem 0 0;font-family:Poppins,sans-serif;font-size:1.3rem;color:#1a2e20;font-weight:700;">
-            ${cand.name}
+            ${candName}
           </p>
           <p style="margin:0.3rem 0 0;font-family:Poppins,sans-serif;font-size:0.85rem;color:#6b7a72;">
-            ${cand.party}
+            ${cand.parti_politique}
           </p>
         </div>
         <div style="display:flex;align-items:flex-start;gap:0.6rem;padding:1rem;border-radius:12px;
@@ -667,49 +602,102 @@ const CitizenVote = () => {
               Attention
             </p>
             <p style="margin:0.3rem 0 0;font-family:Poppins,sans-serif;font-size:0.8rem;color:rgba(120,40,28,0.85);">
-              Cette action est <strong>irréversible</strong>. Votre vote sera enregistré définitivement.
+              Cette action est <strong>irréversible</strong>. Votre vote sera enregistré définitivement et de manière anonyme.
             </p>
           </div>
         </div>
       </div>`,
-      confirmButtonText: 'Confirmer mon vote',
+      confirmButtonText: '<i class="bi bi-lock-fill"></i>&nbsp; Confirmer mon vote',
       cancelButtonText: 'Annuler',
     });
     if (!r2.isConfirmed) { setSelectedId(null); return; }
 
-    // Marquer comme ayant vote
-    setHasVoted(true);
-
-    /* Loading - Traitement */
+    /* Loading + appel API */
     Swal.fire({
       customClass: { popup: 'naatal-swal' },
-      title: 'Traitement en cours...',
+      title: 'Chiffrement en cours...',
       html: `<p style="font-family:Poppins,sans-serif;font-size:0.87rem;color:#5a6d62;margin:0;">
-        Votre vote est en cours de traitement. Veuillez patienter.
+        Votre bulletin est chiffré avec <strong>AES-256</strong> et anonymisé. Veuillez patienter.
       </p>`,
       showConfirmButton: false,
       allowOutsideClick: false,
       allowEscapeKey: false,
-      didOpen: () => {
+      didOpen: async () => {
         Swal.showLoading();
-        setTimeout(() => {
-          /* Success */
-          Swal.fire({
+        try {
+          const res = await api.votes.cast({
+            election_id: selectedElection,
+            candidat_id: cand.id,
+            citoyen_id: userId ?? undefined,
+          });
+
+          setVotedElections((prev) => new Set(prev).add(selectedElection));
+
+          await Swal.fire({
             customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
             buttonsStyling: false,
             icon: 'success',
-            title: 'Vote enregistre !',
+            title: 'Vote enregistré !',
             html: `
-              <p style="font-family:Poppins,sans-serif;font-size:0.9rem;color:#5a6d62;margin:0 0 1rem;">
-                Votre vote a ete enregistre avec succes. Merci pour votre participation !
+              <p style="font-family:Poppins,sans-serif;font-size:0.9rem;color:#5a6d62;margin:0 0 0.8rem;">
+                Votre bulletin a été ajouté au scrutin de façon <strong>anonyme et chiffrée</strong>.
+              </p>
+              <div style="background:rgba(31,90,51,0.07);border:1px solid rgba(31,90,51,0.18);border-radius:12px;
+                padding:0.7rem 1rem;font-family:'Courier New',monospace;font-size:1.05rem;font-weight:800;
+                color:rgba(31,90,51,0.88);letter-spacing:0.14em;text-align:center;">
+                ${res.confirmation_number}
+              </div>
+              <p style="font-family:Poppins,sans-serif;font-size:0.75rem;color:#8a9a90;margin:0.5rem 0 0;">
+                Conservez ce token — c'est votre seule preuve de participation.
               </p>
             `,
-            confirmButtonText: 'Voir mon recu',
-          }).then(() => navigate('/citoyen/vote/recu'));
-        }, 1500);
+            confirmButtonText: '<i class="bi bi-receipt"></i>&nbsp; Voir mon reçu complet',
+          });
+
+          navigate('/citoyen/vote/recu', {
+            state: {
+              confirmationNumber: res.confirmation_number,
+              horodatage: res.horodatage,
+              election: currentElection?.titre ?? '',
+              candidatName: candName,
+            },
+          });
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Une erreur est survenue lors du vote.';
+          setSelectedId(null);
+          Swal.fire({
+            icon: 'error',
+            title: 'Erreur lors du vote',
+            text: msg,
+            buttonsStyling: false,
+            customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+          });
+        }
       },
     });
   };
+
+  if (loadingElections) {
+    return (
+      <AppLayout role="Citoyen" title="Vote sécurisé" subtitle="Chargement des élections en cours..." navItems={navItems}>
+        <div style={{ textAlign: 'center', padding: '3rem', fontFamily: 'Poppins,sans-serif', color: '#6b7a72' }}>
+          <i className="bi bi-arrow-repeat" style={{ fontSize: '2rem', display: 'block', marginBottom: '0.8rem' }} />
+          Chargement des élections…
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (apiElections.length === 0) {
+    return (
+      <AppLayout role="Citoyen" title="Vote sécurisé" subtitle="Aucun scrutin actif." navItems={navItems}>
+        <div style={{ textAlign: 'center', padding: '3rem', fontFamily: 'Poppins,sans-serif', color: '#6b7a72' }}>
+          <i className="bi bi-calendar-x" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.8rem' }} />
+          Aucun scrutin en cours pour le moment.
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout
@@ -719,115 +707,141 @@ const CitizenVote = () => {
       navItems={navItems}
     >
       <PageGrid>
-        {/* Election selector for multiple elections */}
-        {elections.length > 1 && (
+        {/* Election selector */}
+        {apiElections.length > 1 && (
           <div>
             <SectionHeader>
               <SectionTitle>
                 Elections en cours
-                <CandCount>({liveElections.length} scrutins actifs)</CandCount>
+                <CandCount>({apiElections.length} scrutins actifs)</CandCount>
               </SectionTitle>
             </SectionHeader>
             <ElectionSelector>
-              {elections.map((election) => (
+              {apiElections.map((election) => (
                 <ElectionOption
                   key={election.id}
                   $active={selectedElection === election.id}
                   onClick={() => setSelectedElection(election.id)}
                 >
-                  <ElectionBadge $status={election.status}>
-                    {election.status === 'live' ? 'En cours' : 'Bientot'}
-                  </ElectionBadge>
-                  {election.title}
+                  <ElectionBadge $status="live">En cours</ElectionBadge>
+                  {election.titre}
                 </ElectionOption>
               ))}
             </ElectionSelector>
           </div>
         )}
 
-        {/* Election banner */}
+        {/* Banner de l'élection active */}
         <ElectionBanner>
           <BannerLeft>
             <ElectionTitle>
               <i className="bi bi-calendar2-check" style={{ color: 'rgba(31,90,51,0.75)' }} />
-              {currentElection?.title || 'Presidentielle 2025'}
+              {currentElection?.titre ?? '—'}
             </ElectionTitle>
-            <ElectionSub>{currentElection?.schedule || "Cloture le 12 mars 2026 a 18h00"} — {currentElection?.candidateCount || 3} candidats</ElectionSub>
+            <ElectionSub>
+              {currentElection ? formatDateFin(currentElection.date_fin) : ''} — {candidates.length} candidat{candidates.length > 1 ? 's' : ''}
+            </ElectionSub>
           </BannerLeft>
           <BannerRight>
-            {currentElection?.status === 'live' ? (
-              <><LiveBadge><LiveDot />Scrutin en cours</LiveBadge>
-              <CountdownBox>
-                <i className="bi bi-clock" />
-                Fermeture dans {currentElection?.daysLeft || '3j 06h'}
-              </CountdownBox></>
-            ) : (
-              <LiveBadge style={{ background: 'rgba(138, 90, 16, 0.1)', borderColor: 'rgba(138, 90, 16, 0.2)', color: 'rgba(138, 90, 16, 0.85)' }}>
-                <i className="bi bi-clock-history" /> Bientot disponible
-              </LiveBadge>
-            )}
+            <LiveBadge><LiveDot />Scrutin en cours</LiveBadge>
+            <CountdownBox>
+              <i className="bi bi-clock" />
+              Fermeture dans {currentElection ? daysLeft(currentElection.date_fin) : '—'}
+            </CountdownBox>
           </BannerRight>
         </ElectionBanner>
 
-        {/* Candidates */}
+        {/* Alerte déjà voté */}
+        {hasVoted && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.7rem',
+            background: 'rgba(31, 90, 51, 0.08)', border: '1px solid rgba(31, 90, 51, 0.2)',
+            borderRadius: '14px', padding: '0.9rem 1.2rem',
+            fontFamily: 'Poppins, sans-serif', fontSize: '0.88rem', color: '#1f5a33', fontWeight: 500,
+          }}>
+            <i className="bi bi-check-circle-fill" style={{ fontSize: '1.1rem' }} />
+            Vous avez déjà voté pour cette élection. Votre participation est enregistrée de manière anonyme.
+          </div>
+        )}
+
+        {/* Candidats */}
         <div>
           <SectionHeader>
             <SectionTitle>
               Candidats
-              <CandCount>({electionCandidates.length} candidats)</CandCount>
+              <CandCount>({candidates.length} candidat{candidates.length > 1 ? 's' : ''})</CandCount>
             </SectionTitle>
           </SectionHeader>
         </div>
 
-        <CandidateGrid>
-          {electionCandidates.map((c) => {
-            const isSelected = selectedId === c.id;
-            return (
-              <CandCard key={c.id} $selected={isSelected}>
-                <CardTop $color={c.bg}>
-                  {isSelected && (
-                    <SelectedMark><i className="bi bi-check-lg" /></SelectedMark>
-                  )}
-                  <CandAvatar>{c.initials}</CandAvatar>
-                </CardTop>
-                <CardBody>
-                  <div>
-                    <CandName>{c.name}</CandName>
-                    <CandPartyBadge $color={c.accent}>{c.party}</CandPartyBadge>
-                  </div>
-                  <CandProgram>{c.program}</CandProgram>
-                  <CardDivider />
-                  <CardActions>
-                    {currentElection?.status === 'live' ? (
-                      <VoteBtn $selected={isSelected} $disabled={hasVoted} onClick={() => !hasVoted && openVoteFlow(c)}>
-                        {isSelected
-                          ? <><i className="bi bi-check2" />Sélectionné</>
-                          : <><i className="bi bi-hand-index" />Voter</>
-                        }
-                      </VoteBtn>
-                    ) : (
-                      <VoteBtn $disabled={true}>
-                        <i className="bi bi-clock" />Bientôt
-                      </VoteBtn>
+        {loadingCandidates ? (
+          <div style={{ textAlign: 'center', padding: '2rem', fontFamily: 'Poppins,sans-serif', color: '#8a9a90' }}>
+            <i className="bi bi-arrow-repeat" style={{ fontSize: '1.5rem', display: 'block', marginBottom: '0.5rem' }} />
+            Chargement des candidats…
+          </div>
+        ) : candidates.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem', fontFamily: 'Poppins,sans-serif', color: '#8a9a90' }}>
+            Aucun candidat enregistré pour cette élection.
+          </div>
+        ) : (
+          <CandidateGrid>
+            {candidates.map((c) => {
+              const isSelected = selectedId === c.id;
+              const initials = toInitials(c.prenom, c.nom);
+              return (
+                <CandCard key={c.id} $selected={isSelected}>
+                  <CardTop $color="linear-gradient(135deg, #e8f5e9, #c8e6c9)">
+                    {isSelected && (
+                      <SelectedMark><i className="bi bi-check-lg" /></SelectedMark>
                     )}
-                    <ProgramBtn to={c.route}>
-                      <i className="bi bi-file-text" />
-                      Programme
-                    </ProgramBtn>
-                  </CardActions>
-                </CardBody>
-              </CandCard>
-            );
-          })}
-        </CandidateGrid>
+                    <CandAvatar>{initials}</CandAvatar>
+                  </CardTop>
+                  <CardBody>
+                    <div>
+                      <CandName>{c.prenom} {c.nom}</CandName>
+                      <CandPartyBadge $color="#1f5a33">{c.parti_politique}</CandPartyBadge>
+                    </div>
+                    <CandProgram>{c.biographie}</CandProgram>
+                    <CardDivider />
+                    <CardActions>
+                      {!hasVoted ? (
+                        <VoteBtn $selected={isSelected} onClick={() => openVoteFlow(c)}>
+                          {isSelected
+                            ? <><i className="bi bi-check2" />Sélectionné</>
+                            : <><i className="bi bi-hand-index" />Voter</>
+                          }
+                        </VoteBtn>
+                      ) : (
+                        <VoteBtn $disabled>
+                          <i className="bi bi-check2-all" />Déjà voté
+                        </VoteBtn>
+                      )}
+                      {c.programme_url ? (
+                        <ProgramBtn to={c.programme_url} target="_blank" rel="noopener noreferrer">
+                          <i className="bi bi-file-text" />
+                          Programme
+                        </ProgramBtn>
+                      ) : (
+                        <ProgramBtn to={`/citoyen/candidats/${c.id}`}>
+                          <i className="bi bi-file-text" />
+                          Détail
+                        </ProgramBtn>
+                      )}
+                    </CardActions>
+                  </CardBody>
+                </CandCard>
+              );
+            })}
+          </CandidateGrid>
+        )}
 
         {/* Security footer */}
         <SecurityBar>
-          <SecurityItem>Vote anonymise</SecurityItem>
+          <SecurityItem>Vote anonymisé</SecurityItem>
           <Dot />
           <SecurityItem>Chiffrement AES-256</SecurityItem>
           <Dot />
-          <SecurityItem>Identite non tracee</SecurityItem>
+          <SecurityItem>Identité non tracée</SecurityItem>
           <Dot />
           <SecurityItem>Vote unique garanti</SecurityItem>
           <Dot />

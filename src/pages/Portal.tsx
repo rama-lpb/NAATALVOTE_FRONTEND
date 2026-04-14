@@ -2,7 +2,7 @@ import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
 import { useEffect } from 'react';
-import { getRoleDisplayName, getRoleDashboardPath, getRoleColor, type UserRole } from '../data/mockData';
+import { getRoleDisplayName, getRoleDashboardPath, getRoleColor, type UserRole } from '../auth/roles';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout, setCurrentRole } from '../store/authSlice';
 

@@ -1,9 +1,9 @@
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
+import { api, type UserDto } from '../services/api';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -84,7 +84,7 @@ const Panel = styled.div`
 
 const TableHeader = styled.div`
   display: grid;
-  grid-template-columns: 52px 1fr 140px 160px 120px 100px;
+  grid-template-columns: 52px 1fr 160px 120px 100px;
   gap: 0.8rem;
   padding: 0.75rem 1.3rem;
   background: rgba(31, 90, 51, 0.04);
@@ -100,11 +100,9 @@ const TH = styled.div`
   color: rgba(31, 90, 51, 0.55);
 `;
 
-const UserRows = styled.div``;
-
 const UserRow = styled.div`
   display: grid;
-  grid-template-columns: 52px 1fr 140px 160px 120px 100px;
+  grid-template-columns: 52px 1fr 160px 120px 100px;
   gap: 0.8rem;
   align-items: center;
   padding: 0.9rem 1.3rem;
@@ -128,8 +126,6 @@ const UserAvatar = styled.div<{ $color: string }>`
   color: #fff;
 `;
 
-const UserInfo = styled.div``;
-
 const UserName = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
@@ -150,32 +146,15 @@ const RoleBadge = styled.span<{ $role: string }>`
   font-size: 0.72rem;
   font-weight: 700;
   background: ${({ $role }) =>
-    $role === 'Administrateur' ? 'rgba(38, 76, 140, 0.1)' : 'rgba(138, 90, 16, 0.1)'};
+    $role === 'ADMIN' ? 'rgba(38, 76, 140, 0.1)' :
+    $role === 'OPERATEUR' ? 'rgba(138, 90, 16, 0.1)' :
+    $role === 'SUPERADMIN' ? 'rgba(176, 58, 46, 0.1)' :
+    'rgba(91, 95, 101, 0.08)'};
   color: ${({ $role }) =>
-    $role === 'Administrateur' ? 'rgba(38, 76, 140, 0.85)' : 'rgba(138, 90, 16, 0.85)'};
-`;
-
-const LastLogin = styled.div`
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.8rem;
-  color: #6b7a72;
-`;
-
-const StatusDot = styled.span<{ $active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.85)' : 'rgba(91, 95, 101, 0.7)'};
-  &::before {
-    content: '';
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.8)' : 'rgba(91, 95, 101, 0.5)'};
-  }
+    $role === 'ADMIN' ? 'rgba(38, 76, 140, 0.85)' :
+    $role === 'OPERATEUR' ? 'rgba(138, 90, 16, 0.85)' :
+    $role === 'SUPERADMIN' ? 'rgba(176, 58, 46, 0.85)' :
+    'rgba(91, 95, 101, 0.75)'};
 `;
 
 const ActionsCell = styled.div`
@@ -197,32 +176,67 @@ const IconBtn = styled.button<{ $danger?: boolean }>`
   font-size: 0.8rem;
   transition: all 0.2s;
   &:hover { background: ${({ $danger }) => $danger ? 'rgba(176, 58, 46, 0.12)' : 'rgba(31, 90, 51, 0.12)'}; }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
 `;
 
-const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
+const Empty = styled.div`
+  padding: 2rem;
+  text-align: center;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #8a9a90;
+  font-size: 0.9rem;
+`;
+
+const ROLE_COLORS: Record<string, string> = {
+  ADMIN: 'rgba(38, 76, 140, 0.7)',
+  OPERATEUR: 'rgba(138, 90, 16, 0.7)',
+  SUPERADMIN: 'rgba(176, 58, 46, 0.7)',
+  CITOYEN: 'rgba(91, 95, 101, 0.5)',
+};
+
+const initials = (u: UserDto) =>
+  `${u.prenom.charAt(0)}${u.nom.charAt(0)}`.toUpperCase();
+
+const primaryRole = (u: UserDto): string => {
+  for (const r of ['SUPERADMIN', 'ADMIN', 'OPERATEUR']) {
+    if (u.roles.includes(r)) return r;
+  }
+  return u.roles[0] ?? 'CITOYEN';
+};
+
 const navItems = [
   { label: 'Console systeme', to: '/superadmin/console' },
   { label: 'Logs immuables', to: '/superadmin/logs' },
   { label: 'Exports audit', to: '/superadmin/export' },
   { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
-];
-
-const users = [
-  { id: 'u1', initials: 'AN', name: 'Awa Ndiaye', email: 'a.ndiaye@naatal.sn', role: 'Administrateur', lastLogin: '09/03/2026 09:14', active: true, color: 'rgba(38, 76, 140, 0.7)' },
-  { id: 'u2', initials: 'MD', name: 'Mamadou Diallo', email: 'm.diallo@naatal.sn', role: 'Operateur', lastLogin: '09/03/2026 08:02', active: true, color: 'rgba(138, 90, 16, 0.7)' },
-  { id: 'u3', initials: 'KS', name: 'Kadiatou Sow', email: 'k.sow@naatal.sn', role: 'Administrateur', lastLogin: '08/03/2026 17:30', active: true, color: 'rgba(38, 76, 140, 0.6)' },
-  { id: 'u4', initials: 'ON', name: 'Omar Niane', email: 'o.niane@naatal.sn', role: 'Operateur', lastLogin: '07/03/2026 11:50', active: false, color: 'rgba(91, 95, 101, 0.5)' },
+  { label: 'Suspensions', to: '/superadmin/suspensions' },
 ];
 
 const SuperAdminUsers = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<'all' | 'admin' | 'operator'>('all');
   const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<UserDto[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = users.filter((u) => {
-    const matchTab = tab === 'all' || (tab === 'admin' && u.role === 'Administrateur') || (tab === 'operator' && u.role === 'Operateur');
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    api.superadmin.listUsers()
+      .then(setUsers)
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const admins = users.filter(u => u.roles.includes('ADMIN') && !u.roles.includes('SUPERADMIN'));
+  const operators = users.filter(u => u.roles.includes('OPERATEUR'));
+
+  const filtered = users.filter(u => {
+    const role = primaryRole(u);
+    const matchTab =
+      tab === 'all' ||
+      (tab === 'admin' && role === 'ADMIN') ||
+      (tab === 'operator' && role === 'OPERATEUR');
+    const name = `${u.prenom} ${u.nom}`.toLowerCase();
+    const matchSearch = name.includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()) || u.cni.includes(search);
     return matchTab && matchSearch;
   });
 
@@ -233,8 +247,8 @@ const SuperAdminUsers = () => {
         <input id="swal-name" class="swal2-input" placeholder="Nom complet" style="font-family:Poppins">
         <input id="swal-email" class="swal2-input" placeholder="Email professionnel" style="font-family:Poppins">
         <select id="swal-role" class="swal2-select" style="font-family:Poppins;width:100%;padding:0.5rem;margin-top:0.5rem;border:1px solid #ddd;border-radius:8px">
-          <option value="admin">Administrateur</option>
-          <option value="operator">Operateur de securite</option>
+          <option value="ADMIN">Administrateur</option>
+          <option value="OPERATEUR">Operateur de securite</option>
         </select>
       `,
       showCancelButton: true,
@@ -245,17 +259,8 @@ const SuperAdminUsers = () => {
     });
   };
 
-  const handleDeactivate = (name: string) => {
-    Swal.fire({
-      title: `Desactiver ${name} ?`,
-      text: 'Le compte sera desactive. Aucune donnee ne sera supprimee. Cette action est tracee dans les logs.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Desactiver',
-      cancelButtonText: 'Annuler',
-      buttonsStyling: false,
-      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
-    });
+  const handleLogs = (u: UserDto) => {
+    navigate(`/superadmin/utilisateurs/${u.id}/logs`);
   };
 
   return (
@@ -269,15 +274,15 @@ const SuperAdminUsers = () => {
       <LayoutGrid>
         <TabRow>
           <Tab $active={tab === 'all'} onClick={() => setTab('all')}>Tous ({users.length})</Tab>
-          <Tab $active={tab === 'admin'} onClick={() => setTab('admin')}>Administrateurs ({users.filter(u => u.role === 'Administrateur').length})</Tab>
-          <Tab $active={tab === 'operator'} onClick={() => setTab('operator')}>Operateurs ({users.filter(u => u.role === 'Operateur').length})</Tab>
+          <Tab $active={tab === 'admin'} onClick={() => setTab('admin')}>Administrateurs ({admins.length})</Tab>
+          <Tab $active={tab === 'operator'} onClick={() => setTab('operator')}>Operateurs ({operators.length})</Tab>
         </TabRow>
 
         <ControlBar>
           <SearchInput
             placeholder="Rechercher un utilisateur..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={e => setSearch(e.target.value)}
           />
           <CreateButton onClick={handleCreate}><i className="bi bi-person-plus" />Creer</CreateButton>
         </ControlBar>
@@ -286,31 +291,41 @@ const SuperAdminUsers = () => {
           <TableHeader>
             <TH></TH>
             <TH>Utilisateur</TH>
-            <TH>Role</TH>
-            <TH>Derniere connexion</TH>
-            <TH>Statut</TH>
+            <TH>Roles</TH>
+            <TH>CNI</TH>
             <TH>Actions</TH>
           </TableHeader>
-          <UserRows>
-            {filtered.map((u) => (
-              <UserRow key={u.id}>
-                <UserAvatar $color={u.color}>{u.initials}</UserAvatar>
-                <UserInfo>
-                  <UserName>{u.name}</UserName>
-                  <UserEmail>{u.email}</UserEmail>
-                </UserInfo>
-                <div><RoleBadge $role={u.role}>{u.role === 'Administrateur' ? 'Admin' : 'Operateur'}</RoleBadge></div>
-                <LastLogin>{u.lastLogin}</LastLogin>
-                <StatusDot $active={u.active}>{u.active ? 'Actif' : 'Inactif'}</StatusDot>
-                <ActionsCell>
-                  <IconBtn title="Voir logs" onClick={() => navigate(`/superadmin/utilisateurs/${u.id}/logs`)}><i className="bi bi-journal-text" /></IconBtn>
-                  <IconBtn $danger title="Desactiver" onClick={() => handleDeactivate(u.name)} disabled={!u.active}>
-                    <i className="bi bi-person-x" />
-                  </IconBtn>
-                </ActionsCell>
-              </UserRow>
-            ))}
-          </UserRows>
+          {loading ? (
+            <Empty>Chargement…</Empty>
+          ) : filtered.length === 0 ? (
+            <Empty>Aucun utilisateur trouve.</Empty>
+          ) : (
+            filtered.map(u => {
+              const role = primaryRole(u);
+              return (
+                <UserRow key={u.id}>
+                  <UserAvatar $color={ROLE_COLORS[role] ?? 'rgba(91,95,101,0.5)'}>
+                    {initials(u)}
+                  </UserAvatar>
+                  <div>
+                    <UserName>{u.prenom} {u.nom}</UserName>
+                    <UserEmail>{u.email}</UserEmail>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                    {u.roles.map(r => (
+                      <RoleBadge key={r} $role={r}>{r}</RoleBadge>
+                    ))}
+                  </div>
+                  <UserEmail>{u.cni}</UserEmail>
+                  <ActionsCell>
+                    <IconBtn title="Voir logs" onClick={() => handleLogs(u)}>
+                      <i className="bi bi-journal-text" />
+                    </IconBtn>
+                  </ActionsCell>
+                </UserRow>
+              );
+            })
+          )}
         </Panel>
       </LayoutGrid>
     </AppLayout>

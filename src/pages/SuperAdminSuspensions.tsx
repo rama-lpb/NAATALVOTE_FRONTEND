@@ -1,8 +1,8 @@
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
+import { api } from '../services/api';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -84,8 +84,6 @@ const TH = styled.div`
   color: rgba(31, 90, 51, 0.55);
 `;
 
-const SuspRows = styled.div``;
-
 const SuspRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 130px 120px 170px;
@@ -97,8 +95,6 @@ const SuspRow = styled.div`
   &:last-child { border-bottom: none; }
   &:hover { background: rgba(31, 90, 51, 0.02); }
 `;
-
-const CitizenInfo = styled.div``;
 
 const CitizenName = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -179,41 +175,25 @@ const ActionBtn = styled.button<{ $variant: 'approve' | 'reject' | 'view' }>`
   &:hover { filter: brightness(1.1); }
 `;
 
-const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
-const navItems = [
-  { label: 'Console systeme', to: '/superadmin/console' },
-  { label: 'Logs immuables', to: '/superadmin/logs' },
-  { label: 'Exports audit', to: '/superadmin/export' },
-  { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
-];
+const Empty = styled.div`
+  padding: 2rem;
+  text-align: center;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #8a9a90;
+  font-size: 0.9rem;
+`;
 
 type SuspStatus = 'pending' | 'approved' | 'rejected';
 type FilterType = 'all' | SuspStatus;
 
 const mapStatut = (statut: string): SuspStatus => {
   if (statut === 'EN_ATTENTE') return 'pending';
-  if (statut === 'APPROUVE') return 'approved';
-  if (statut === 'REJETE') return 'rejected';
+  if (statut === 'APPROUVE' || statut === 'APPROUVEE') return 'approved';
+  if (statut === 'REJETE' || statut === 'REJETEE') return 'rejected';
   return 'pending';
 };
 
-const rawSuspensions = (mockData as any).suspensions as any[];
-const suspensions = rawSuspensions.map((s: any) => {
-  const citoyen = (mockData as any).users.find((u: any) => u.id === s.citoyen_id);
-  const operateur = (mockData as any).users.find((u: any) => u.id === s.operateur_id);
-  return {
-    id: s.id,
-    cni: citoyen ? `${citoyen.prenom} ${citoyen.nom} (${citoyen.cni})` : s.citoyen_id ?? '—',
-    motif: s.motif,
-    operator: operateur ? `${operateur.prenom} ${operateur.nom}` : s.operateur_id ?? '—',
-    date: new Date(s.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-    status: mapStatut(s.statut),
-    rawId: s.id,
-  };
-});
-
-const statusLabel = { pending: 'En attente', approved: 'Approuve', rejected: 'Rejete' };
+const statusLabel: Record<SuspStatus, string> = { pending: 'En attente', approved: 'Approuve', rejected: 'Rejete' };
 const filters: { id: FilterType; label: string }[] = [
   { id: 'all', label: 'Toutes' },
   { id: 'pending', label: 'En attente' },
@@ -221,16 +201,53 @@ const filters: { id: FilterType; label: string }[] = [
   { id: 'rejected', label: 'Rejetees' },
 ];
 
+interface SuspRow {
+  id: string;
+  citoyenLabel: string;
+  operateurLabel: string;
+  motif: string;
+  date: string;
+  status: SuspStatus;
+}
+
 const SuperAdminSuspensions = () => {
   const [filter, setFilter] = useState<FilterType>('all');
+  const [rows, setRows] = useState<SuspRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const filtered = suspensions.filter((s) => filter === 'all' || s.status === filter);
+  useEffect(() => {
+    Promise.all([
+      api.superadmin.listSuspensions(),
+      api.superadmin.listUsers(),
+    ]).then(([suspensions, users]) => {
+      const findName = (id: string) => {
+        const u = users.find(u => u.id === id);
+        return u ? `${u.prenom} ${u.nom} (${u.cni})` : id.slice(0, 8) + '…';
+      };
+      setRows(suspensions.map(s => ({
+        id: s.id,
+        citoyenLabel: findName(s.citoyen_id),
+        operateurLabel: findName(s.operateur_id),
+        motif: s.motif,
+        date: new Date(s.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        status: mapStatut(s.statut),
+      })));
+    }).catch(() => setRows([])).finally(() => setLoading(false));
+  }, []);
 
-  const countPending = suspensions.filter((s) => s.status === 'pending').length;
-  const countApproved = suspensions.filter((s) => s.status === 'approved').length;
-  const countRejected = suspensions.filter((s) => s.status === 'rejected').length;
-  const countTotal = suspensions.length;
+  const filtered = rows.filter(s => filter === 'all' || s.status === filter);
+  const countPending = rows.filter(s => s.status === 'pending').length;
+  const countApproved = rows.filter(s => s.status === 'approved').length;
+  const countRejected = rows.filter(s => s.status === 'rejected').length;
+
+  const navItems = [
+    { label: 'Console systeme', to: '/superadmin/console' },
+    { label: 'Logs immuables', to: '/superadmin/logs' },
+    { label: 'Exports audit', to: '/superadmin/export' },
+    { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
+    { label: 'Suspensions', to: '/superadmin/suspensions', badge: countPending },
+  ];
 
   return (
     <AppLayout
@@ -255,12 +272,12 @@ const SuperAdminSuspensions = () => {
           </StatCard>
           <StatCard $accent="rgba(91, 95, 101, 0.4)">
             <StatLabel>Total</StatLabel>
-            <StatValue>{countTotal}</StatValue>
+            <StatValue>{rows.length}</StatValue>
           </StatCard>
         </SummaryRow>
 
         <FilterRow>
-          {filters.map((f) => (
+          {filters.map(f => (
             <Chip key={f.id} $active={filter === f.id} onClick={() => setFilter(f.id)}>
               {f.label}
             </Chip>
@@ -275,34 +292,38 @@ const SuperAdminSuspensions = () => {
             <TH>Statut</TH>
             <TH>Actions</TH>
           </TableHeader>
-          <SuspRows>
-            {filtered.map((s) => (
+          {loading ? (
+            <Empty>Chargement…</Empty>
+          ) : filtered.length === 0 ? (
+            <Empty>Aucune suspension{filter !== 'all' ? ' dans cette categorie' : ''}.</Empty>
+          ) : (
+            filtered.map(s => (
               <SuspRow key={s.id}>
-                <CitizenInfo>
-                  <CitizenName>{s.cni}</CitizenName>
+                <div>
+                  <CitizenName>{s.citoyenLabel}</CitizenName>
                   <CitizenSub>Soumis le {s.date}</CitizenSub>
-                </CitizenInfo>
-                <OperatorInfo>{s.operator}</OperatorInfo>
+                </div>
+                <OperatorInfo>{s.operateurLabel}</OperatorInfo>
                 <MotifBadge>{s.motif}</MotifBadge>
                 <StatusBadge $status={s.status}>{statusLabel[s.status]}</StatusBadge>
                 <ActionsCell>
-                  <ActionBtn $variant="view" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.rawId } })}>
+                  <ActionBtn $variant="view" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.id } })}>
                     <i className="bi bi-eye" />Voir
                   </ActionBtn>
                   {s.status === 'pending' && (
                     <>
-                      <ActionBtn $variant="approve" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.rawId } })}>
+                      <ActionBtn $variant="approve" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.id } })}>
                         <i className="bi bi-check2" />Valider
                       </ActionBtn>
-                      <ActionBtn $variant="reject" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.rawId } })}>
+                      <ActionBtn $variant="reject" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.id } })}>
                         <i className="bi bi-x" />Rejeter
                       </ActionBtn>
                     </>
                   )}
                 </ActionsCell>
               </SuspRow>
-            ))}
-          </SuspRows>
+            ))
+          )}
         </Panel>
       </LayoutGrid>
     </AppLayout>

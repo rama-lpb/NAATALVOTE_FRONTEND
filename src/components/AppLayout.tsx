@@ -1,8 +1,10 @@
 import styled from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
-import { type ReactNode, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
-import mockData from '../data/mockData.json';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { logout } from '../store/authSlice';
+import { api } from '../services/api';
 
 interface NavItem {
   label: string;
@@ -17,97 +19,6 @@ interface Notif {
   sub?: string;
   type: 'info' | 'warning' | 'success' | 'danger';
 }
-
-type MD = {
-  alertes_fraude: { id: string; statut: string; operateur_id: string | null; }[];
-  suspensions: { id: string; statut: string; operateur_id: string; decision_commentaire: string | null; }[];
-  elections: { id: string; titre: string; statut: string; date_debut: string; date_fin: string; votes_count: number; }[];
-  candidats: { id: string; election_id: string; }[];
-};
-const md = mockData as unknown as MD;
-
-const getNotifications = (role: string): Notif[] => {
-  const rLow = role.toLowerCase();
-  const alerts = md.alertes_fraude;
-  const suspensions = md.suspensions;
-  const elections = md.elections;
-  const candidats = md.candidats;
-  const notifs: Notif[] = [];
-
-  if (rLow.includes('operateur')) {
-    const newAlerts = alerts.filter((a) => a.statut === 'NOUVELLE' && !a.operateur_id);
-    if (newAlerts.length > 0) {
-      notifs.push({ id: 'new-alerts', icon: 'bi-shield-exclamation',
-        text: `${newAlerts.length} nouvelle${newAlerts.length > 1 ? 's' : ''} alerte${newAlerts.length > 1 ? 's' : ''} non assignée${newAlerts.length > 1 ? 's' : ''}`,
-        sub: 'En attente de prise en charge', type: 'warning' });
-    }
-    const myAnalysis = alerts.filter((a) => a.statut === 'EN_ANALYSE' && a.operateur_id === 'oper-001');
-    if (myAnalysis.length > 0) {
-      notifs.push({ id: 'my-analysis', icon: 'bi-hourglass-split',
-        text: `${myAnalysis.length} alerte${myAnalysis.length > 1 ? 's' : ''} en cours d'analyse`,
-        sub: 'Mes dossiers actifs', type: 'info' });
-    }
-    const myResolved = alerts.filter((a) => a.statut === 'RESOLUE' && a.operateur_id === 'oper-001');
-    if (myResolved.length > 0) {
-      notifs.push({ id: 'my-resolved', icon: 'bi-check-circle',
-        text: `${myResolved.length} alerte${myResolved.length > 1 ? 's' : ''} clôturée${myResolved.length > 1 ? 's' : ''}`,
-        sub: 'Dossiers résolus', type: 'success' });
-    }
-    suspensions.filter((s) => s.operateur_id === 'oper-001').forEach((s) => {
-      if (s.statut === 'EN_ATTENTE')
-        notifs.push({ id: `susp-pending-${s.id}`, icon: 'bi-clock-history',
-          text: 'Suspension soumise — en attente du SuperAdmin',
-          sub: `Dossier ${s.id} • pas encore traité`, type: 'warning' });
-      else if (s.statut === 'APPROUVE')
-        notifs.push({ id: `susp-approved-${s.id}`, icon: 'bi-person-check',
-          text: 'Votre suspension a été approuvée',
-          sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'success' });
-      else if (s.statut === 'REJETE')
-        notifs.push({ id: `susp-rejected-${s.id}`, icon: 'bi-person-x',
-          text: 'Votre suspension a été rejetée',
-          sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'danger' });
-    });
-  } else if (rLow.includes('super')) {
-    const pending = suspensions.filter((s) => s.statut === 'EN_ATTENTE');
-    if (pending.length > 0)
-      notifs.push({ id: 'susp-pending-total', icon: 'bi-person-exclamation',
-        text: `${pending.length} suspension${pending.length > 1 ? 's' : ''} en attente de validation`,
-        sub: 'Requiert votre décision', type: 'warning' });
-    suspensions.filter((s) => s.statut === 'APPROUVE').forEach((s) =>
-      notifs.push({ id: `approved-${s.id}`, icon: 'bi-check2-circle',
-        text: 'Suspension approuvée',
-        sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'success' }));
-    suspensions.filter((s) => s.statut === 'REJETE').forEach((s) =>
-      notifs.push({ id: `rejected-${s.id}`, icon: 'bi-x-circle',
-        text: 'Suspension rejetée',
-        sub: s.decision_commentaire ? s.decision_commentaire.slice(0, 55) + '…' : s.id, type: 'danger' }));
-  } else if (rLow.includes('admin')) {
-    elections.filter((e) => e.statut === 'EN_COURS').forEach((e) =>
-      notifs.push({ id: `elec-encours-${e.id}`, icon: 'bi-calendar2-check',
-        text: `Élection en cours : ${e.titre}`,
-        sub: `${(e.votes_count as number).toLocaleString('fr-FR')} votes enregistrés`, type: 'success' }));
-    elections.filter((e) => e.statut === 'PROGRAMMEE').forEach((e) =>
-      notifs.push({ id: `elec-prog-${e.id}`, icon: 'bi-calendar2-plus',
-        text: `Élection programmée : ${e.titre}`,
-        sub: `Début : ${new Date(e.date_debut).toLocaleDateString('fr-FR')}`, type: 'info' }));
-    const activeIds = elections.filter((e) => e.statut === 'EN_COURS').map((e) => e.id);
-    const activeCands = candidats.filter((c) => activeIds.includes(c.election_id));
-    if (activeCands.length > 0)
-      notifs.push({ id: 'candidats-count', icon: 'bi-people',
-        text: `${activeCands.length} candidat${activeCands.length > 1 ? 's' : ''} inscrit${activeCands.length > 1 ? 's' : ''} aux élections en cours`,
-        sub: 'Élections actives', type: 'info' });
-  } else {
-    elections.filter((e) => e.statut === 'EN_COURS').forEach((e) =>
-      notifs.push({ id: `vote-open-${e.id}`, icon: 'bi-check2-square',
-        text: `Élection ouverte : ${e.titre}`,
-        sub: `Votez avant le ${new Date(e.date_fin).toLocaleDateString('fr-FR')}`, type: 'warning' }));
-    elections.filter((e) => e.statut === 'CLOTUREE').forEach((e) =>
-      notifs.push({ id: `results-${e.id}`, icon: 'bi-bar-chart',
-        text: `Résultats disponibles : ${e.titre}`,
-        sub: `${(e.votes_count as number).toLocaleString('fr-FR')} votes comptabilisés`, type: 'success' }));
-  }
-  return notifs;
-};
 
 interface AppLayoutProps {
   role: string;
@@ -304,6 +215,30 @@ const SideLink = styled(Link)<{ $collapsed?: boolean; $danger?: boolean }>`
     background: ${({ $danger }) =>
       $danger ? 'rgba(176, 58, 46, 0.14)' : 'rgba(31, 90, 51, 0.1)'};
   }
+  .side-label {
+    display: ${({ $collapsed }) => ($collapsed ? 'none' : 'inline')};
+  }
+`;
+
+const LogoutBtn = styled.button<{ $collapsed?: boolean }>`
+  text-decoration: none;
+  color: rgba(176, 58, 46, 0.9);
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(176, 58, 46, 0.08);
+  border: 1px solid rgba(176, 58, 46, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+  width: 100%;
+  &:hover { background: rgba(176, 58, 46, 0.14); }
   .side-label {
     display: ${({ $collapsed }) => ($collapsed ? 'none' : 'inline')};
   }
@@ -679,12 +614,185 @@ const NotifUnreadDot = styled.div`
 
 export const AppLayout = ({ role, title, subtitle, navItems, actions, children }: AppLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const userId = useAppSelector((s) => s.auth.user?.id ?? null);
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    try { await api.auth.logout(); } catch { /* ignore */ }
+    dispatch(logout());
+    navigate('/login');
+  };
   const [notifOpen, setNotifOpen] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  const notifications = getNotifications(role);
-  const unreadCount = notifications.filter((n) => !readIds.has(n.id)).length;
+  const [notifications, setNotifications] = useState<Notif[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const rLow = role.toLowerCase();
+
+    const load = async () => {
+      try {
+        const notifs: Notif[] = [];
+
+        if (rLow.includes('operateur')) {
+          const [alerts, suspensions] = await Promise.all([
+            api.operateur.listAlerts(),
+            api.operateur.listSuspensions(),
+          ]);
+
+          const newAlerts = alerts.filter((a) => a.statut === 'NOUVELLE' && !a.operateur_id);
+          if (newAlerts.length > 0) {
+            notifs.push({
+              id: 'new-alerts',
+              icon: 'bi-shield-exclamation',
+              text: `${newAlerts.length} nouvelle${newAlerts.length > 1 ? 's' : ''} alerte${newAlerts.length > 1 ? 's' : ''} non assignée${newAlerts.length > 1 ? 's' : ''}`,
+              sub: 'En attente de prise en charge',
+              type: 'warning',
+            });
+          }
+
+          if (userId) {
+            const myAnalysis = alerts.filter((a) => a.statut === 'EN_ANALYSE' && a.operateur_id === userId);
+            if (myAnalysis.length > 0) {
+              notifs.push({
+                id: 'my-analysis',
+                icon: 'bi-hourglass-split',
+                text: `${myAnalysis.length} alerte${myAnalysis.length > 1 ? 's' : ''} en cours d'analyse`,
+                sub: 'Mes dossiers actifs',
+                type: 'info',
+              });
+            }
+
+            const myResolved = alerts.filter((a) => a.statut === 'RESOLUE' && a.operateur_id === userId);
+            if (myResolved.length > 0) {
+              notifs.push({
+                id: 'my-resolved',
+                icon: 'bi-check-circle',
+                text: `${myResolved.length} alerte${myResolved.length > 1 ? 's' : ''} clôturée${myResolved.length > 1 ? 's' : ''}`,
+                sub: 'Dossiers résolus',
+                type: 'success',
+              });
+            }
+
+            suspensions.filter((s) => s.operateur_id === userId).forEach((s) => {
+              if (s.statut === 'EN_ATTENTE') {
+                notifs.push({
+                  id: `susp-pending-${s.id}`,
+                  icon: 'bi-clock-history',
+                  text: 'Suspension soumise — en attente du SuperAdmin',
+                  sub: `Dossier ${s.id} • pas encore traité`,
+                  type: 'warning',
+                });
+              } else if (s.statut === 'APPROUVE') {
+                notifs.push({
+                  id: `susp-approved-${s.id}`,
+                  icon: 'bi-person-check',
+                  text: 'Votre suspension a été approuvée',
+                  sub: s.id,
+                  type: 'success',
+                });
+              } else if (s.statut === 'REJETE') {
+                notifs.push({
+                  id: `susp-rejected-${s.id}`,
+                  icon: 'bi-person-x',
+                  text: 'Votre suspension a été rejetée',
+                  sub: s.id,
+                  type: 'danger',
+                });
+              }
+            });
+          }
+        } else if (rLow.includes('super')) {
+          const suspensions = await api.superadmin.listSuspensions();
+          const pending = suspensions.filter((s) => s.statut === 'EN_ATTENTE');
+          if (pending.length > 0) {
+            notifs.push({
+              id: 'susp-pending-total',
+              icon: 'bi-person-exclamation',
+              text: `${pending.length} suspension${pending.length > 1 ? 's' : ''} en attente de validation`,
+              sub: 'Requiert votre décision',
+              type: 'warning',
+            });
+          }
+          suspensions.filter((s) => s.statut === 'APPROUVE').forEach((s) =>
+            notifs.push({
+              id: `approved-${s.id}`,
+              icon: 'bi-check2-circle',
+              text: 'Suspension approuvée',
+              sub: s.justification?.slice(0, 55) || s.id,
+              type: 'success',
+            }));
+          suspensions.filter((s) => s.statut === 'REJETE').forEach((s) =>
+            notifs.push({
+              id: `rejected-${s.id}`,
+              icon: 'bi-x-circle',
+              text: 'Suspension rejetée',
+              sub: s.justification?.slice(0, 55) || s.id,
+              type: 'danger',
+            }));
+        } else if (rLow.includes('admin')) {
+          const [elections, candidats] = await Promise.all([api.elections.list(), api.candidats.list()]);
+          elections.filter((e) => e.statut === 'EN_COURS').forEach((e) =>
+            notifs.push({
+              id: `elec-encours-${e.id}`,
+              icon: 'bi-calendar2-check',
+              text: `Élection en cours : ${e.titre}`,
+              sub: `${(e.votes_count as number).toLocaleString('fr-FR')} votes enregistrés`,
+              type: 'success',
+            }));
+          elections.filter((e) => e.statut === 'PROGRAMMEE').forEach((e) =>
+            notifs.push({
+              id: `elec-prog-${e.id}`,
+              icon: 'bi-calendar2-plus',
+              text: `Élection programmée : ${e.titre}`,
+              sub: `Début : ${new Date(e.date_debut).toLocaleDateString('fr-FR')}`,
+              type: 'info',
+            }));
+          const activeIds = elections.filter((e) => e.statut === 'EN_COURS').map((e) => e.id);
+          const activeCands = candidats.filter((c) => activeIds.includes(c.election_id));
+          if (activeCands.length > 0) {
+            notifs.push({
+              id: 'candidats-count',
+              icon: 'bi-people',
+              text: `${activeCands.length} candidat${activeCands.length > 1 ? 's' : ''} inscrit${activeCands.length > 1 ? 's' : ''} aux élections en cours`,
+              sub: 'Élections actives',
+              type: 'info',
+            });
+          }
+        } else {
+          const elections = await api.elections.list();
+          elections.filter((e) => e.statut === 'EN_COURS').forEach((e) =>
+            notifs.push({
+              id: `vote-open-${e.id}`,
+              icon: 'bi-check2-square',
+              text: `Élection ouverte : ${e.titre}`,
+              sub: `Votez avant le ${new Date(e.date_fin).toLocaleDateString('fr-FR')}`,
+              type: 'warning',
+            }));
+          elections.filter((e) => e.statut === 'CLOTUREE').forEach((e) =>
+            notifs.push({
+              id: `results-${e.id}`,
+              icon: 'bi-bar-chart',
+              text: `Résultats disponibles : ${e.titre}`,
+              sub: `${(e.votes_count as number).toLocaleString('fr-FR')} votes comptabilisés`,
+              type: 'success',
+            }));
+        }
+
+        if (!cancelled) setNotifications(notifs);
+      } catch {
+        if (!cancelled) setNotifications([]);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [role, userId]);
+
+  const unreadCount = useMemo(() => notifications.filter((n) => !readIds.has(n.id)).length, [notifications, readIds]);
 
   const handleMarkAllRead = () => setReadIds(new Set(notifications.map((n) => n.id)));
   const handleNotifClick = (id: string) => setReadIds((prev) => new Set([...prev, id]));
@@ -783,10 +891,10 @@ export const AppLayout = ({ role, title, subtitle, navItems, actions, children }
               <i className="bi bi-shuffle" />
               <span className="side-label">Changer de role</span>
             </SideLink>
-            <SideLink to="/login" $collapsed={collapsed} $danger>
+            <LogoutBtn $collapsed={collapsed} onClick={handleLogout}>
               <i className="bi bi-box-arrow-right" />
               <span className="side-label">Deconnexion</span>
-            </SideLink>
+            </LogoutBtn>
           </SideFooter>
         </Sidebar>
         <RightCol>

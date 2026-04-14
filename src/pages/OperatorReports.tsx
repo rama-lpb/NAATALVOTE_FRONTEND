@@ -1,35 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
-
-/* ── Badge ── */
-const MES_EN_COURS = (mockData as any).alertes_fraude.filter(
-  (a: any) => a.operateur_id === 'oper-001' && a.statut === 'EN_ANALYSE'
-).length;
-
-const navItems = [
-  { label: 'Dashboard', to: '/operateur/dashboard' },
-  { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: MES_EN_COURS },
-  { label: 'Historique', to: '/operateur/historique' },
-  { label: 'Rapports', to: '/operateur/rapports' },
-];
-
-/* ── Data ── */
-const MON_ID = 'oper-001';
+import { api, type ElectionDto } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const TYPE_LABELS: Record<string, string> = {
   VOTE_MULTIPLE: 'Vote multiple',
   IP_SUSPECTE: 'IP suspecte',
   PATTERN_SUSPECT: 'Pattern suspect',
   CNI_INVALIDE: 'CNI invalide',
-};
-
-const ELECTION_LABELS: Record<string, string> = {
-  'elec-001': 'Presidentielle 2025',
-  'elec-002': 'Legislatives Dakar',
-  'elec-003': 'Municipales',
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -373,24 +353,63 @@ const GenerateBtn = styled.button`
 /* ── Component ── */
 type Period = 'semaine' | 'mois' | 'tout';
 
-const NOW = new Date('2026-03-26T23:59:00Z');
-
 const OperatorReports = () => {
+  const operatorId = useAppSelector((s) => s.auth.user?.id ?? null);
+
+  const [allAlerts, setAllAlerts] = useState<Awaited<ReturnType<typeof api.operateur.listAlerts>>>([]);
+  const [allSuspensions, setAllSuspensions] = useState<Awaited<ReturnType<typeof api.operateur.listSuspensions>>>([]);
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([api.operateur.listAlerts(), api.operateur.listSuspensions(), api.elections.list()])
+      .then(([a, s, e]) => {
+        if (cancelled) return;
+        setAllAlerts(a);
+        setAllSuspensions(s);
+        setElections(e);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAllAlerts([]);
+        setAllSuspensions([]);
+        setElections([]);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   const [period, setPeriod] = useState<Period>('tout');
 
   const allMyAlerts = useMemo(
-    () => (mockData as any).alertes_fraude.filter((a: any) => a.operateur_id === MON_ID),
-    []
+    () => (operatorId ? allAlerts.filter((a) => a.operateur_id === operatorId) : []),
+    [allAlerts, operatorId]
   );
 
   const mySuspensions = useMemo(
-    () => (mockData as any).suspensions.filter((s: any) => s.operateur_id === MON_ID),
-    []
+    () => (operatorId ? allSuspensions.filter((s) => s.operateur_id === operatorId) : []),
+    [allSuspensions, operatorId]
   );
 
+  const navItems = useMemo(() => {
+    const badge = allMyAlerts.filter((a: any) => a.statut === 'EN_ANALYSE').length;
+    return [
+      { label: 'Dashboard', to: '/operateur/dashboard' },
+      { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: badge || undefined },
+      { label: 'Historique', to: '/operateur/historique' },
+      { label: 'Rapports', to: '/operateur/rapports' },
+    ];
+  }, [allMyAlerts]);
+
+  const electionsById = useMemo(() => {
+    const out: Record<string, string> = {};
+    elections.forEach((e) => { out[e.id] = e.titre; });
+    return out;
+  }, [elections]);
+
   const cutoff = useMemo(() => {
-    if (period === 'semaine') return new Date(NOW.getTime() - 7 * 86400000);
-    if (period === 'mois') return new Date(NOW.getTime() - 30 * 86400000);
+    const now = new Date();
+    if (period === 'semaine') return new Date(now.getTime() - 7 * 86400000);
+    if (period === 'mois') return new Date(now.getTime() - 30 * 86400000);
     return new Date(0);
   }, [period]);
 
@@ -423,7 +442,10 @@ const OperatorReports = () => {
   /* Election distribution */
   const elecCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    alerts.forEach((a: any) => { counts[a.election_id] = (counts[a.election_id] ?? 0) + 1; });
+    alerts.forEach((a: any) => {
+      if (!a.election_id) return;
+      counts[a.election_id] = (counts[a.election_id] ?? 0) + 1;
+    });
     return Object.entries(counts)
       .map(([id, count]) => ({ id, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
       .sort((a, b) => b.count - a.count);
@@ -636,7 +658,7 @@ const OperatorReports = () => {
               <ReportCard>
                 <ReportLeft>
                   <ReportTitle>
-                    Rapport — {ELECTION_LABELS[elecCounts[0].id] ?? elecCounts[0].id}
+                    Rapport — {electionsById[elecCounts[0].id] ?? elecCounts[0].id}
                   </ReportTitle>
                   <ReportMeta>
                     <span><i className="bi bi-calendar2" style={{ marginRight: '0.3rem' }} />26/03/2026</span>
@@ -649,7 +671,7 @@ const OperatorReports = () => {
                   </ReportTags>
                 </ReportLeft>
                 <ReportActions>
-                  <DownloadBtn onClick={() => handleDownload(`Rapport ${ELECTION_LABELS[elecCounts[0].id]}`)}>
+                  <DownloadBtn onClick={() => handleDownload(`Rapport ${electionsById[elecCounts[0].id] ?? elecCounts[0].id}`)}>
                     <i className="bi bi-download" />PDF
                   </DownloadBtn>
                 </ReportActions>
@@ -721,7 +743,7 @@ const OperatorReports = () => {
                   {elecCounts.map(({ id, count, pct }) => (
                     <div key={id}>
                       <BarRow>
-                        <BarLabel style={{ fontSize: '0.75rem' }}>{ELECTION_LABELS[id] ?? id}</BarLabel>
+                        <BarLabel style={{ fontSize: '0.75rem' }}>{electionsById[id] ?? id}</BarLabel>
                         <BarPct>{count} ({pct}%)</BarPct>
                       </BarRow>
                       <BarTrack>

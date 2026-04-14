@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { UserRole } from '../data/mockData';
+import type { UserRole } from '../auth/roles';
 
 export type AuthUser = {
   id: string;

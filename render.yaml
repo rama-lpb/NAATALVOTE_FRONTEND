@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: naatalvote-frontend
+    env: static
+    rootDir: .
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # URL publique du backend (ex: https://naatalvote-backend.onrender.com)
+      - key: VITE_API_ORIGIN
+        sync: false

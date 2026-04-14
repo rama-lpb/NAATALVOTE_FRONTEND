@@ -1,7 +1,10 @@
 import styled from 'styled-components';
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import Swal from 'sweetalert2';
+import { api } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const Form = styled.div`
   background: #ffffff;
@@ -77,9 +80,9 @@ const Helper = styled.span<{ $error?: boolean }>`
   margin-top: 0.2rem;
 `;
 
-const Field = styled.input<{ hasError?: boolean }>`
+const Field = styled.input<{ $hasError?: boolean }>`
   width: 100%;
-  border: 1.5px solid ${({ hasError }) => hasError ? '#e74c3c' : '#e2e8f0'};
+  border: 1.5px solid ${({ $hasError }) => $hasError ? '#e74c3c' : '#e2e8f0'};
   border-radius: 12px;
   padding: 0.85rem 1rem;
   font-size: 0.95rem;
@@ -90,9 +93,9 @@ const Field = styled.input<{ hasError?: boolean }>`
   transition: all 0.2s ease;
   
   &:focus {
-    border-color: ${({ hasError }) => hasError ? '#e74c3c' : '#1f5a33'};
+    border-color: ${({ $hasError }) => $hasError ? '#e74c3c' : '#1f5a33'};
     background: #ffffff;
-    box-shadow: 0 0 0 3px ${({ hasError }) => hasError ? 'rgba(231, 76, 60, 0.15)' : 'rgba(31, 90, 51, 0.1)'};
+    box-shadow: 0 0 0 3px ${({ $hasError }) => $hasError ? 'rgba(231, 76, 60, 0.15)' : 'rgba(31, 90, 51, 0.1)'};
   }
   
   &::placeholder {
@@ -100,9 +103,9 @@ const Field = styled.input<{ hasError?: boolean }>`
   }
 `;
 
-const Select = styled.select<{ hasError?: boolean }>`
+const Select = styled.select<{ $hasError?: boolean }>`
   width: 100%;
-  border: 1.5px solid ${({ hasError }) => hasError ? '#e74c3c' : '#e2e8f0'};
+  border: 1.5px solid ${({ $hasError }) => $hasError ? '#e74c3c' : '#e2e8f0'};
   border-radius: 12px;
   padding: 0.85rem 1rem;
   font-size: 0.95rem;
@@ -114,9 +117,9 @@ const Select = styled.select<{ hasError?: boolean }>`
   transition: all 0.2s ease;
   
   &:focus {
-    border-color: ${({ hasError }) => hasError ? '#e74c3c' : '#1f5a33'};
+    border-color: ${({ $hasError }) => $hasError ? '#e74c3c' : '#1f5a33'};
     background: #ffffff;
-    box-shadow: 0 0 0 3px ${({ hasError }) => hasError ? 'rgba(231, 76, 60, 0.15)' : 'rgba(31, 90, 51, 0.1)'};
+    box-shadow: 0 0 0 3px ${({ $hasError }) => $hasError ? 'rgba(231, 76, 60, 0.15)' : 'rgba(31, 90, 51, 0.1)'};
   }
 `;
 
@@ -239,6 +242,9 @@ interface FormErrors {
 }
 
 const AdminCreateElection = () => {
+  const navigate = useNavigate();
+  const adminId = useAppSelector((s) => s.auth.user?.id ?? null);
+
   const navItems = [
     { label: 'Tableau admin', to: '/admin/dashboard' },
     { label: 'Programmer election', to: '/admin/election/create' },
@@ -313,51 +319,72 @@ const AdminCreateElection = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
-      // Show error notification
       Swal.fire({
         icon: 'error',
         title: 'Formulaire incomplet',
         text: 'Veuillez corriger les erreurs avant de soumettre.',
-        customClass: {
-          container: 'naatal-swal',
-          title: 'swal2-title',
-          htmlContainer: 'swal2-html-container',
-        },
+        customClass: { container: 'naatal-swal', confirmButton: 'swal-confirm' },
+        buttonsStyling: false,
       });
       return;
     }
 
+    if (!adminId) {
+      Swal.fire({ icon: 'error', title: 'Session invalide', text: 'Reconnectez-vous avant de créer une élection.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });
+      return;
+    }
+
+    // Confirmation avant soumission
+    const confirm = await Swal.fire({
+      title: 'Confirmer la programmation ?',
+      html: `<p style="font-family:Poppins,sans-serif;font-size:0.88rem;color:#5a6d62;margin:0;">
+        L'élection <strong>${formData.title}</strong> sera programmée et démarrera automatiquement à la date prévue.
+        Aucune intervention manuelle ne sera possible pendant le scrutin.
+      </p>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmer',
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
+    });
+    if (!confirm.isConfirmed) return;
+
     setIsSubmitting(true);
+    try {
+      await api.elections.create({
+        titre: formData.title.trim(),
+        description: formData.description.trim(),
+        type: formData.type.toUpperCase(),
+        date_debut: new Date(formData.startDate).toISOString(),
+        date_fin: new Date(formData.endDate).toISOString(),
+        admin_id: adminId,
+      });
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+      await Swal.fire({
+        icon: 'success',
+        title: 'Élection programmée',
+        text: 'Le scrutin a été programmé avec succès. Il démarrera automatiquement à la date prévue.',
+        confirmButtonText: 'Voir le tableau de bord',
+        buttonsStyling: false,
+        customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+      });
 
-    setIsSubmitting(false);
-
-    // Success notification
-    await Swal.fire({
-      icon: 'success',
-      title: 'Élection programmée',
-      text: 'Le scrutin a été programmé avec succès. Il démarrera automatiquement à la date prévue.',
-      customClass: {
-        container: 'naatal-swal',
-        title: 'swal2-title',
-        htmlContainer: 'swal2-html-container',
-        confirmButton: 'swal-confirm',
-      },
-    });
-
-    // Reset form
-    setFormData({
-      title: '',
-      type: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      region: '',
-    });
+      navigate('/admin/dashboard');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Une erreur est survenue.';
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur lors de la création',
+        text: msg,
+        buttonsStyling: false,
+        customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -401,7 +428,7 @@ const AdminCreateElection = () => {
               placeholder="Ex: Présidentielle 2025"
               value={formData.title}
               onChange={handleChange}
-              hasError={!!errors.title}
+              $hasError={!!errors.title}
               aria-invalid={!!errors.title}
               aria-describedby={errors.title ? 'title-error' : undefined}
             />
@@ -415,7 +442,7 @@ const AdminCreateElection = () => {
               name="type"
               value={formData.type}
               onChange={handleChange}
-              hasError={!!errors.type}
+              $hasError={!!errors.type}
               aria-invalid={!!errors.type}
               aria-describedby={errors.type ? 'type-error' : undefined}
             >
@@ -450,7 +477,7 @@ const AdminCreateElection = () => {
               type="datetime-local"
               value={formData.startDate}
               onChange={handleChange}
-              hasError={!!errors.startDate}
+              $hasError={!!errors.startDate}
               aria-invalid={!!errors.startDate}
               aria-describedby={errors.startDate ? 'startDate-error' : undefined}
             />
@@ -464,7 +491,7 @@ const AdminCreateElection = () => {
               type="datetime-local"
               value={formData.endDate}
               onChange={handleChange}
-              hasError={!!errors.endDate}
+              $hasError={!!errors.endDate}
               aria-invalid={!!errors.endDate}
               aria-describedby={errors.endDate ? 'endDate-error' : undefined}
             />
@@ -483,7 +510,7 @@ const AdminCreateElection = () => {
                 placeholder="Tapez pour rechercher une région..."
                 value={formData.region}
                 onChange={handleChange}
-                hasError={!!errors.region}
+                $hasError={!!errors.region}
                 aria-invalid={!!errors.region}
                 aria-describedby={errors.region ? 'region-error' : undefined}
                 list="region-suggestions"

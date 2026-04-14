@@ -1,7 +1,7 @@
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
+import { api } from '../services/api';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -201,35 +201,47 @@ const PageBtn = styled.button<{ $active?: boolean }>`
   cursor: pointer;
 `;
 
-const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
-const navItems = [
-  { label: 'Console systeme', to: '/superadmin/console' },
-  { label: 'Logs immuables', to: '/superadmin/logs' },
-  { label: 'Exports audit', to: '/superadmin/export' },
-  { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-  { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
-];
+const types = ['TOUS', 'CONNEXION', 'VOTE', 'SUSPENSION', 'MODIFICATION', 'EXPORT', 'CREATION'];
 
-const logs = [
-  { id: 1, type: 'CONNEXION', user: 'Admin Ndiaye', desc: 'Connexion reussie depuis Dakar', time: '09/03 11:42', hash: 'a7f2c' },
-  { id: 2, type: 'VOTE', user: 'Token anonyme', desc: 'Vote enregistre — Presidentielle 2025', time: '09/03 11:40', hash: 'b3d9e' },
-  { id: 3, type: 'SUSPENSION', user: 'SuperAdmin', desc: 'Validation suspension CNI 2349 — Fraude confirmee', time: '09/03 11:20', hash: 'c1f6a' },
-  { id: 4, type: 'CONNEXION', user: 'Op. Diallo', desc: 'Connexion reussie depuis Thies', time: '09/03 09:14', hash: 'd4e8b' },
-  { id: 5, type: 'MODIFICATION', user: 'Admin Ndiaye', desc: 'Modification candidat Amadou Diop — Biographie mise a jour', time: '09/03 08:55', hash: 'e7a3c' },
-  { id: 6, type: 'VOTE', user: 'Token anonyme', desc: 'Vote enregistre — Legislatives Dakar', time: '09/03 08:42', hash: 'f2b1d' },
-  { id: 7, type: 'CONNEXION', user: 'Admin Sow', desc: 'Echec connexion — Mot de passe incorrect', time: '08/03 17:35', hash: 'g5c4e' },
-  { id: 8, type: 'SUSPENSION', user: 'Op. Niane', desc: 'Recommandation suspension CNI 8841 soumise', time: '08/03 16:10', hash: 'h8f2a' },
-];
-
-const types = ['TOUS', 'CONNEXION', 'VOTE', 'SUSPENSION', 'MODIFICATION'];
+const fmtHorodatage = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+};
 
 const SuperAdminLogs = () => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('TOUS');
+  const [logs, setLogs] = useState<{
+    id: string; type_action: string; utilisateur_id: string;
+    description: string; horodatage: string; adresse_ip: string;
+    signature_cryptographique: string;
+  }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    api.superadmin.listLogs()
+      .then(setLogs)
+      .catch(() => setLogs([]))
+      .finally(() => setLoading(false));
+    api.superadmin.listSuspensions()
+      .then(s => setPendingCount(s.filter(x => x.statut === 'EN_ATTENTE').length))
+      .catch(() => {});
+  }, []);
+
+  const navItems = [
+    { label: 'Console systeme', to: '/superadmin/console' },
+    { label: 'Logs immuables', to: '/superadmin/logs' },
+    { label: 'Exports audit', to: '/superadmin/export' },
+    { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
+    { label: 'Suspensions', to: '/superadmin/suspensions', badge: pendingCount },
+  ];
 
   const filtered = logs.filter((l) => {
-    const matchType = typeFilter === 'TOUS' || l.type === typeFilter;
-    const matchSearch = l.desc.toLowerCase().includes(search.toLowerCase()) || l.user.toLowerCase().includes(search.toLowerCase());
+    const matchType = typeFilter === 'TOUS' || l.type_action === typeFilter;
+    const matchSearch = l.description.toLowerCase().includes(search.toLowerCase())
+      || l.utilisateur_id.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
 
@@ -267,23 +279,23 @@ const SuperAdminLogs = () => {
             <TH>Signature</TH>
           </TableHeader>
           <LogRows>
-            {filtered.map((log) => (
+            {loading ? (
+              <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'Poppins, sans-serif', color: '#8a9a90' }}>Chargement…</div>
+            ) : filtered.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'Poppins, sans-serif', color: '#8a9a90' }}>Aucun log trouve.</div>
+            ) : filtered.map((log) => (
               <LogRow key={log.id}>
-                <div><LogType $type={log.type}>{log.type}</LogType></div>
-                <LogUser>{log.user}</LogUser>
-                <LogDesc title={log.desc}>{log.desc}</LogDesc>
-                <LogTime>{log.time}</LogTime>
-                <HashBadge title="Hash HMAC-SHA256 verifie"><i className="bi bi-check2" />{log.hash}</HashBadge>
+                <div><LogType $type={log.type_action}>{log.type_action}</LogType></div>
+                <LogUser>{log.utilisateur_id.slice(0, 8)}…</LogUser>
+                <LogDesc title={log.description}>{log.description}</LogDesc>
+                <LogTime>{fmtHorodatage(log.horodatage)}</LogTime>
+                <HashBadge title={log.signature_cryptographique}>
+                  <i className="bi bi-check2" />
+                  {log.signature_cryptographique.slice(0, 5)}
+                </HashBadge>
               </LogRow>
             ))}
           </LogRows>
-          <Pagination>
-            <PageBtn>‹</PageBtn>
-            <PageBtn $active>1</PageBtn>
-            <PageBtn>2</PageBtn>
-            <PageBtn>3</PageBtn>
-            <PageBtn>›</PageBtn>
-          </Pagination>
         </Panel>
       </LayoutGrid>
     </AppLayout>

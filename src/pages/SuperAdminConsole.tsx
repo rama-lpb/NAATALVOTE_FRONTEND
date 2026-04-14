@@ -1,6 +1,8 @@
 import styled from 'styled-components';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
+import { api } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -131,13 +133,21 @@ const Tag = styled.span<{ $tone: 'active' | 'pending' }>`
 `;
 
 const SuperAdminConsole = () => {
-  const PENDING_COUNT = (mockData as any).suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
+  const currentUser = useAppSelector(s => s.auth.user);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    api.superadmin.listSuspensions()
+      .then(s => setPendingCount(s.filter(x => x.statut === 'EN_ATTENTE').length))
+      .catch(() => {});
+  }, []);
+
   const navItems = [
     { label: 'Console systeme', to: '/superadmin/console' },
     { label: 'Logs immuables', to: '/superadmin/logs' },
     { label: 'Exports audit', to: '/superadmin/export' },
     { label: 'Utilisateurs', to: '/superadmin/utilisateurs' },
-    { label: 'Suspensions', to: '/superadmin/suspensions', badge: PENDING_COUNT },
+    { label: 'Suspensions', to: '/superadmin/suspensions', badge: pendingCount },
   ];
 
   return (
@@ -151,7 +161,7 @@ const SuperAdminConsole = () => {
         <MainColumn>
           <Greeting>
             <div>
-              <Hello>Bonjour, Direction technique</Hello>
+              <Hello>Bonjour, {currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Super Admin'}</Hello>
               <HelperText>Les actions critiques sont tracees en temps reel.</HelperText>
             </div>
           </Greeting>

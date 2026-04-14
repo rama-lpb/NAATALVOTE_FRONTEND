@@ -1,5 +1,9 @@
 import styled from 'styled-components';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../components/AppLayout';
+import { api } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const timeAgo = (iso: string): string => {
   const diff = Date.now() - new Date(iso).getTime();
@@ -11,20 +15,6 @@ const timeAgo = (iso: string): string => {
   if (days === 1) return 'hier';
   return `il y a ${days} jours`;
 };
-import { AppLayout } from '../components/AppLayout';
-import mockData from '../data/mockData.json';
-
-// Badge = mes alertes en cours (EN_ANALYSE assignées à oper-001)
-const MES_EN_COURS = (mockData as any).alertes_fraude.filter(
-  (a: any) => a.operateur_id === 'oper-001' && a.statut === 'EN_ANALYSE'
-).length;
-
-const navItems = [
-  { label: 'Dashboard', to: '/operateur/dashboard' },
-  { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: MES_EN_COURS },
-  { label: 'Historique', to: '/operateur/historique' },
-  { label: 'Rapports', to: '/operateur/rapports' },
-];
 
 /* ── Styled Components ── */
 const LayoutGrid = styled.div`
@@ -235,12 +225,6 @@ const TYPE_LABELS: Record<string, string> = {
   CNI_INVALIDE: 'CNI invalide',
 };
 
-const ELECTION_LABELS: Record<string, string> = {
-  'elec-001': 'Presidentielle 2025',
-  'elec-002': 'Legislatives Dakar',
-  'elec-003': 'Municipales',
-};
-
 const toTone = (s: string): 'new' | 'review' | 'resolved' =>
   s === 'NOUVELLE' ? 'new' : s === 'EN_ANALYSE' ? 'review' : 'resolved';
 
@@ -248,28 +232,67 @@ const toTone = (s: string): 'new' | 'review' | 'resolved' =>
 const toLabel = (s: string) =>
   s === 'NOUVELLE' ? 'Non assignee' : s === 'EN_ANALYSE' ? 'Pris en charge' : 'Traitee';
 
+const TYPE_COLORS: Record<string, string> = {
+  VOTE_MULTIPLE: 'rgba(176, 58, 46, 0.65)',
+  IP_SUSPECTE: 'rgba(31, 90, 51, 0.65)',
+  CNI_INVALIDE: 'rgba(100, 50, 150, 0.65)',
+  PATTERN_SUSPECT: 'rgba(138, 90, 16, 0.65)',
+};
+
 /* ── Component ── */
 const OperatorDashboard = () => {
   const navigate = useNavigate();
+  const currentUser = useAppSelector(s => s.auth.user);
 
-  const alerts = (mockData as any).alertes_fraude as Array<{
-    id: string;
-    type_fraude: string;
-    election_id: string;
-    description: string;
-    statut: string;
-    date_detection: string;
-    ip: string | null;
-  }>;
+  const [alerts, setAlerts] = useState<{
+    id: string; type_fraude: string; election_id: string | null;
+    description: string; statut: string; date_detection: string;
+    operateur_id: string | null; date_traitement: string | null; ip: string | null;
+  }[]>([]);
+  const [electionsById, setElectionsById] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
 
-  const sorted = [...alerts].sort(
-    (a, b) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime()
-  );
-  const last5 = sorted.slice(0, 5);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([api.operateur.listAlerts(), api.elections.list()])
+      .then(([a, e]) => {
+        if (cancelled) return;
+        setAlerts(a);
+        const map: Record<string, string> = {};
+        e.forEach((el) => { map[el.id] = el.titre; });
+        setElectionsById(map);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAlerts([]);
+        setElectionsById({});
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
-  const nbCritiques = alerts.filter((a) => a.statut === 'NOUVELLE').length;
-  const nbAnalyse = alerts.filter((a) => a.statut === 'EN_ANALYSE').length;
-  const nbResolues = alerts.filter((a) => a.statut === 'RESOLUE').length;
+  const myId = currentUser?.id ?? '';
+  const myAlerts = alerts.filter(a => a.operateur_id === myId);
+  const mesEnCours = myAlerts.filter(a => a.statut === 'EN_ANALYSE').length;
+
+  const navItems = [
+    { label: 'Dashboard', to: '/operateur/dashboard' },
+    { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: mesEnCours },
+    { label: 'Historique', to: '/operateur/historique' },
+    { label: 'Rapports', to: '/operateur/rapports' },
+  ];
+
+  const last5 = [...alerts]
+    .sort((a, b) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime())
+    .slice(0, 5);
+
+  const nbCritiques = alerts.filter(a => a.statut === 'NOUVELLE').length;
+  const nbAnalyse = alerts.filter(a => a.statut === 'EN_ANALYSE').length;
+  const nbResolues = alerts.filter(a => a.statut === 'RESOLUE').length;
 
   const typeCounts = alerts.reduce<Record<string, number>>((acc, a) => {
     acc[a.type_fraude] = (acc[a.type_fraude] ?? 0) + 1;
@@ -282,23 +305,13 @@ const OperatorDashboard = () => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 4);
 
-  const typeColors: Record<string, string> = {
-    VOTE_MULTIPLE: 'rgba(176, 58, 46, 0.65)',
-    IP_SUSPECTE: 'rgba(31, 90, 51, 0.65)',
-    CNI_INVALIDE: 'rgba(100, 50, 150, 0.65)',
-    PATTERN_SUSPECT: 'rgba(138, 90, 16, 0.65)',
-  };
-
-  // Alertes traitées par l'opérateur courant (oper-001), triées par date_traitement desc
-  const recentActions = [...alerts]
-    .filter((a: any) => a.operateur_id === 'oper-001' && a.date_traitement)
-    .sort((a: any, b: any) => new Date(b.date_traitement).getTime() - new Date(a.date_traitement).getTime())
+  const recentActions = [...myAlerts]
+    .filter(a => a.date_traitement)
+    .sort((a, b) => new Date(b.date_traitement!).getTime() - new Date(a.date_traitement!).getTime())
     .slice(0, 4);
 
-  const fmtTime = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  };
+  const fmtTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <AppLayout
@@ -311,7 +324,7 @@ const OperatorDashboard = () => {
         <MainColumn>
           <Greeting>
             <div>
-              <Hello>Bonjour, Mamadou Diallo</Hello>
+              <Hello>Bonjour, {currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Operateur'}</Hello>
               <HelperText>Les alertes critiques sont priorisees automatiquement.</HelperText>
             </div>
           </Greeting>
@@ -319,15 +332,15 @@ const OperatorDashboard = () => {
           <Stats>
             <StatCard $accent="rgba(176, 58, 46, 0.6)">
               <StatLabel>Non assignees</StatLabel>
-              <StatValue>{nbCritiques}</StatValue>
+              <StatValue>{loading ? '…' : nbCritiques}</StatValue>
             </StatCard>
             <StatCard $accent="rgba(138, 90, 16, 0.6)">
               <StatLabel>Prises en charge</StatLabel>
-              <StatValue>{nbAnalyse}</StatValue>
+              <StatValue>{loading ? '…' : nbAnalyse}</StatValue>
             </StatCard>
             <StatCard $accent="rgba(31, 90, 51, 0.6)">
               <StatLabel>Traitees</StatLabel>
-              <StatValue>{nbResolues}</StatValue>
+              <StatValue>{loading ? '…' : nbResolues}</StatValue>
             </StatCard>
           </Stats>
 
@@ -338,7 +351,7 @@ const OperatorDashboard = () => {
                 <Row key={alert.id}>
                   <div>
                     <RowTitle>{TYPE_LABELS[alert.type_fraude] ?? alert.type_fraude}</RowTitle>
-                    <RowMeta>{ELECTION_LABELS[alert.election_id] ?? alert.election_id}</RowMeta>
+                    <RowMeta>{alert.election_id ? (electionsById[alert.election_id] ?? alert.election_id) : '—'}</RowMeta>
                     <div style={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.72rem', color: '#a0b0a8' }}>{timeAgo(alert.date_detection)}</div>
                   </div>
                   <RowMeta style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -370,7 +383,7 @@ const OperatorDashboard = () => {
                     <RowMeta>{TYPE_LABELS[type] ?? type}</RowMeta>
                     <RowMeta>{pct}%</RowMeta>
                   </MiniRow>
-                  <Bar key={type + '_bar'} $value={pct} $color={typeColors[type] ?? 'rgba(31, 90, 51, 0.5)'} />
+                  <Bar key={type + '_bar'} $value={pct} $color={TYPE_COLORS[type] ?? 'rgba(31, 90, 51, 0.5)'} />
                 </>
               ))}
             </MiniList>

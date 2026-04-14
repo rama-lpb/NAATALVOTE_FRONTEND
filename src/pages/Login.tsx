@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { api, type UserDto } from '../services/api';
 import { useAppDispatch } from '../store/hooks';
 import { setSession } from '../store/authSlice';
-import { getPhonesByCNI, getRoleDashboardPath } from '../data/mockData';
+import { getRoleDashboardPath } from '../auth/roles';
 
 const fadeUp = keyframes`
   from {
@@ -239,9 +239,9 @@ const FieldLabel = styled.label`
   color: #1a3d28;
 `;
 
-const Field = styled.input<{ hasError?: boolean }>`
+const Field = styled.input<{ $hasError?: boolean }>`
   width: 100%;
-  border: 2px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
+  border: 2px solid ${({ $hasError }) => $hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
   border-radius: 16px;
   padding: 0.95rem 1.2rem;
   font-size: 1.1rem;
@@ -261,9 +261,9 @@ const Field = styled.input<{ hasError?: boolean }>`
   }
 `;
 
-const OtpInput = styled.input<{ hasError?: boolean }>`
+const OtpInput = styled.input<{ $hasError?: boolean }>`
   width: 100%;
-  border: 2px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
+  border: 2px solid ${({ $hasError }) => $hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
   border-radius: 16px;
   padding: 0.95rem 1.2rem;
   font-size: 1.3rem;
@@ -285,9 +285,9 @@ const OtpInput = styled.input<{ hasError?: boolean }>`
   }
 `;
 
-const Select = styled.select<{ hasError?: boolean }>`
+const Select = styled.select<{ $hasError?: boolean }>`
   width: 100%;
-  border: 2px solid ${({ hasError }) => hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
+  border: 2px solid ${({ $hasError }) => $hasError ? 'rgba(176, 58, 46, 0.6)' : 'rgba(0, 0, 0, 0.18)'};
   border-radius: 16px;
   padding: 0.95rem 1.2rem;
   font-size: 1.1rem;
@@ -343,7 +343,7 @@ const SubmitButton = styled.button`
     box-shadow: 0 6px 20px rgba(31, 90, 51, 0.3);
   }
   &:disabled {
-    opacity: 0.6;
+    opacity: 1;
     cursor: not-allowed;
     transform: none;
   }
@@ -513,7 +513,9 @@ const Login = () => {
   const [isLoadingPhones, setIsLoadingPhones] = useState(false);
   const [availablePhones, setAvailablePhones] = useState<string[]>([]);
   const [hasSearchedPhones, setHasSearchedPhones] = useState(false);
+  const [phoneLookupMessage, setPhoneLookupMessage] = useState('');
   const [showOtpPopup, setShowOtpPopup] = useState(false);
+  const [sentOtp, setSentOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -524,11 +526,21 @@ const Login = () => {
     setIsLoadingPhones(true);
     setHasSearchedPhones(true);
     setLoginError('');
+    setPhoneLookupMessage('');
     
     try {
-      setAvailablePhones(getPhonesByCNI(cniNumber));
+      const res = await api.auth.lookupPhones(cniNumber);
+      const phones = (res.telephones ?? []) as unknown as string[];
+      if (!res.success) {
+        setAvailablePhones([]);
+        setPhoneLookupMessage(res.message || 'CNI inconnu');
+      } else {
+        setAvailablePhones(phones);
+        if (phones.length === 0) setPhoneLookupMessage('Aucun numéro trouvé pour ce CNI');
+      }
     } catch {
       setAvailablePhones([]);
+      setPhoneLookupMessage('Impossible de contacter le serveur');
     } finally {
       setIsLoadingPhones(false);
     }
@@ -563,6 +575,7 @@ const Login = () => {
         if (result.success && result.requiresOtp) {
           setEnteredOtp('');
           setOtpError('');
+          setSentOtp(result.otp ?? '');
           setShowOtpPopup(true);
         } else {
           setLoginError(result.message || 'Erreur lors de la connexion');
@@ -651,9 +664,11 @@ const Login = () => {
                     setHasSearchedPhones(false);
                     setAvailablePhones([]);
                     setPhone('');
+                    setPhoneLookupMessage('');
                   }
+                  setSentOtp('');
                 }}
-                hasError={!!errors.cni}
+                $hasError={!!errors.cni}
                 aria-describedby={errors.cni ? 'cni-error' : undefined}
                 aria-invalid={!!errors.cni}
                 autoComplete="username"
@@ -678,8 +693,9 @@ const Login = () => {
                     onChange={(e) => {
                       setPhone(e.target.value);
                       if (errors.phone) setErrors(prev => ({ ...prev, phone: undefined }));
+                      setSentOtp('');
                     }}
-                    hasError={!!errors.phone}
+                    $hasError={!!errors.phone}
                     aria-describedby={errors.phone ? 'phone-error' : undefined}
                     aria-invalid={!!errors.phone}
                   >
@@ -692,7 +708,7 @@ const Login = () => {
                 </>
               ) : (
                 <Helper style={{ color: '#8a5a10' }}>
-                  Aucun numéro trouvé pour ce CNI
+                  {phoneLookupMessage || 'Aucun numéro trouvé pour ce CNI'}
                 </Helper>
               )}
             </FieldGroup>
@@ -719,7 +735,7 @@ const Login = () => {
             </PopupText>
             <OtpDisplay>
               <OtpLabel>Code OTP envoyé</OtpLabel>
-              <OtpCode>Vérifiez vos messages puis saisissez le code.</OtpCode>
+              <OtpCode>{sentOtp?.trim() ? sentOtp : 'Vérifiez vos messages puis saisissez le code.'}</OtpCode>
             </OtpDisplay>
             <FieldGroup>
               <FieldLabel htmlFor="popup-otp">Entrez le code OTP</FieldLabel>
@@ -732,7 +748,7 @@ const Login = () => {
                   setEnteredOtp(e.target.value);
                   if (otpError) setOtpError('');
                 }}
-                hasError={!!otpError}
+                $hasError={!!otpError}
                 autoComplete="one-time-code"
                 inputMode="numeric"
                 maxLength={6}

@@ -18,7 +18,13 @@ npm run dev
 
 3. **Accéder à l’application**
 
-Ouvrez [http://localhost:5173](http://localhost:5173) dans votre navigateur.
+Ouvrez `http://localhost:5173` dans votre navigateur.
+
+## Configuration API (backend)
+
+- En dev, `vite.config.ts` proxifie `/api` vers `http://localhost:8080`.
+- En prod (frontend + backend sur 2 serveurs différents), définissez `VITE_API_ORIGIN` au build (ex: `https://naatalvote-backend.onrender.com`).
+  - Exemple : copiez `.env.example` vers `.env` et renseignez `VITE_API_ORIGIN`.
 
 ## Structure du projet
 
@@ -30,7 +36,7 @@ Ouvrez [http://localhost:5173](http://localhost:5173) dans votre navigateur.
 - `src/utils` : Fonctions utilitaires
 
 ## Technologies principales
-- React 18 + TypeScript
+- React + TypeScript
 - Vite
 - Styled Components
 - React Router DOM
@@ -46,36 +52,3 @@ Ouvrez [http://localhost:5173](http://localhost:5173) dans votre navigateur.
 ---
 
 © 2026 NATAALVOTE
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
