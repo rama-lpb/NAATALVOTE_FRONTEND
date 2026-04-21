@@ -1,5 +1,5 @@
 import styled, { keyframes } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 
 const pop = keyframes`
@@ -168,8 +168,22 @@ const navItems = [
 
 const CitizenVoteReceipt = () => {
   const navigate = useNavigate();
-  // Simple confirmation number instead of technical token
-  const confirmationNumber = 'V-2026-0847';
+  const location = useLocation();
+
+  const state = (location.state ?? {}) as {
+    confirmationNumber?: string;
+    horodatage?: string;
+    electionId?: string;
+    election?: string;
+    candidatName?: string;
+  };
+
+  const confirmationNumber = state.confirmationNumber ?? '—';
+  const electionId = state.electionId ?? '';
+  const election = state.election ?? 'Election';
+  const horodatage = state.horodatage ? new Date(state.horodatage) : new Date();
+  const dateStr = horodatage.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const heureStr = horodatage.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <AppLayout
@@ -180,9 +194,9 @@ const CitizenVoteReceipt = () => {
     >
       <PageGrid>
         <SuccessPanel>
-          <ReturnButton onClick={() => navigate(-1)}>
+          <ReturnButton onClick={() => navigate(electionId ? `/citoyen/resultats?electionId=${electionId}` : '/citoyen/resultats')}>
             <i className="bi bi-arrow-left" />
-            Retour
+            Resultats en direct
           </ReturnButton>
           <CheckCircle><i className="bi bi-check-lg" /></CheckCircle>
           <SuccessTitle>Merci pour votre participation !</SuccessTitle>
@@ -194,15 +208,15 @@ const CitizenVoteReceipt = () => {
             <ReceiptTitle><i className="bi bi-receipt" /> Recu de vote</ReceiptTitle>
             <ReceiptRow>
               <ReceiptLabel>Election</ReceiptLabel>
-              <ReceiptValue>Presidentielle 2025</ReceiptValue>
+              <ReceiptValue>{election}</ReceiptValue>
             </ReceiptRow>
             <ReceiptRow>
               <ReceiptLabel>Date</ReceiptLabel>
-              <ReceiptValue>09 mars 2026</ReceiptValue>
+              <ReceiptValue>{dateStr}</ReceiptValue>
             </ReceiptRow>
             <ReceiptRow>
               <ReceiptLabel>Heure</ReceiptLabel>
-              <ReceiptValue>11:42</ReceiptValue>
+              <ReceiptValue>{heureStr}</ReceiptValue>
             </ReceiptRow>
             <ReceiptRow>
               <ReceiptLabel>Statut</ReceiptLabel>

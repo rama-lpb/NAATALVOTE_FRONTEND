@@ -1,16 +1,16 @@
-const API_ORIGIN = (import.meta as any).env?.VITE_API_ORIGIN as string | undefined;
+const API_ORIGIN = import.meta.env.VITE_API_ORIGIN as string | undefined;
 const API_BASE = `${API_ORIGIN ? API_ORIGIN.replace(/\/$/, '') : ''}/api/v1`;
 
 type StoredAuth = { auth?: { token?: string | null } } | { token?: string | null } | null;
+type StoredAuthObject = { token?: string | null; auth?: { token?: string | null } };
 
 const getToken = () => {
   const raw = sessionStorage.getItem('naatalvote.auth');
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as StoredAuth;
-    // support old/new shapes
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const token = (parsed as any)?.token ?? (parsed as any)?.auth?.token ?? null;
+    const auth = (parsed ?? null) as StoredAuthObject | null;
+    const token = auth?.token ?? auth?.auth?.token ?? null;
     return typeof token === 'string' && token.trim() ? token : null;
   } catch {
     return null;
@@ -84,12 +84,39 @@ export interface PagedResponse<T> {
   totalPages: number;
 }
 
-const handleResponse = async <T>(response: Response): Promise<T> => {
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || `HTTP ${response.status}`);
+export interface AdminCreationHistoryDto {
+  id: string;
+  type_action: 'CREATE_ELECTION' | 'CREATE_CANDIDATE' | string;
+  description: string;
+  horodatage: string;
+  utilisateur_id: string;
+}
+
+const readBody = async (response: Response): Promise<unknown> => {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    return text.trim() ? text : null;
   }
-  return response.json();
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
+const handleResponse = async <T>(response: Response): Promise<T> => {
+  const body = await readBody(response);
+  if (!response.ok) {
+    if (typeof body === 'string' && body.trim()) {
+      throw new Error(body);
+    }
+    if (body && typeof body === 'object' && 'message' in body && typeof (body as { message?: unknown }).message === 'string') {
+      throw new Error((body as { message: string }).message);
+    }
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return body as T;
 };
 
 export const api = {
@@ -117,6 +144,8 @@ export const api = {
       date_debut: string;
       date_fin: string;
       admin_id: string;
+      region: string;
+      total_electeurs: number;
     }): Promise<{ id: string }> => {
       const res = await fetch(`${API_BASE}/elections`, {
         method: 'POST',
@@ -131,6 +160,8 @@ export const api = {
       type: string;
       date_debut: string;
       date_fin: string;
+      region: string;
+      total_electeurs: number;
     }>): Promise<{ success: boolean }> => {
       const res = await fetch(`${API_BASE}/elections/${id}`, {
         method: 'PUT',
@@ -293,6 +324,13 @@ export const api = {
     },
     close: async (electionId: string): Promise<{ success: boolean }> => {
       const res = await fetch(`${API_BASE}/admin/elections/${electionId}/close`, { method: 'POST', headers: authHeaders() });
+      return handleResponse(res);
+    },
+    listCreationHistory: async (adminId?: string, limit = 25): Promise<AdminCreationHistoryDto[]> => {
+      const params = new URLSearchParams();
+      if (adminId) params.set('adminId', adminId);
+      params.set('limit', String(limit));
+      const res = await fetch(`${API_BASE}/admin/historique-creation?${params.toString()}`, { headers: authHeaders() });
       return handleResponse(res);
     },
   },

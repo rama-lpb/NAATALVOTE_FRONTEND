@@ -54,7 +54,7 @@ export const Header = () => (
   <HeaderContainer>
     <LogoTitle>
       <LogoNaatalVote size={90} />
-      NATAALVOTE
+      NAATALVOTE
     </LogoTitle>
     <LoginButton to="/login">Se connecter</LoginButton>
   </HeaderContainer>

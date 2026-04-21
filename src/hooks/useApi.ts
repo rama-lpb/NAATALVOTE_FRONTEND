@@ -28,38 +28,66 @@ export function useElections() {
 
 export function useElection(id: string) {
   const [election, setElection] = useState<ElectionDto | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
+  const fetchElection = useCallback(async () => {
+    if (!id) {
+      setElection(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    api.elections.get(id)
-      .then(setElection)
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.elections.get(id);
+      setElection(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  return { election, loading, error };
+  useEffect(() => {
+    fetchElection();
+  }, [fetchElection]);
+
+  return { election, loading, error, refetch: fetchElection };
 }
 
 export function useElectionCandidates(electionId: string) {
   const [candidates, setCandidates] = useState<CandidateDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(electionId));
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!electionId) return;
+  const fetchCandidates = useCallback(async () => {
+    if (!electionId) {
+      setCandidates([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    api.elections.getCandidates(electionId)
-      .then(setCandidates)
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.elections.getCandidates(electionId);
+      setCandidates(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
   }, [electionId]);
 
-  return { candidates, loading, error };
+  useEffect(() => {
+    fetchCandidates();
+  }, [fetchCandidates]);
+
+  return { candidates, loading, error, refetch: fetchCandidates };
 }
 
 export function useCandidates() {
@@ -89,20 +117,34 @@ export function useCandidates() {
 
 export function useCandidate(id: string) {
   const [candidate, setCandidate] = useState<CandidateDto | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
+  const fetchCandidate = useCallback(async () => {
+    if (!id) {
+      setCandidate(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    api.candidats.get(id)
-      .then(setCandidate)
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.candidats.get(id);
+      setCandidate(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  return { candidate, loading, error };
+  useEffect(() => {
+    fetchCandidate();
+  }, [fetchCandidate]);
+
+  return { candidate, loading, error, refetch: fetchCandidate };
 }
 
 export function useElectionStats(electionId: string) {
@@ -114,20 +156,34 @@ export function useElectionStats(electionId: string) {
     candidate_votes: { candidat_id: string; votes: number }[];
     statut: string;
   } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(electionId));
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!electionId) return;
+  const fetchStats = useCallback(async () => {
+    if (!electionId) {
+      setStats(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    api.admin.stats(electionId)
-      .then(setStats)
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.admin.stats(electionId);
+      setStats(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
   }, [electionId]);
 
-  return { stats, loading, error };
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, loading, error, refetch: fetchStats };
 }
 
 export function useVoteResults(electionId: string) {
@@ -136,20 +192,34 @@ export function useVoteResults(electionId: string) {
     total_votes: number;
     results: { candidat_id: string; votes: number; percent: number }[];
   } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(electionId));
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!electionId) return;
+  const fetchResults = useCallback(async () => {
+    if (!electionId) {
+      setResults(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    api.votes.results(electionId)
-      .then(setResults)
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.votes.results(electionId);
+      setResults(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
   }, [electionId]);
 
-  return { results, loading, error };
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
+
+  return { results, loading, error, refetch: fetchResults };
 }
 
 export function usePagedElections(page = 0, size = 20) {
@@ -157,14 +227,22 @@ export function usePagedElections(page = 0, size = 20) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchPagedElections = useCallback(async () => {
     setLoading(true);
     setError(null);
-    api.elections.listPaged(page, size)
-      .then(setResponse)
-      .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await api.elections.listPaged(page, size);
+      setResponse(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
   }, [page, size]);
 
-  return { response, loading, error };
+  useEffect(() => {
+    fetchPagedElections();
+  }, [fetchPagedElections]);
+
+  return { response, loading, error, refetch: fetchPagedElections };
 }

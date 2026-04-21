@@ -1,7 +1,9 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api, type ElectionDto } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -343,46 +345,62 @@ const CitizenDashboard = () => {
     { label: 'Profil', to: '/citoyen/profil' },
   ];
 
+  const sessionUser = useAppSelector((s) => s.auth.user);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+  const [votedElectionIds, setVotedElectionIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
-  const elections = [
-    {
-      id: 'pres-2025',
-      title: 'Presidentielle 2025',
-      schedule: "Ouverte jusqu'au 12/03/2025",
-      region: 'National',
-      status: 'live' as const,
-      hasVoted: false,
-      isNew: true,
-      type: 'Presidentielle',
-    },
-    {
-      id: 'leg-2025-dkr',
-      title: 'Legislatives Dakar',
-      schedule: 'Debut le 20/03/2025',
-      region: 'Dakar',
-      status: 'scheduled' as const,
-      hasVoted: false,
-      isNew: false,
-      type: 'Legislative',
-    },
-    {
-      id: 'mun-2025-pk',
-      title: 'Municipales Pikine',
-      schedule: 'Cloturee le 02/02/2025',
-      region: 'Pikine',
-      status: 'closed' as const,
-      hasVoted: true,
-      isNew: false,
-      type: 'Municipale',
-    },
-  ];
+  useEffect(() => {
+    Promise.all([
+      api.elections.list(),
+      sessionUser?.id ? api.citoyen.history(sessionUser.id).catch(() => []) : Promise.resolve([]),
+    ])
+      .then(([electionsData, historyData]) => {
+        setElections(electionsData);
+        const voted = new Set(
+          (historyData ?? [])
+            .filter((entry) => entry.a_vote)
+            .map((entry) => entry.election_id)
+        );
+        setVotedElectionIds(voted);
+      })
+      .catch(() => {
+        setElections([]);
+        setVotedElectionIds(new Set());
+      })
+      .finally(() => setLoading(false));
+  }, [sessionUser?.id]);
+
+  const toStatus = (statut: string): 'live' | 'scheduled' | 'closed' => {
+    if (statut === 'EN_COURS') return 'live';
+    if (statut === 'PROGRAMMEE') return 'scheduled';
+    return 'closed';
+  };
 
   const getStatusLabel = (status: 'live' | 'scheduled' | 'closed') => {
     if (status === 'live') return 'En cours';
     if (status === 'scheduled') return 'Programmee';
     return 'Cloturee';
   };
+
+  const formatSchedule = (e: ElectionDto): string => {
+    const status = toStatus(e.statut);
+    const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (status === 'live') return `Ouverte jusqu'au ${fmt(e.date_fin)}`;
+    if (status === 'scheduled') return `Debut le ${fmt(e.date_debut)}`;
+    return `Cloturee le ${fmt(e.date_fin)}`;
+  };
+
+  const userName = sessionUser ? `${sessionUser.prenom ?? ''} ${sessionUser.nom ?? ''}`.trim() : '';
+  const liveCount = elections.filter((e) => e.statut === 'EN_COURS').length;
+  const closedCount = elections.filter((e) => e.statut === 'CLOTUREE').length;
+  const votedCount = elections.filter((e) => votedElectionIds.has(e.id)).length;
+
+  const filtered = elections.filter((e) => {
+    const s = toStatus(e.statut);
+    return activeFilter === 'all' || s === activeFilter;
+  });
 
   return (
     <AppLayout
@@ -400,7 +418,7 @@ const CitizenDashboard = () => {
       <LayoutGrid>
         <Greeting>
           <div>
-            <Hello>Bonjour, Aicha Fall</Hello>
+            <Hello>{userName ? `Bonjour, ${userName}` : 'Bonjour'}</Hello>
             <HelperText>Votre session est active et securisee.</HelperText>
           </div>
         </Greeting>
@@ -408,19 +426,19 @@ const CitizenDashboard = () => {
         <Stats>
           <StatCard $accent="#1f5a33">
             <StatLabel>Elections en cours</StatLabel>
-            <StatValue>2</StatValue>
+            <StatValue>{loading ? '—' : liveCount}</StatValue>
           </StatCard>
           <StatCard $accent="#1f5a33">
             <StatLabel>Statut electeur</StatLabel>
-            <StatValue>Eligible</StatValue>
+            <StatValue>{sessionUser ? 'Connecte' : 'Invite'}</StatValue>
           </StatCard>
           <StatCard $accent="#8a5a10">
-            <StatLabel>Participation nationale</StatLabel>
-            <StatValue>64%</StatValue>
+            <StatLabel>Total elections</StatLabel>
+            <StatValue>{loading ? '—' : elections.length}</StatValue>
           </StatCard>
           <StatCard $accent="#5a5f65">
-            <StatLabel>Scrutins clotures</StatLabel>
-            <StatValue>5</StatValue>
+            <StatLabel>Votes effectues</StatLabel>
+            <StatValue>{loading ? '—' : votedCount}</StatValue>
           </StatCard>
         </Stats>
 
@@ -428,69 +446,46 @@ const CitizenDashboard = () => {
           <FilterRow>
             <CardTitle>Scrutins principaux</CardTitle>
             <FilterChips>
-              <Chip 
-                $active={activeFilter === 'all'} 
-                onClick={() => setActiveFilter('all')}
-              >
-                Tous
-              </Chip>
-              <Chip 
-                $active={activeFilter === 'live'} 
-                onClick={() => setActiveFilter('live')}
-              >
-                En cours
-              </Chip>
-              <Chip 
-                $active={activeFilter === 'scheduled'} 
-                onClick={() => setActiveFilter('scheduled')}
-              >
-                Programmes
-              </Chip>
-              <Chip 
-                $active={activeFilter === 'closed'} 
-                onClick={() => setActiveFilter('closed')}
-              >
-                Clotures
-              </Chip>
+              <Chip $active={activeFilter === 'all'} onClick={() => setActiveFilter('all')}>Tous</Chip>
+              <Chip $active={activeFilter === 'live'} onClick={() => setActiveFilter('live')}>En cours</Chip>
+              <Chip $active={activeFilter === 'scheduled'} onClick={() => setActiveFilter('scheduled')}>Programmes</Chip>
+              <Chip $active={activeFilter === 'closed'} onClick={() => setActiveFilter('closed')}>Clotures</Chip>
             </FilterChips>
           </FilterRow>
-           <ElectionList>
-            {elections
-              .filter(election => 
-                activeFilter === 'all' || election.status === activeFilter
-              )
-              .map((election) => {
-              const canVote = election.status === 'live' && !election.hasVoted;
+          <ElectionList>
+            {loading ? (
+              <ElectionRow $status="scheduled" style={{ justifyContent: 'center', padding: '2rem' }}>
+                <RowMeta>Chargement des elections…</RowMeta>
+              </ElectionRow>
+            ) : filtered.length === 0 ? (
+              <ElectionRow $status="scheduled" style={{ justifyContent: 'center', padding: '2rem' }}>
+                <RowMeta>Aucune election disponible.</RowMeta>
+              </ElectionRow>
+            ) : filtered.map((election) => {
+              const status = toStatus(election.statut);
+              const hasVoted = votedElectionIds.has(election.id);
+              const canVote = status === 'live' && !hasVoted;
               return (
-                <ElectionRow key={election.id} $status={election.status}>
+                <ElectionRow key={election.id} $status={status}>
                   <div>
-                    <RowTitle>{election.title}</RowTitle>
+                    <RowTitle>{election.titre}</RowTitle>
                     <MetaRow>
-                      <RowMeta>{election.schedule}</RowMeta>
+                      <RowMeta>{formatSchedule(election)}</RowMeta>
                       <Badge>{election.type}</Badge>
-                      <Badge>{election.hasVoted ? 'Deja vote' : 'Pas encore vote'}</Badge>
+                      {hasVoted ? <Badge>Vote enregistre</Badge> : null}
                     </MetaRow>
                   </div>
-                  <RegionMeta>{election.region}</RegionMeta>
-                  <Tag $tone={election.status}>{getStatusLabel(election.status)}</Tag>
+                  <RegionMeta>{election.region || 'National'}</RegionMeta>
+                  <Tag $tone={status}>{getStatusLabel(status)}</Tag>
                   <RowActions>
-                    {canVote ? <RowActionButton to="/citoyen/vote">Voter</RowActionButton> : null}
-                    {election.status === 'closed' && (
-                      <DetailButton to="/citoyen/resultats">Resultats</DetailButton>
-                    )}
-                    <DetailButton to="/citoyen/elections/detail">Details</DetailButton>
+                    {canVote && <RowActionButton to="/citoyen/vote">Voter</RowActionButton>}
+                    {status === 'closed' && <DetailButton to="/citoyen/resultats">Resultats</DetailButton>}
+                    <DetailButton to={`/citoyen/elections/${election.id}/detail`}>Details</DetailButton>
                   </RowActions>
                 </ElectionRow>
               );
             })}
           </ElectionList>
-          <Pagination>
-            <PageButton>Precedent</PageButton>
-            <PageButton>1</PageButton>
-            <PageButton $active>2</PageButton>
-            <PageButton>3</PageButton>
-            <PageButton>Suivant</PageButton>
-          </Pagination>
         </Card>
       </LayoutGrid>
     </AppLayout>

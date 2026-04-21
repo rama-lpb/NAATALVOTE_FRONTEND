@@ -1,5 +1,5 @@
 import styled, { keyframes } from 'styled-components';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
@@ -116,19 +116,21 @@ const ElectionOption = styled.button<{ $active?: boolean }>`
   gap: 0.6rem;
   padding: 0.7rem 1rem;
   border-radius: 14px;
-  border: 1px solid ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.5)' : 'rgba(31, 90, 51, 0.15)'};
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.12)' : 'rgba(255, 255, 255, 0.85)'};
+  border: 1px solid ${({ $active }) => $active ? '#1f5a33' : 'rgba(31, 90, 51, 0.15)'};
+  background: ${({ $active }) =>
+    $active ? 'linear-gradient(135deg, #1f5a33 0%, #2d7a45 100%)' : 'rgba(255, 255, 255, 0.85)'};
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-size: 0.85rem;
   font-weight: 500;
-  color: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.72)' : 'rgba(31, 90, 51, 0.7)'};
+  color: ${({ $active }) => $active ? '#ffffff' : 'rgba(31, 90, 51, 0.8)'};
   box-shadow: ${({ $active }) => $active ? '0 4px 12px rgba(31, 90, 51, 0.15)' : 'none'};
 
   &:hover {
     border-color: rgba(31, 90, 51, 0.35);
-    background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.15)' : 'rgba(31, 90, 51, 0.08)'};
+    background: ${({ $active }) =>
+      $active ? 'linear-gradient(135deg, #215d36 0%, #307f49 100%)' : 'rgba(31, 90, 51, 0.08)'};
   }
 `;
 
@@ -140,44 +142,6 @@ const ElectionBadge = styled.span<{ $status: 'live' | 'scheduled' }>`
   text-transform: uppercase;
   background: ${({ $status }) => $status === 'live' ? 'rgba(31, 90, 51, 0.15)' : 'rgba(138, 90, 16, 0.15)'};
   color: ${({ $status }) => $status === 'live' ? '#1a5a33' : '#8a5a10'};
-`;
-
-/* ─── Step wizard ─────────────────────────────────────── */
-const StepRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-`;
-
-const StepPill = styled.div<{ $active?: boolean; $done?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.6rem;
-  border-radius: 999px;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.77rem;
-  font-weight: 600;
-  background: ${({ $active, $done }) =>
-    $active ? 'rgba(31, 90, 51, 0.55)' : $done ? 'rgba(31, 90, 51, 0.12)' : 'rgba(31, 90, 51, 0.05)'};
-  color: ${({ $active, $done }) =>
-    $active ? '#fff' : $done ? 'rgba(31, 90, 51, 0.85)' : 'rgba(31, 90, 51, 0.38)'};
-  border: 1px solid ${({ $active, $done }) =>
-    $active ? 'rgba(31, 90, 51, 0.55)' : $done ? 'rgba(31, 90, 51, 0.2)' : 'rgba(31, 90, 51, 0.1)'};
-`;
-
-const StepNum = styled.span<{ $active?: boolean }>`
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.68rem;
-  font-weight: 700;
-  background: ${({ $active }) => $active ? 'rgba(255,255,255,0.9)' : 'transparent'};
-  color: ${({ $active }) => $active ? 'rgba(31,90,51,0.9)' : 'inherit'};
 `;
 
 /* ─── Candidates section ─────────────────────────────── */
@@ -208,8 +172,8 @@ const CandCount = styled.span`
 
 const CandidateGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 3.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.25rem;
 `;
 
 /* ─── Candidate card ─────────────────────────────────── */
@@ -335,7 +299,7 @@ const VoteBtn = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
   background: ${({ $selected, $disabled }) => $disabled 
     ? 'rgba(31, 90, 51, 0.05)'
     : $selected 
-      ? 'linear-gradient(135deg, rgba(31,90,51,0.65), rgba(31,90,51,0.5))'
+      ? 'linear-gradient(135deg, #1f5a33 0%, #2d7a45 100%)'
       : 'rgba(31, 90, 51, 0.08)'};
   color: ${({ $selected, $disabled }) => $disabled 
     ? 'rgba(31,90,51,0.4)'
@@ -343,7 +307,7 @@ const VoteBtn = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
   border: ${({ $selected, $disabled }) => $disabled 
     ? '1px solid rgba(31,90,51,0.1)'
     : $selected 
-      ? '1px solid rgba(31,90,51,0.5)'
+      ? '1px solid #1f5a33'
       : '1px solid rgba(31,90,51,0.18)'};
   box-shadow: ${({ $selected }) => $selected ? '0 4px 12px rgba(31,90,51,0.22)' : 'none'};
   &:hover {
@@ -351,7 +315,7 @@ const VoteBtn = styled.button<{ $selected?: boolean; $disabled?: boolean }>`
     background: ${({ $selected, $disabled }) => $disabled 
       ? 'rgba(31, 90, 51, 0.05)'
       : $selected 
-        ? 'linear-gradient(135deg, rgba(31,90,51,0.72), rgba(31,90,51,0.58))'
+        ? 'linear-gradient(135deg, #215d36 0%, #307f49 100%)'
         : 'rgba(31, 90, 51, 0.12)'};
   }
 `;
@@ -443,70 +407,6 @@ const swalConfirmHtml = (name: string, party: string, initials: string, accent: 
   </div>
 `;
 
-const swalStep2Html = `
-  <div style="display:grid;gap:0.6rem;text-align:left;">
-    <p style="margin:0;font-family:Poppins,sans-serif;font-size:0.85rem;color:#5a6d62;">
-      Vérification de votre éligibilité et de votre droit de vote.
-    </p>
-    ${['Identité vérifiée — CNI valide','Eligibilité confirmée — inscrit au registre','Aucun vote précédent détecté','Session sécurisée — OTP validé']
-      .map(t => `
-      <div style="display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0.85rem;border-radius:12px;
-        background:rgba(31,90,51,0.05);border:1px solid rgba(31,90,51,0.12);">
-        <span style="font-family:Poppins,sans-serif;font-size:0.83rem;color:#22312a;font-weight:500;">${t}</span>
-      </div>`)
-      .join('')}
-  </div>
-`;
-
-const swalStep3Html = `
-  <div style="text-align:left;">
-    <p style="margin:0 0 0.8rem;font-family:Poppins,sans-serif;font-size:0.85rem;color:#5a6d62;">
-      Un token cryptographique unique est généré et associé à votre bulletin de manière anonyme.
-    </p>
-    <div style="padding:1rem 1.2rem;border-radius:14px;
-      background:rgba(31,90,51,0.06);border:1px dashed rgba(31,90,51,0.25);
-      text-align:center;margin-bottom:0.8rem;">
-      <div style="font-family:'Courier New',monospace;font-weight:800;font-size:1.2rem;
-        color:rgba(31,90,51,0.88);letter-spacing:0.16em;">NV-7F2A-9C4B-3D1E</div>
-      <div style="font-family:Poppins,sans-serif;font-size:0.72rem;color:#8a9a90;margin-top:0.4rem;">
-        Token anonyme — aucun lien avec votre identité
-      </div>
-    </div>
-    <div style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem 0.8rem;border-radius:10px;
-      background:rgba(210,140,30,0.07);border:1px solid rgba(210,140,30,0.2);
-      font-family:Poppins,sans-serif;font-size:0.78rem;color:rgba(110,68,8,0.9);">
-      <span>Conservez ce token. C'est votre <strong>seule preuve</strong> de participation.</span>
-    </div>
-  </div>
-`;
-
-const swalStep4Html = (name: string) => `
-  <div style="text-align:left;display:grid;gap:0.6rem;">
-    <p style="margin:0;font-family:Poppins,sans-serif;font-size:0.85rem;color:#5a6d62;">
-      Récapitulatif avant validation définitive :
-    </p>
-    ${[
-      ['Candidat', name],
-      ['Élection', 'Présidentielle 2025'],
-      ['Chiffrement', 'AES-256'],
-      ['Anonymat', 'Garanti — aucune trace'],
-    ].map(([k, v]) => `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;
-        padding:0.55rem 0.85rem;border-radius:10px;
-        background:rgba(255,255,255,0.88);border:1px solid rgba(31,90,51,0.09);">
-        <span style="font-family:Poppins,sans-serif;font-size:0.8rem;color:#6b7a72;">${k}</span>
-        <span style="font-family:Poppins,sans-serif;font-size:0.82rem;font-weight:700;color:#1a2e20;">${v}</span>
-      </div>
-    `).join('')}
-    <div style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.65rem 0.85rem;border-radius:12px;
-      background:rgba(176,58,46,0.06);border:1px solid rgba(176,58,46,0.18);
-      font-family:Poppins,sans-serif;font-size:0.78rem;color:rgba(120,40,28,0.9);margin-top:0.2rem;">
-      <span style="flex-shrink:0;margin-top:1px;">🔒</span>
-      <span>Cette action est <strong>irréversible</strong>. Votre bulletin sera enregistré définitivement.</span>
-    </div>
-  </div>
-`;
-
 /* ─── Component ──────────────────────────────────────── */
 const CitizenVote = () => {
   const navigate = useNavigate();
@@ -520,8 +420,8 @@ const CitizenVote = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedElection, setSelectedElection] = useState<string>('');
 
-  /* Charger les élections EN_COURS au montage */
-  useEffect(() => {
+  const loadLiveElections = useCallback(async () => {
+    setLoadingElections(true);
     api.elections.list()
       .then((data) => {
         const live = data.filter((e) => e.statut === 'EN_COURS');
@@ -534,9 +434,27 @@ const CitizenVote = () => {
       .finally(() => setLoadingElections(false));
   }, []);
 
-  /* Charger les candidats quand l'élection change */
+  /* Charger les élections EN_COURS au montage */
   useEffect(() => {
-    if (!selectedElection) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadLiveElections();
+  }, [loadLiveElections]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      loadLiveElections();
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, [loadLiveElections]);
+
+  const loadElectionCandidates = useCallback(async () => {
+    if (!selectedElection) {
+      setCandidates([]);
+      setSelectedId(null);
+      setLoadingCandidates(false);
+      return;
+    }
+
     setLoadingCandidates(true);
     setSelectedId(null);
     api.elections.getCandidates(selectedElection)
@@ -544,6 +462,20 @@ const CitizenVote = () => {
       .catch(() => setCandidates([]))
       .finally(() => setLoadingCandidates(false));
   }, [selectedElection]);
+
+  /* Charger les candidats quand l'élection change */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadElectionCandidates();
+  }, [loadElectionCandidates]);
+
+  useEffect(() => {
+    if (!selectedElection) return;
+    const id = window.setInterval(() => {
+      loadElectionCandidates();
+    }, 15000);
+    return () => window.clearInterval(id);
+  }, [selectedElection, loadElectionCandidates]);
 
   /* Vérifier le statut de vote quand l'élection change */
   useEffect(() => {
@@ -658,6 +590,7 @@ const CitizenVote = () => {
             state: {
               confirmationNumber: res.confirmation_number,
               horodatage: res.horodatage,
+              electionId: selectedElection,
               election: currentElection?.titre ?? '',
               candidatName: candName,
             },

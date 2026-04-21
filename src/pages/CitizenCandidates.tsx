@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api, type ElectionDto, type CandidateDto } from '../services/api';
 
 const Panel = styled.div`
   background: rgba(255, 255, 255, 0.9);
@@ -258,102 +259,49 @@ const CitizenCandidates = () => {
 
   const [selectedElection, setSelectedElection] = useState('all');
   const [openElections, setOpenElections] = useState<string[]>([]);
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+  const [candidates, setCandidates] = useState<CandidateDto[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const elections = [
-    {
-      id: 'pres-2025',
-      title: 'Presidentielle 2025',
-      status: 'live' as const,
-      type: 'Presidentielle',
-    },
-    {
-      id: 'leg-2025-dkr',
-      title: 'Legislatives Dakar',
-      status: 'scheduled' as const,
-      type: 'Legislative',
-    },
-    {
-      id: 'mun-2025-pk',
-      title: 'Municipales Pikine',
-      status: 'closed' as const,
-      type: 'Municipale',
-    },
-  ];
+  useEffect(() => {
+    Promise.all([api.elections.list(), api.candidats.list()])
+      .then(([e, c]) => { setElections(e); setCandidates(c); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  const candidates = [
-    {
-      id: 'c1',
-      name: 'Aicha Ndiaye',
-      initials: 'AN',
-      party: 'Union Civique',
-      electionId: 'pres-2025',
-    },
-    {
-      id: 'c2',
-      name: 'Moussa Diop',
-      initials: 'MD',
-      party: 'Coalition Verte',
-      electionId: 'pres-2025',
-    },
-    {
-      id: 'c3',
-      name: 'Mariam Sow',
-      initials: 'MS',
-      party: 'Renouveau National',
-      electionId: 'pres-2025',
-    },
-    {
-      id: 'c4',
-      name: 'Ousmane Faye',
-      initials: 'OF',
-      party: 'Alliance Populaire',
-      electionId: 'leg-2025-dkr',
-    },
-    {
-      id: 'c5',
-      name: 'Fatou Diop',
-      initials: 'FD',
-      party: 'Mouvement Democratic',
-      electionId: 'leg-2025-dkr',
-    },
-    {
-      id: 'c6',
-      name: 'Ibrahima Seck',
-      initials: 'IS',
-      party: 'Union pour le Progres',
-      electionId: 'leg-2025-dkr',
-    },
-    {
-      id: 'c7',
-      name: 'Aminata Mbaye',
-      initials: 'AM',
-      party: 'Citoyennete Active',
-      electionId: 'mun-2025-pk',
-    },
-    {
-      id: 'c8',
-      name: 'Cheikh Anta Diop',
-      initials: 'CAD',
-      party: 'Developpement Local',
-      electionId: 'mun-2025-pk',
-    },
-  ];
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      Promise.all([api.elections.list(), api.candidats.list()])
+        .then(([e, c]) => {
+          setElections(e);
+          setCandidates(c);
+        })
+        .catch(() => {});
+    }, 15000);
+    return () => window.clearInterval(id);
+  }, []);
 
-  const filteredElections = selectedElection === 'all' 
-    ? elections 
+  const toStatus = (statut: string): 'live' | 'scheduled' | 'closed' => {
+    if (statut === 'EN_COURS') return 'live';
+    if (statut === 'PROGRAMMEE') return 'scheduled';
+    return 'closed';
+  };
+
+  const filteredElections = selectedElection === 'all'
+    ? elections
     : elections.filter(e => e.id === selectedElection);
 
   const toggleElection = (electionId: string) => {
-    setOpenElections(prev => 
+    setOpenElections(prev =>
       prev.includes(electionId)
         ? prev.filter(id => id !== electionId)
         : [...prev, electionId]
     );
   };
 
-  const getCandidateCount = (electionId: string) => {
-    return candidates.filter(c => c.electionId === electionId).length;
-  };
+  const getCandidateCount = (electionId: string) =>
+    candidates.filter(c => c.election_id === electionId).length;
 
   return (
     <AppLayout
@@ -366,83 +314,87 @@ const CitizenCandidates = () => {
         <SummaryRow>
           <SummaryCard>
             <SummaryLabel>Total candidats</SummaryLabel>
-            <SummaryValue>{candidates.length}</SummaryValue>
+            <SummaryValue>{loading ? '—' : candidates.length}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Elections actives</SummaryLabel>
-            <SummaryValue>{elections.filter(e => e.status === 'live').length}</SummaryValue>
+            <SummaryValue>{loading ? '—' : elections.filter(e => e.statut === 'EN_COURS').length}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Elections a venir</SummaryLabel>
-            <SummaryValue>{elections.filter(e => e.status === 'scheduled').length}</SummaryValue>
+            <SummaryValue>{loading ? '—' : elections.filter(e => e.statut === 'PROGRAMMEE').length}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Elections cloturees</SummaryLabel>
-            <SummaryValue>{elections.filter(e => e.status === 'closed').length}</SummaryValue>
+            <SummaryValue>{loading ? '—' : elections.filter(e => e.statut === 'CLOTUREE').length}</SummaryValue>
           </SummaryCard>
         </SummaryRow>
         <HeaderRow>
           <Title>Liste des candidats</Title>
           <Controls>
-            <Select 
+            <Select
               value={selectedElection}
               onChange={(e) => setSelectedElection(e.target.value)}
             >
               <option value="all">Toutes les elections</option>
               {elections.map(election => (
                 <option key={election.id} value={election.id}>
-                  {election.title}
+                  {election.titre}
                 </option>
               ))}
             </Select>
           </Controls>
         </HeaderRow>
-        
-        {filteredElections.map(election => (
-          <ElectionAccordion key={election.id}>
-            <AccordionHeader 
-              $status={election.status}
-              onClick={() => toggleElection(election.id)}
-            >
-              <ElectionInfo>
-                <ElectionTitle>{election.title}</ElectionTitle>
-                <CandidateCount>{getCandidateCount(election.id)} candidats</CandidateCount>
-              </ElectionInfo>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <StatusBadge $status={election.status}>
-                  {election.status === 'live' ? 'En cours' : 
-                   election.status === 'scheduled' ? 'Programme' : 'Cloture'}
-                </StatusBadge>
-                <ChevronIcon $open={openElections.includes(election.id)}>▼</ChevronIcon>
-              </div>
-            </AccordionHeader>
-            <AccordionContent $open={openElections.includes(election.id)}>
-              <CandidateList>
-                {candidates
-                  .filter(c => c.electionId === election.id)
-                  .map(candidate => (
-                    <CandidateRow 
-                      key={candidate.id} 
-                      to={`/citoyen/candidats/${candidate.id}`}
-                    >
-                      <Avatar $large>{candidate.initials}</Avatar>
-                      <CandidateInfo>
-                        <CandidateName>{candidate.name}</CandidateName>
-                        <CandidateParty>{candidate.party}</CandidateParty>
-                      </CandidateInfo>
-                      <ViewProfileButton>Voir profil →</ViewProfileButton>
-                    </CandidateRow>
-                  ))}
-              </CandidateList>
-            </AccordionContent>
-          </ElectionAccordion>
-        ))}
-        
-        {filteredElections.length === 0 && (
-          <EmptyState>
-            Aucune election disponible pour le moment.
-          </EmptyState>
-        )}
+
+        {loading ? (
+          <EmptyState>Chargement des candidats…</EmptyState>
+        ) : filteredElections.length === 0 ? (
+          <EmptyState>Aucune election disponible pour le moment.</EmptyState>
+        ) : filteredElections.map(election => {
+          const status = toStatus(election.statut);
+          const electionCandidates = candidates.filter(c => c.election_id === election.id);
+          return (
+            <ElectionAccordion key={election.id}>
+              <AccordionHeader
+                $status={status}
+                onClick={() => toggleElection(election.id)}
+              >
+                <ElectionInfo>
+                  <ElectionTitle>{election.titre}</ElectionTitle>
+                  <CandidateCount>{getCandidateCount(election.id)} candidats</CandidateCount>
+                </ElectionInfo>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <StatusBadge $status={status}>
+                    {status === 'live' ? 'En cours' : status === 'scheduled' ? 'Programme' : 'Cloture'}
+                  </StatusBadge>
+                  <ChevronIcon $open={openElections.includes(election.id)}>▼</ChevronIcon>
+                </div>
+              </AccordionHeader>
+              <AccordionContent $open={openElections.includes(election.id)}>
+                <CandidateList>
+                  {electionCandidates.length === 0 ? (
+                    <EmptyState style={{ padding: '1rem' }}>Aucun candidat enregistre.</EmptyState>
+                  ) : electionCandidates.map(candidate => {
+                    const initials = `${candidate.prenom.charAt(0)}${candidate.nom.charAt(0)}`.toUpperCase();
+                    return (
+                      <CandidateRow
+                        key={candidate.id}
+                        to={`/citoyen/candidats/${candidate.id}`}
+                      >
+                        <Avatar $large>{initials}</Avatar>
+                        <CandidateInfo>
+                          <CandidateName>{candidate.prenom} {candidate.nom}</CandidateName>
+                          <CandidateParty>{candidate.parti_politique}</CandidateParty>
+                        </CandidateInfo>
+                        <ViewProfileButton>Voir profil →</ViewProfileButton>
+                      </CandidateRow>
+                    );
+                  })}
+                </CandidateList>
+              </AccordionContent>
+            </ElectionAccordion>
+          );
+        })}
       </Panel>
     </AppLayout>
   );

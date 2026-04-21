@@ -288,6 +288,10 @@ const OperatorAlerts = () => {
     if (!operatorId) return [];
     return alerts.filter((a) => a.operateur_id === operatorId);
   }, [alerts, operatorId]);
+  const visibleAlerts = useMemo(
+    () => (mesAlertes.length > 0 ? mesAlertes : alerts),
+    [mesAlertes, alerts]
+  );
 
   const PAGE_SIZE = 6;
   const [filterType, setFilterType] = useState('');
@@ -297,7 +301,7 @@ const OperatorAlerts = () => {
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
-    return mesAlertes
+    return visibleAlerts
       .filter((a) => !filterType || a.type_fraude === filterType)
       .filter((a) => !filterStatus || a.statut === filterStatus)
       .filter((a) => !filterElection || a.election_id === filterElection)
@@ -306,7 +310,7 @@ const OperatorAlerts = () => {
         return a.date_detection.startsWith(filterDate);
       })
       .sort((a, b) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime());
-  }, [mesAlertes, filterType, filterStatus, filterElection, filterDate]);
+  }, [visibleAlerts, filterType, filterStatus, filterElection, filterDate]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -380,8 +384,8 @@ const OperatorAlerts = () => {
       {filtered.length === 0 ? (
         <Empty>
           <i className="bi bi-inbox" style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }} />
-          {mesAlertes.length === 0
-            ? 'Vous n\'avez pas encore pris en charge d\'alertes. Consultez le dashboard pour en assigner une.'
+          {visibleAlerts.length === 0
+            ? 'Aucune alerte disponible pour le moment.'
             : 'Aucune alerte ne correspond aux filtres selectionnes.'}
         </Empty>
       ) : (

@@ -194,7 +194,7 @@ const Portal = () => {
           <div>
             <Brand>
               <LogoNaatalVote size={80} />
-              NATAALVOTE Secure
+              NAATALVOTE Secure
             </Brand>
             <Subtitle>Choisissez votre espace de travail pour poursuivre en toute securite.</Subtitle>
           </div>

@@ -1,8 +1,10 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useElections } from '../hooks/useApi';
+import { api } from '../services/api';
+import { useAppSelector } from '../store/hooks';
 
 const Panel = styled.div`
   background: rgba(255, 255, 255, 0.9);
@@ -402,6 +404,7 @@ const SkeletonBadge = styled.div`
 
 const CitizenElections = () => {
   const { elections, loading, error, refetch } = useElections();
+  const sessionUser = useAppSelector((s) => s.auth.user);
   const navItems = [
     { label: 'Tableau de bord', to: '/citoyen/dashboard' },
     { label: 'Elections', to: '/citoyen/elections' },
@@ -416,8 +419,25 @@ const CitizenElections = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [votedElectionIds, setVotedElectionIds] = useState<Set<string>>(new Set());
   const itemsPerPage = 2;
+
+  useEffect(() => {
+    if (!sessionUser?.id) {
+      setVotedElectionIds(new Set());
+      return;
+    }
+    api.citoyen.history(sessionUser.id)
+      .then((history) => {
+        const voted = new Set(
+          (history ?? [])
+            .filter((entry) => entry.a_vote)
+            .map((entry) => entry.election_id)
+        );
+        setVotedElectionIds(voted);
+      })
+      .catch(() => setVotedElectionIds(new Set()));
+  }, [sessionUser?.id]);
 
   const getStatusLabel = (statut: string): 'live' | 'scheduled' | 'closed' => {
     if (statut === 'EN_COURS') return 'live';
@@ -444,7 +464,7 @@ const CitizenElections = () => {
     region: e.region || 'National',
     type: getTypeLabel(e.type),
     participation: e.total_electeurs > 0 ? Math.round((e.votes_count / e.total_electeurs) * 100) : 0,
-    hasVoted: false,
+    hasVoted: votedElectionIds.has(e.id),
     resultsAvailable: e.statut === 'CLOTUREE',
     candidateCount: e.candidat_ids?.length || 0,
   }));
@@ -466,6 +486,9 @@ const CitizenElections = () => {
   const activeCount = apiElections.filter(e => e.status === 'live').length;
   const nextElection = apiElections.filter(e => e.status === 'scheduled')[0];
   const totalElections = apiElections.length;
+  const averageParticipation = apiElections.length > 0
+    ? Math.round(apiElections.reduce((acc, e) => acc + e.participation, 0) / apiElections.length)
+    : 0;
 
   return (
     <AppLayout
@@ -490,7 +513,7 @@ const CitizenElections = () => {
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Taux moyen national</SummaryLabel>
-            <SummaryValue>{activeCount > 0 ? '45%' : 'N/A'}</SummaryValue>
+            <SummaryValue>{totalElections > 0 ? `${averageParticipation}%` : 'N/A'}</SummaryValue>
           </SummaryCard>
         </SummaryRow>
         <HeaderRow>
@@ -675,7 +698,7 @@ const CitizenElections = () => {
                   </Progress>
                 )}
                 <ActionRow>
-                  <GhostButton to="/citoyen/elections/detail">Details</GhostButton>
+                  <GhostButton to={`/citoyen/elections/${election.id}/detail`}>Details</GhostButton>
                   {canVote ? <ActionButton to="/citoyen/vote">Voter</ActionButton> : null}
                   {election.resultsAvailable ? <GhostButton to="/citoyen/resultats">Resultats</GhostButton> : null}
                 </ActionRow>

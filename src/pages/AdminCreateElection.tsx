@@ -6,7 +6,7 @@ import Swal from 'sweetalert2';
 import { api } from '../services/api';
 import { useAppSelector } from '../store/hooks';
 
-const Form = styled.div`
+const Form = styled.form`
   background: #ffffff;
   border-radius: 24px;
   padding: 2rem;
@@ -231,6 +231,7 @@ interface FormData {
   startDate: string;
   endDate: string;
   region: string;
+  totalElecteurs: string;
 }
 
 interface FormErrors {
@@ -239,6 +240,7 @@ interface FormErrors {
   startDate?: string;
   endDate?: string;
   region?: string;
+  totalElecteurs?: string;
 }
 
 const AdminCreateElection = () => {
@@ -247,6 +249,7 @@ const AdminCreateElection = () => {
 
   const navItems = [
     { label: 'Tableau admin', to: '/admin/dashboard' },
+    { label: 'Elections creees', to: '/admin/elections' },
     { label: 'Programmer election', to: '/admin/election/create' },
     { label: 'Candidats', to: '/admin/candidats' },
     { label: 'Statistiques', to: '/admin/statistiques' },
@@ -260,6 +263,7 @@ const AdminCreateElection = () => {
     startDate: '',
     endDate: '',
     region: '',
+    totalElecteurs: '',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -285,7 +289,7 @@ const AdminCreateElection = () => {
       const startDate = new Date(formData.startDate);
       // Allow scheduling 1 hour in advance minimum
       const minDate = new Date(now.getTime() + 60 * 60 * 1000);
-      if (startDate < minDate && startDate.toDateString() !== now.toDateString()) {
+      if (startDate < minDate) {
         newErrors.startDate = 'La date de début doit être à venir (au moins 1h)';
       }
     }
@@ -302,6 +306,12 @@ const AdminCreateElection = () => {
 
     if (!formData.region.trim()) {
       newErrors.region = 'La zone/région est requise';
+    }
+    const totalElecteurs = Number(formData.totalElecteurs);
+    if (!formData.totalElecteurs.trim()) {
+      newErrors.totalElecteurs = 'Le nombre d\'électeurs est requis';
+    } else if (!Number.isFinite(totalElecteurs) || totalElecteurs <= 0 || !Number.isInteger(totalElecteurs)) {
+      newErrors.totalElecteurs = 'Entrez un nombre entier strictement positif';
     }
 
     setErrors(newErrors);
@@ -361,6 +371,8 @@ const AdminCreateElection = () => {
         date_debut: new Date(formData.startDate).toISOString(),
         date_fin: new Date(formData.endDate).toISOString(),
         admin_id: adminId,
+        region: formData.region.trim(),
+        total_electeurs: Number(formData.totalElecteurs),
       });
 
       await Swal.fire({
@@ -534,6 +546,23 @@ const AdminCreateElection = () => {
               </datalist>
             </div>
             {errors.region && <Helper $error id="region-error">{errors.region}</Helper>}
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="totalElecteurs">Électeurs inscrits *</Label>
+            <Field
+              id="totalElecteurs"
+              name="totalElecteurs"
+              type="number"
+              min={1}
+              step={1}
+              placeholder="Ex: 120000"
+              value={formData.totalElecteurs}
+              onChange={handleChange}
+              $hasError={!!errors.totalElecteurs}
+              aria-invalid={!!errors.totalElecteurs}
+              aria-describedby={errors.totalElecteurs ? 'totalElecteurs-error' : undefined}
+            />
+            {errors.totalElecteurs && <Helper $error id="totalElecteurs-error">{errors.totalElecteurs}</Helper>}
           </FieldGroup>
         </Row>
 

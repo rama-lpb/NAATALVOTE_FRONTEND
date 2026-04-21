@@ -1,4 +1,4 @@
-# NATAALVOTE Frontend
+# NAATALVOTE Frontend
 
 Ce projet est une application React moderne, structurée selon les principes du clean code, pour l’intégration de maquettes d’une plateforme de vote en ligne.
 
@@ -51,4 +51,4 @@ Ouvrez `http://localhost:5173` dans votre navigateur.
 
 ---
 
-© 2026 NATAALVOTE
+© 2026 NAATALVOTE

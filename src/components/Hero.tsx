@@ -3,10 +3,8 @@ import { Link } from 'react-router-dom';
 
 const HeroSection = styled.section`
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
+  inset: 0;
+  width: 100vw;
   height: 100vh;
   display: flex;
   align-items: center;
@@ -37,8 +35,8 @@ const VideoBackground = styled.div`
     height: 300px;
   }
   video, img {
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     object-fit: cover;
     filter: brightness(0.92) saturate(0.98);
     position: absolute;
@@ -48,8 +46,6 @@ const VideoBackground = styled.div`
     left: 0;
     top: 0;
     transform: translateX(0) translateY(0);
-    max-width: 100%;
-    max-height: 100%;
     overflow: hidden;
     border: none;
     outline: none;

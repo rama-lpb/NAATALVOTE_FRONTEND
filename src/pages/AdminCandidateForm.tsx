@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import Swal from 'sweetalert2';
 import { api, type ElectionDto } from '../services/api';
@@ -249,6 +249,7 @@ const NoticeCard = styled.div`
 
 const navItems = [
   { label: 'Tableau admin', to: '/admin/dashboard' },
+  { label: 'Elections creees', to: '/admin/elections' },
   { label: 'Programmer election', to: '/admin/election/create' },
   { label: 'Gestion candidats', to: '/admin/candidats' },
   { label: 'Statistiques', to: '/admin/statistiques' },
@@ -275,6 +276,8 @@ interface FormErrors {
 
 const AdminCandidateForm = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preselectedElectionId = searchParams.get('electionId') ?? '';
   const [elections, setElections] = useState<ElectionDto[]>([]);
   const [loadingElections, setLoadingElections] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -292,10 +295,16 @@ const AdminCandidateForm = () => {
 
   useEffect(() => {
     api.elections.list()
-      .then((data) => setElections(data.filter((e) => e.statut !== 'CLOTUREE')))
+      .then((data) => {
+        const available = data.filter((e) => e.statut !== 'CLOTUREE');
+        setElections(available);
+        if (preselectedElectionId && available.some((e) => e.id === preselectedElectionId)) {
+          setFormData((prev) => ({ ...prev, election_id: preselectedElectionId }));
+        }
+      })
       .catch(() => setElections([]))
       .finally(() => setLoadingElections(false));
-  }, []);
+  }, [preselectedElectionId]);
 
   const initials = `${formData.prenom.charAt(0)}${formData.nom.charAt(0)}`.toUpperCase() || 'CA';
   const displayName = formData.prenom || formData.nom ? `${formData.prenom} ${formData.nom}`.trim() : 'Nouveau candidat';

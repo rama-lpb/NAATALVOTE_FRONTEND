@@ -1,7 +1,8 @@
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
+import { api, type CandidateDto, type ElectionDto } from '../services/api';
 
 const LayoutGrid = styled.div`
   display: grid;
@@ -187,19 +188,20 @@ const IconBtn = styled.button`
   &:hover { background: rgba(31, 90, 51, 0.12); }
 `;
 
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #6b7a72;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+`;
+
 const navItems = [
   { label: 'Tableau admin', to: '/admin/dashboard' },
+  { label: 'Elections creees', to: '/admin/elections' },
   { label: 'Programmer election', to: '/admin/election/create' },
   { label: 'Gestion candidats', to: '/admin/candidats' },
   { label: 'Statistiques', to: '/admin/statistiques' },
   { label: 'Rapports', to: '/admin/rapports' },
-];
-
-const reports = [
-  { id: 'r1', title: 'Rapport mensuel — Mars 2026', meta: '5 elections analysees · Participation globale · Regions', status: 'published' as const },
-  { id: 'r2', title: 'Rapport mensuel — Fevrier 2026', meta: 'Participation globale, repartition par region', status: 'published' as const },
-  { id: 'r3', title: 'Rapport Presidentielle 2025', meta: 'Analyse avancee des tendances · Pics de vote · Tranches d\'age', status: 'pending' as const },
-  { id: 'r4', title: 'Brouillon — Rapport Legislatives Dakar', meta: 'Brouillon non finalise', status: 'draft' as const },
 ];
 
 const statusLabels = { published: 'Publie', pending: 'En attente', draft: 'Brouillon' };
@@ -210,22 +212,136 @@ const filters = [
   { id: 'draft', label: 'Brouillons' },
 ];
 
+type ReportStatus = 'published' | 'pending' | 'draft';
+
+type ReportItem = {
+  id: string;
+  electionId: string;
+  title: string;
+  meta: string;
+  status: ReportStatus;
+  election: ElectionDto;
+};
+
+const toReportStatus = (statut: string): ReportStatus => {
+  if (statut === 'CLOTUREE') return 'published';
+  if (statut === 'EN_COURS') return 'pending';
+  return 'draft';
+};
+
+const downloadCsv = (filename: string, rows: string[][]) => {
+  const body = rows
+    .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(';'))
+    .join('\n');
+  const blob = new Blob([body], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 const AdminReports = () => {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [elections, setElections] = useState<ElectionDto[]>([]);
+  const [candidates, setCandidates] = useState<CandidateDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([api.elections.list(), api.candidats.list()])
+      .then(([electionsData, candidatesData]) => {
+        setElections(electionsData);
+        setCandidates(candidatesData);
+      })
+      .catch(() => {
+        setElections([]);
+        setCandidates([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const reports = useMemo<ReportItem[]>(() => {
+    return elections
+      .map((e) => {
+        const electionCandidates = candidates.filter((c) => c.election_id === e.id);
+        const meta = `${electionCandidates.length} candidats · ${e.votes_count.toLocaleString()} votes · ${e.region || 'Nationale'}`;
+        return {
+          id: e.id,
+          electionId: e.id,
+          title: `Rapport — ${e.titre}`,
+          meta,
+          status: toReportStatus(e.statut),
+          election: e,
+        };
+      })
+      .sort((a, b) => new Date(b.election.date_debut).getTime() - new Date(a.election.date_debut).getTime());
+  }, [elections, candidates]);
 
   const filtered = reports.filter((r) => activeFilter === 'all' || r.status === activeFilter);
 
+  const stats = useMemo(() => {
+    return {
+      total: reports.length,
+      published: reports.filter((r) => r.status === 'published').length,
+      pending: reports.filter((r) => r.status === 'pending').length,
+      draft: reports.filter((r) => r.status === 'draft').length,
+    };
+  }, [reports]);
+
   const handlePublish = () => {
     Swal.fire({
-      title: 'Publier le rapport ?',
-      text: 'Ce rapport statistique sera visible publiquement. Les resultats individuels restent automatiques et ne seront pas inclus.',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Publier',
-      cancelButtonText: 'Annuler',
+      title: 'Generation automatique',
+      text: 'Les rapports sont maintenant alimentes automatiquement depuis les donnees d elections.',
+      icon: 'info',
+      confirmButtonText: 'OK',
       buttonsStyling: false,
-      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
+      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
     });
+  };
+
+  const handlePreview = (report: ReportItem) => {
+    Swal.fire({
+      title: report.title,
+      html: `Statut: <b>${statusLabels[report.status]}</b><br/>${report.meta}`,
+      icon: 'info',
+      confirmButtonText: 'Fermer',
+      buttonsStyling: false,
+      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+    });
+  };
+
+  const handleDownload = async (report: ReportItem) => {
+    const electionCandidates = candidates.filter((c) => c.election_id === report.electionId);
+    const results = await api.votes.results(report.electionId).catch(() => null);
+    const votesByCandidate = new Map((results?.results ?? []).map((line) => [line.candidat_id, line.votes]));
+
+    const rows: string[][] = [
+      ['election_id', 'titre', 'statut', 'date_debut', 'date_fin', 'region', 'total_electeurs', 'votes_count'],
+      [
+        report.election.id,
+        report.election.titre,
+        report.election.statut,
+        report.election.date_debut,
+        report.election.date_fin,
+        report.election.region,
+        String(report.election.total_electeurs),
+        String(report.election.votes_count),
+      ],
+      [],
+      ['candidat_id', 'nom', 'prenom', 'parti', 'votes'],
+      ...electionCandidates.map((c) => [
+        c.id,
+        c.nom,
+        c.prenom,
+        c.parti_politique,
+        String(votesByCandidate.get(c.id) ?? c.votes_count),
+      ]),
+    ];
+
+    const filename = `rapport_${report.election.titre.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadCsv(filename, rows);
   };
 
   return (
@@ -240,19 +356,19 @@ const AdminReports = () => {
         <SummaryRow>
           <StatCard $accent="rgba(31, 90, 51, 0.6)">
             <StatLabel>Total rapports</StatLabel>
-            <StatValue>4</StatValue>
+            <StatValue>{loading ? '—' : stats.total}</StatValue>
           </StatCard>
           <StatCard $accent="rgba(31, 90, 51, 0.5)">
             <StatLabel>Publies</StatLabel>
-            <StatValue>2</StatValue>
+            <StatValue>{loading ? '—' : stats.published}</StatValue>
           </StatCard>
           <StatCard $accent="rgba(138, 90, 16, 0.5)">
             <StatLabel>En attente</StatLabel>
-            <StatValue>1</StatValue>
+            <StatValue>{loading ? '—' : stats.pending}</StatValue>
           </StatCard>
           <StatCard $accent="rgba(91, 95, 101, 0.4)">
             <StatLabel>Brouillons</StatLabel>
-            <StatValue>1</StatValue>
+            <StatValue>{loading ? '—' : stats.draft}</StatValue>
           </StatCard>
         </SummaryRow>
 
@@ -268,7 +384,9 @@ const AdminReports = () => {
             </FilterChips>
           </PanelHeader>
           <ReportList>
-            {filtered.map((r) => (
+            {loading ? <EmptyState>Chargement des rapports...</EmptyState> : null}
+            {!loading && filtered.length === 0 ? <EmptyState>Aucun rapport pour ce filtre.</EmptyState> : null}
+            {!loading && filtered.map((r) => (
               <ReportRow key={r.id}>
                 <ReportIcon><i className="bi bi-file-earmark-bar-graph" /></ReportIcon>
                 <ReportInfo>
@@ -277,11 +395,8 @@ const AdminReports = () => {
                 </ReportInfo>
                 <StatusBadge $status={r.status}>{statusLabels[r.status]}</StatusBadge>
                 <ActionIcons>
-                  <IconBtn title="Apercu"><i className="bi bi-eye" /></IconBtn>
-                  <IconBtn title="Telecharger"><i className="bi bi-download" /></IconBtn>
-                  {r.status !== 'published' && (
-                    <IconBtn title="Publier" onClick={handlePublish}><i className="bi bi-send" /></IconBtn>
-                  )}
+                  <IconBtn title="Apercu" onClick={() => handlePreview(r)}><i className="bi bi-eye" /></IconBtn>
+                  <IconBtn title="Telecharger" onClick={() => void handleDownload(r)}><i className="bi bi-download" /></IconBtn>
                 </ActionIcons>
               </ReportRow>
             ))}

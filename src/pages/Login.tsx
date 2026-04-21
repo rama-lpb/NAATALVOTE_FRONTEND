@@ -2,10 +2,10 @@ import styled, { keyframes } from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogoNaatalVote } from '../assets/LogoNaatalVote';
 import { useState, type FormEvent } from 'react';
-import { api, type UserDto } from '../services/api';
+import { api } from '../services/api';
 import { useAppDispatch } from '../store/hooks';
 import { setSession } from '../store/authSlice';
-import { getRoleDashboardPath } from '../auth/roles';
+import { getRoleDashboardPath, type UserRole } from '../auth/roles';
 
 const fadeUp = keyframes`
   from {
@@ -76,10 +76,11 @@ const Page = styled.main<{ $direction?: 'left' | 'right' | 'none' }>`
 `;
 
 const Shell = styled.section`
-  width: 90vw;
+  width: 96vw;
+  max-width: 1640px;
   height: 95vh;
   display: grid;
-  grid-template-columns: 55% 45%;
+  grid-template-columns: 52% 48%;
   background: #ffffff;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
   border-radius: 28px;
@@ -166,8 +167,8 @@ const BackLink = styled(Link)`
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   backdrop-filter: blur(2px);
-  transition: background 0.2s, opacity 0.2s;
-  opacity: 0.9;
+  transition: background 0.2s;
+  opacity: 1;
   z-index: 9999;
   pointer-events: auto;
   display: block;
@@ -175,7 +176,6 @@ const BackLink = styled(Link)`
   height: auto;
   &:hover {
     background: rgba(31, 90, 51, 0.2);
-    opacity: 1;
   }
 `;
 
@@ -190,7 +190,7 @@ const Title = styled.h1`
 
 const Tabs = styled.div`
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 2px solid rgba(25, 80, 45, 0.35);
@@ -208,19 +208,21 @@ const TabLink = styled(Link)<{ $active?: boolean }>`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
   color: ${({ $active }) => ($active ? '#ffffff' : '#1f5a33')};
-  background: ${({ $active }) => ($active ? '#1f5a33' : '#ffffff')};
+  background: ${({ $active }) =>
+    $active ? 'linear-gradient(135deg, #1f5a33 0%, #2d7a45 100%)' : '#ffffff'};
   cursor: pointer;
   text-decoration: none;
   text-align: center;
   transition: background 0.2s ease, color 0.2s ease;
   &:hover {
-    background: ${({ $active }) => ($active ? '#245f37' : '#f4f7f4')};
+    background: ${({ $active }) =>
+      $active ? 'linear-gradient(135deg, #215d36 0%, #307f49 100%)' : '#f4f7f4'};
   }
 `;
 
 const Form = styled.form`
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -319,7 +321,10 @@ const Helper = styled.span`
 `;
 
 const SubmitButton = styled.button`
-  width: 100%;
+  width: auto;
+  min-width: 240px;
+  max-width: 320px;
+  align-self: center;
   border: none;
   border-radius: 14px;
   padding: 1rem 1.4rem;
@@ -327,18 +332,18 @@ const SubmitButton = styled.button`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
   color: #ffffff;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65) 0%, rgba(31, 90, 51, 0.5) 100%);
+  background: linear-gradient(135deg, #1f5a33 0%, #2e7a46 100%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(31, 90, 51, 0.5);
+  border: 1px solid #1f5a33;
   cursor: pointer;
-  margin-top: 0.8rem;
+  margin-top: 1.45rem;
   animation: ${fadeUp} 1000ms ease-out;
   transition: all 0.2s ease;
   text-decoration: none;
   text-align: center;
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(31, 90, 51, 0.72) 0%, rgba(31, 90, 51, 0.58) 100%);
+    background: linear-gradient(135deg, #225f37 0%, #33804c 100%);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(31, 90, 51, 0.3);
   }
@@ -346,18 +351,6 @@ const SubmitButton = styled.button`
     opacity: 1;
     cursor: not-allowed;
     transform: none;
-  }
-`;
-
-const ForgotPassword = styled(Link)`
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.9rem;
-  color: #1f5a33;
-  text-decoration: none;
-  text-align: center;
-  margin-top: 0.5rem;
-  &:hover {
-    text-decoration: underline;
   }
 `;
 
@@ -377,8 +370,8 @@ const PopupCard = styled.div`
   background: #e8ebe9;
   border-radius: 16px;
   padding: 1.8rem 2rem;
-  max-width: 560px;
-  width: 92%;
+  max-width: 620px;
+  width: 94%;
   box-shadow: 
     0 20px 45px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(31, 90, 51, 0.08);
@@ -474,7 +467,8 @@ const PopupButton = styled.button`
   }
   
   &:disabled {
-    opacity: 0.6;
+    opacity: 1;
+    background: linear-gradient(135deg, #215d36 0%, #2f7a47 100%);
     cursor: not-allowed;
   }
 `;
@@ -519,6 +513,9 @@ const Login = () => {
   const [enteredOtp, setEnteredOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  const isUserRole = (role: string): role is UserRole =>
+    role === 'CITOYEN' || role === 'ADMIN' || role === 'OPERATEUR' || role === 'SUPERADMIN';
 
   const simulatePhoneLookup = async (cniNumber: string) => {
     if (cniNumber.length < 5) return;
@@ -580,7 +577,7 @@ const Login = () => {
         } else {
           setLoginError(result.message || 'Erreur lors de la connexion');
         }
-      } catch (error) {
+      } catch {
         setLoginError('Erreur de connexion au serveur');
       } finally {
         setIsLoading(false);
@@ -597,8 +594,8 @@ const Login = () => {
       
       setShowOtpPopup(false);
       if (result.success && result.user) {
-        const roles = (result.user.roles ?? []) as any[];
-        const firstRole = roles[0] as any;
+        const roles = (result.user.roles ?? []).filter(isUserRole);
+        const firstRole = roles[0] ?? 'CITOYEN';
         dispatch(setSession({
           token: result.token,
           user: {
@@ -618,7 +615,7 @@ const Login = () => {
       } else {
         setOtpError('Code OTP invalide');
       }
-    } catch (error) {
+    } catch {
       setOtpError('Code OTP invalide');
     } finally {
       setIsLoading(false);
@@ -635,7 +632,7 @@ const Login = () => {
         <FormPanel>
           <LogoRow>
             <LogoNaatalVote size={120} />
-            NATAALVOTE
+            NAATALVOTE
           </LogoRow>
           <Title>Connectez-vous</Title>
           <Tabs>
@@ -715,6 +712,7 @@ const Login = () => {
             <SubmitButton type="submit" disabled={isLoading}>
               {isLoading ? 'Envoi en cours...' : 'Se connecter'}
             </SubmitButton>
+            {loginError && <ErrorText role="alert" style={{ textAlign: 'center' }}>{loginError}</ErrorText>}
             <Helper style={{ textAlign: 'center', marginTop: '0.5rem' }}>
               Cliquez pour recevoir un code OTP par SMS
             </Helper>

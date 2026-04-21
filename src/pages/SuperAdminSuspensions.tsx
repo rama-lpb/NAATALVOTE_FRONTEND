@@ -68,7 +68,7 @@ const Panel = styled.div`
 
 const TableHeader = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 130px 120px 170px;
+  grid-template-columns: minmax(220px, 1.25fr) minmax(220px, 1.25fr) minmax(300px, 1.5fr) minmax(110px, 0.7fr) minmax(180px, 0.9fr);
   gap: 0.8rem;
   padding: 0.75rem 1.3rem;
   background: rgba(31, 90, 51, 0.04);
@@ -86,9 +86,9 @@ const TH = styled.div`
 
 const SuspRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 130px 120px 170px;
+  grid-template-columns: minmax(220px, 1.25fr) minmax(220px, 1.25fr) minmax(300px, 1.5fr) minmax(110px, 0.7fr) minmax(180px, 0.9fr);
   gap: 0.8rem;
-  align-items: center;
+  align-items: start;
   padding: 0.9rem 1.3rem;
   border-bottom: 1px solid rgba(31, 90, 51, 0.06);
   transition: background 0.15s;
@@ -117,6 +117,8 @@ const OperatorInfo = styled.div`
 `;
 
 const MotifBadge = styled.span`
+  display: inline-block;
+  width: 100%;
   padding: 0.22rem 0.6rem;
   border-radius: 8px;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -124,7 +126,9 @@ const MotifBadge = styled.span`
   font-weight: 700;
   background: rgba(176, 58, 46, 0.08);
   color: rgba(176, 58, 46, 0.6);
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
 `;
 
 const StatusBadge = styled.span<{ $status: 'pending' | 'approved' | 'rejected' }>`
@@ -145,19 +149,55 @@ const StatusBadge = styled.span<{ $status: 'pending' | 'approved' | 'rejected' }
 
 const ActionsCell = styled.div`
   display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
 `;
 
-const ActionBtn = styled.button<{ $variant: 'approve' | 'reject' | 'view' }>`
+const MenuRoot = styled.div`
+  position: relative;
+`;
+
+const MenuTrigger = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.28rem 0.65rem;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
   border-radius: 8px;
+  border: 1px solid rgba(91, 95, 101, 0.2);
+  background: rgba(91, 95, 101, 0.08);
+  color: rgba(91, 95, 101, 0.78);
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover { background: rgba(91, 95, 101, 0.14); }
+`;
+
+const MenuDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 25;
+  min-width: 150px;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 90, 51, 0.14);
+  background: #fff;
+  box-shadow: 0 10px 20px rgba(12, 24, 18, 0.12);
+  padding: 0.3rem;
+  display: grid;
+  gap: 0.2rem;
+`;
+
+const MenuItem = styled.button<{ $variant?: 'approve' | 'reject' | 'default' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.42rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.76rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   background: ${({ $variant }) =>
@@ -168,7 +208,7 @@ const ActionBtn = styled.button<{ $variant: 'approve' | 'reject' | 'view' }>`
     $variant === 'approve' ? 'rgba(31, 90, 51, 0.85)' :
     $variant === 'reject' ? 'rgba(176, 58, 46, 0.6)' :
     'rgba(91, 95, 101, 0.75)'};
-  border: 1px solid ${({ $variant }) =>
+  border-color: ${({ $variant }) =>
     $variant === 'approve' ? 'rgba(31, 90, 51, 0.2)' :
     $variant === 'reject' ? 'rgba(176, 58, 46, 0.2)' :
     'rgba(91, 95, 101, 0.15)'};
@@ -214,6 +254,7 @@ const SuperAdminSuspensions = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const [rows, setRows] = useState<SuspRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -234,6 +275,16 @@ const SuperAdminSuspensions = () => {
         status: mapStatut(s.statut),
       })));
     }).catch(() => setRows([])).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const onDocClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-susp-menu-root="true"]')) return;
+      setOpenMenuId(null);
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
   }, []);
 
   const filtered = rows.filter(s => filter === 'all' || s.status === filter);
@@ -307,19 +358,49 @@ const SuperAdminSuspensions = () => {
                 <MotifBadge>{s.motif}</MotifBadge>
                 <StatusBadge $status={s.status}>{statusLabel[s.status]}</StatusBadge>
                 <ActionsCell>
-                  <ActionBtn $variant="view" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.id } })}>
-                    <i className="bi bi-eye" />Voir
-                  </ActionBtn>
-                  {s.status === 'pending' && (
-                    <>
-                      <ActionBtn $variant="approve" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.id } })}>
-                        <i className="bi bi-check2" />Valider
-                      </ActionBtn>
-                      <ActionBtn $variant="reject" onClick={() => navigate('/superadmin/decision', { state: { suspId: s.id } })}>
-                        <i className="bi bi-x" />Rejeter
-                      </ActionBtn>
-                    </>
-                  )}
+                  <MenuRoot data-susp-menu-root="true">
+                    <MenuTrigger
+                      aria-label="Ouvrir le menu d'actions"
+                      onClick={() => setOpenMenuId((prev) => (prev === s.id ? null : s.id))}
+                    >
+                      <i className="bi bi-three-dots-vertical" />
+                    </MenuTrigger>
+                    {openMenuId === s.id && (
+                      <MenuDropdown>
+                        <MenuItem
+                          $variant="default"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            navigate('/superadmin/decision', { state: { suspId: s.id } });
+                          }}
+                        >
+                          <i className="bi bi-eye" />Voir
+                        </MenuItem>
+                        {s.status === 'pending' && (
+                          <>
+                            <MenuItem
+                              $variant="approve"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                navigate('/superadmin/decision', { state: { suspId: s.id } });
+                              }}
+                            >
+                              <i className="bi bi-check2" />Valider
+                            </MenuItem>
+                            <MenuItem
+                              $variant="reject"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                navigate('/superadmin/decision', { state: { suspId: s.id } });
+                              }}
+                            >
+                              <i className="bi bi-x" />Rejeter
+                            </MenuItem>
+                          </>
+                        )}
+                      </MenuDropdown>
+                    )}
+                  </MenuRoot>
                 </ActionsCell>
               </SuspRow>
             ))

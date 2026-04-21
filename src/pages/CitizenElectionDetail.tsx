@@ -1,6 +1,8 @@
 import styled, { keyframes } from 'styled-components';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
+import { api, type CandidateDto, type ElectionDto, type VoteResultLineDto } from '../services/api';
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
@@ -600,7 +602,40 @@ const RulesText = styled.p`
   line-height: 1.5;
 `;
 
+type UiStatus = 'live' | 'scheduled' | 'closed';
+
+const toUiStatus = (statut: string): UiStatus => {
+  if (statut === 'EN_COURS') return 'live';
+  if (statut === 'PROGRAMMEE') return 'scheduled';
+  return 'closed';
+};
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+const getStatusLabel = (status: UiStatus) => {
+  if (status === 'live') return 'En cours';
+  if (status === 'scheduled') return 'Programmee';
+  return 'Cloturee';
+};
+
+const DEFAULT_COLORS = [
+  'rgba(31, 90, 51, 0.9)',
+  'rgba(38, 76, 140, 0.85)',
+  'rgba(138, 90, 16, 0.85)',
+  'rgba(91, 95, 101, 0.85)',
+  'rgba(20, 110, 90, 0.85)',
+];
+
 const CitizenElectionDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const [election, setElection] = useState<ElectionDto | null>(null);
+  const [candidates, setCandidates] = useState<CandidateDto[]>([]);
+  const [results, setResults] = useState<VoteResultLineDto[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const navItems = [
     { label: 'Tableau de bord', to: '/citoyen/dashboard' },
     { label: 'Elections', to: '/citoyen/elections' },
@@ -610,64 +645,99 @@ const CitizenElectionDetail = () => {
     { label: 'Profil', to: '/citoyen/profil' },
   ];
 
-  const election = {
-    title: 'Presidentielle 2025',
-    status: 'live' as const,
-    start: '08/03/2025',
-    end: '12/03/2025',
-    zone: 'Nationale',
-    rules: 'Un vote unique par citoyen.',
-    participation: 62,
-    hasVoted: false,
-  };
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      setError('Election introuvable.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      api.elections.get(id),
+      api.elections.getCandidates(id),
+      api.votes.results(id).catch(() => null),
+    ])
+      .then(([electionData, candidatesData, resultsData]) => {
+        setElection(electionData);
+        setCandidates(candidatesData);
+        setResults(resultsData?.results ?? []);
+        setLastUpdate(new Date());
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Erreur de chargement de l election.');
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const candidates = [
-    {
-      id: 'c1',
-      name: 'Aicha Ndiaye',
-      party: 'Union Civique',
-      votes: 18450,
-      program: 'Programme-Aicha.pdf',
-      intro:
-        'Priorite a la cohesion sociale, au renforcement des institutions et a une economie locale dynamique. Education, sante et proximite seront les piliers des 100 premiers jours...',
-    },
-    {
-      id: 'c2',
-      name: 'Moussa Diop',
-      party: 'Coalition Verte',
-      votes: 16280,
-      program: 'Programme-Moussa.pdf',
-      intro:
-        'Transition energetique acceleree, agriculture resiliente et gouvernance participative. Un plan climat local sera deploye avec des filieres d emploi vert...',
-    },
-    {
-      id: 'c3',
-      name: 'Mariam Sow',
-      party: 'Renouveau National',
-      votes: 12420,
-      program: 'Programme-Mariam.pdf',
-      intro:
-        'Modernisation des services publics, emploi des jeunes et digitalisation des procedures. L etat civil, les permis et les services sociaux seront simplifies...',
-    },
-  ];
+  const candidateColors = useMemo(() => {
+    const byId: Record<string, string> = {};
+    candidates.forEach((c, index) => {
+      byId[c.id] = c.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
+    });
+    return byId;
+  }, [candidates]);
 
-  const candidateColors: Record<string, string> = {
-    'Aicha Ndiaye': 'rgba(31, 90, 51, 0.9)',
-    'Moussa Diop': 'rgba(38, 76, 140, 0.85)',
-    'Mariam Sow': 'rgba(138, 90, 16, 0.85)',
-  };
+  const votesByCandidate = useMemo(() => {
+    const map = new Map<string, number>();
+    results.forEach((line) => map.set(line.candidat_id, line.votes));
+    return map;
+  }, [results]);
 
-  const totalVotes = candidates.reduce((acc, c) => acc + c.votes, 0) || 1;
-  const candidatePercents = candidates.reduce<Record<string, number>>((acc, candidate) => {
-    acc[candidate.name] = Math.round((candidate.votes / totalVotes) * 100);
-    return acc;
-  }, {});
+  const totalVotes = useMemo(() => {
+    const fromResults = results.reduce((sum, line) => sum + line.votes, 0);
+    if (fromResults > 0) return fromResults;
+    return candidates.reduce((sum, c) => sum + c.votes_count, 0);
+  }, [results, candidates]);
 
-  const getStatusLabel = (status: 'live' | 'scheduled' | 'closed') => {
-    if (status === 'live') return 'En cours';
-    if (status === 'scheduled') return 'Programmee';
-    return 'Cloturee';
-  };
+  const candidatePercents = useMemo(() => {
+    const percentages: Record<string, number> = {};
+    const safeTotal = totalVotes > 0 ? totalVotes : 1;
+    candidates.forEach((candidate) => {
+      const votes = votesByCandidate.get(candidate.id) ?? candidate.votes_count;
+      percentages[candidate.id] = Math.round((votes / safeTotal) * 100);
+    });
+    return percentages;
+  }, [candidates, totalVotes, votesByCandidate]);
+
+  const participation = useMemo(() => {
+    if (!election || election.total_electeurs <= 0) return 0;
+    return Math.min(100, Math.round((totalVotes / election.total_electeurs) * 100));
+  }, [election, totalVotes]);
+
+  const daysRemaining = useMemo(() => {
+    if (!election) return 0;
+    const now = Date.now();
+    const end = new Date(election.date_fin).getTime();
+    const diff = end - now;
+    return diff <= 0 ? 0 : Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }, [election]);
+
+  if (loading) {
+    return (
+      <AppLayout role="Citoyen" title="Detail election" subtitle="Informations officielles et calendrier du scrutin." navItems={navItems}>
+        <PageShell>
+          <Panel>
+            <RulesText>Chargement des donnees de l election...</RulesText>
+          </Panel>
+        </PageShell>
+      </AppLayout>
+    );
+  }
+
+  if (error || !election) {
+    return (
+      <AppLayout role="Citoyen" title="Detail election" subtitle="Informations officielles et calendrier du scrutin." navItems={navItems}>
+        <PageShell>
+          <Panel>
+            <RulesText>{error ?? 'Election introuvable.'}</RulesText>
+          </Panel>
+        </PageShell>
+      </AppLayout>
+    );
+  }
+
+  const status = toUiStatus(election.statut);
 
   return (
     <AppLayout
@@ -681,23 +751,23 @@ const CitizenElectionDetail = () => {
           <HeaderSection>
             <HeroRow>
               <TitleGroup>
-                <Title>{election.title}</Title>
+                <Title>{election.titre}</Title>
                 <Subtitle>
                   Cadre officiel, suivi de participation et resultats consolides en temps reel.
                 </Subtitle>
               </TitleGroup>
               <BadgeRow>
-                <StatusPill $tone={election.status}>{getStatusLabel(election.status)}</StatusPill>
+                <StatusPill $tone={status}>{getStatusLabel(status)}</StatusPill>
               </BadgeRow>
             </HeroRow>
             <MetaRow>
               <MetaItem>
                 <MetaLabel>Periode:</MetaLabel>
-                <MetaValue>{election.start} - {election.end}</MetaValue>
+                <MetaValue>{formatDate(election.date_debut)} - {formatDate(election.date_fin)}</MetaValue>
               </MetaItem>
               <MetaItem>
                 <MetaLabel>Zone:</MetaLabel>
-                <MetaValue>{election.zone}</MetaValue>
+                <MetaValue>{election.region || 'Nationale'}</MetaValue>
               </MetaItem>
             </MetaRow>
           </HeaderSection>
@@ -706,10 +776,10 @@ const CitizenElectionDetail = () => {
             <ParticipationCard>
               <ParticipationHeader>
                 <ParticipationTitle>Taux de participation</ParticipationTitle>
-                <ParticipationValue>{election.participation}%</ParticipationValue>
+                <ParticipationValue>{participation}%</ParticipationValue>
               </ParticipationHeader>
               <ProgressBarContainer>
-                <ProgressBar $percentage={election.participation} />
+                <ProgressBar $percentage={participation} />
               </ProgressBarContainer>
               <StatsRow>
                 <StatItem>
@@ -721,7 +791,7 @@ const CitizenElectionDetail = () => {
                   <StatLabel>Candidats</StatLabel>
                 </StatItem>
                 <StatItem>
-                  <StatValue>4</StatValue>
+                  <StatValue>{daysRemaining}</StatValue>
                   <StatLabel>Jours restants</StatLabel>
                 </StatItem>
               </StatsRow>
@@ -729,39 +799,38 @@ const CitizenElectionDetail = () => {
 
             <RulesCard>
               <RulesTitle>Regles du scrutin</RulesTitle>
-              <RulesText>{election.rules}</RulesText>
+              <RulesText>{election.description || 'Un vote unique par citoyen.'}</RulesText>
             </RulesCard>
           </SummaryGrid>
 
           <Section>
             <SectionRow>
               <SectionTitle>Resultats en temps reel</SectionTitle>
-              <Meta>Derniere mise a jour: 12:46</Meta>
+              <Meta>
+                Derniere mise a jour: {lastUpdate ? lastUpdate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+              </Meta>
             </SectionRow>
             <ChartCard>
               <ChartHeader>
                 <ChartTitle>Diagramme des voix par candidat</ChartTitle>
                 <ChartLegend>
-                  <LegendDot $color={candidateColors['Aicha Ndiaye']}>
-                    Aicha Ndiaye · {candidatePercents['Aicha Ndiaye']}%
-                  </LegendDot>
-                  <LegendDot $color={candidateColors['Moussa Diop']}>
-                    Moussa Diop · {candidatePercents['Moussa Diop']}%
-                  </LegendDot>
-                  <LegendDot $color={candidateColors['Mariam Sow']}>
-                    Mariam Sow · {candidatePercents['Mariam Sow']}%
-                  </LegendDot>
+                  {candidates.map((candidate) => (
+                    <LegendDot key={candidate.id} $color={candidateColors[candidate.id]}>
+                      {candidate.prenom} {candidate.nom} · {candidatePercents[candidate.id] ?? 0}%
+                    </LegendDot>
+                  ))}
                 </ChartLegend>
               </ChartHeader>
               <BarChart>
                 <BarGrid>
                   {candidates.map((candidate) => {
-                    const percent = candidatePercents[candidate.name];
+                    const votes = votesByCandidate.get(candidate.id) ?? candidate.votes_count;
+                    const percent = candidatePercents[candidate.id] ?? 0;
                     return (
                       <BarColumn key={candidate.id}>
                         <BarValue>{percent}%</BarValue>
-                        <BarStick $value={percent} $color={candidateColors[candidate.name]} />
-                        <BarLabel>{candidate.name}</BarLabel>
+                        <BarStick $value={percent} $color={candidateColors[candidate.id]} />
+                        <BarLabel>{candidate.prenom} {candidate.nom} ({votes.toLocaleString()})</BarLabel>
                       </BarColumn>
                     );
                   })}
@@ -774,39 +843,41 @@ const CitizenElectionDetail = () => {
             <SectionRow>
               <SectionTitle>Liste des candidats</SectionTitle>
               <Meta>{candidates.length} candidats</Meta>
-              {election.status === 'live' && !election.hasVoted ? (
+              {status === 'live' ? (
                 <PrimaryButton to="/citoyen/vote">Voter</PrimaryButton>
               ) : null}
             </SectionRow>
             <CandidateGrid>
               {candidates.map((candidate) => {
-                const percent = candidatePercents[candidate.name];
+                const votes = votesByCandidate.get(candidate.id) ?? candidate.votes_count;
+                const percent = candidatePercents[candidate.id] ?? 0;
+                const fullName = `${candidate.prenom} ${candidate.nom}`;
                 return (
                   <CandidateCard key={candidate.id}>
                     <CandidateHeader>
                       <CandidateAvatar>
-                        {candidate.name
+                        {fullName
                           .split(' ')
                           .map((part) => part[0])
                           .slice(0, 2)
                           .join('')}
                       </CandidateAvatar>
                       <CandidateInfo>
-                        <CandidateName>{candidate.name}</CandidateName>
+                        <CandidateName>{fullName}</CandidateName>
                         <CandidateMeta>
-                          {candidate.party}
+                          {candidate.parti_politique || 'Parti non renseigne'}
                           <CandidateVotes>
-                            {candidate.votes.toLocaleString()} voix ({percent}%)
+                            {votes.toLocaleString()} voix ({percent}%)
                           </CandidateVotes>
                         </CandidateMeta>
                       </CandidateInfo>
                     </CandidateHeader>
-                    <CandidateDesc>{candidate.intro}</CandidateDesc>
+                    <CandidateDesc>{candidate.biographie || 'Biographie non renseignee.'}</CandidateDesc>
                     <CandidateProgress>
                       <CandidateProgressTrack>
                         <CandidateProgressFill
                           $percentage={percent}
-                          $color={candidateColors[candidate.name]}
+                          $color={candidateColors[candidate.id]}
                         />
                       </CandidateProgressTrack>
                     </CandidateProgress>

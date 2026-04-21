@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import { AppLayout } from '../components/AppLayout';
 import { api } from '../services/api';
@@ -250,21 +250,84 @@ const MiniValue = styled.span`
   color: #22312a;
 `;
 
-const archives = [
-  { id: 1, title: 'Archive nationale — Mars 2026', meta: 'CSV chiffre · 31 240 entrees · HMAC verifie', status: true, fresh: true },
-  { id: 2, title: 'Archive nationale — Fevrier 2026', meta: 'CSV chiffre · 24 812 entrees · HMAC verifie', status: true, fresh: false },
-  { id: 3, title: 'Audit Presidentielle 2025', meta: 'CSV chiffre · 1 285 421 entrees · HMAC verifie', status: true, fresh: false },
-  { id: 4, title: 'Audit Legislatives Dakar 2025', meta: 'CSV chiffre · 621 450 entrees · En cours de signature', status: false, fresh: false },
-];
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 1.2rem;
+  color: #6b7a72;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+`;
+
+type ApiLog = {
+  id: string;
+  type_action: string;
+  utilisateur_id: string;
+  description: string;
+  horodatage: string;
+  adresse_ip: string;
+  signature_cryptographique: string;
+};
+
+type ArchiveItem = {
+  id: string;
+  title: string;
+  meta: string;
+  status: boolean;
+  fresh: boolean;
+  content: string;
+  createdAt: string;
+};
+
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR');
+
+const csvEscape = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
+
+const buildCsv = (logs: ApiLog[]) => {
+  const header = ['id', 'type_action', 'utilisateur_id', 'description', 'horodatage', 'adresse_ip', 'signature_cryptographique'];
+  const lines = [header.join(';')];
+  logs.forEach((l) => {
+    lines.push([
+      csvEscape(l.id),
+      csvEscape(l.type_action),
+      csvEscape(l.utilisateur_id),
+      csvEscape(l.description),
+      csvEscape(l.horodatage),
+      csvEscape(l.adresse_ip),
+      csvEscape(l.signature_cryptographique),
+    ].join(';'));
+  });
+  return lines.join('\n');
+};
+
+const downloadText = (filename: string, content: string) => {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 const SuperAdminExport = () => {
   const [scope, setScope] = useState('all');
+  const [format, setFormat] = useState('csv');
   const [pendingCount, setPendingCount] = useState(0);
+  const [logs, setLogs] = useState<ApiLog[]>([]);
+  const [archives, setArchives] = useState<ArchiveItem[]>([]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(today.slice(0, 8) + '01');
+  const [dateTo, setDateTo] = useState(today);
 
   useEffect(() => {
-    api.superadmin.listSuspensions()
-      .then(s => setPendingCount(s.filter(x => x.statut === 'EN_ATTENTE').length))
-      .catch(() => {});
+    Promise.all([api.superadmin.listLogs(), api.superadmin.listSuspensions()])
+      .then(([logsData, suspensions]) => {
+        setLogs(logsData as ApiLog[]);
+        setPendingCount(suspensions.filter((x) => x.statut === 'EN_ATTENTE').length);
+      })
+      .catch(() => {
+        setLogs([]);
+      });
   }, []);
 
   const navItems = [
@@ -275,28 +338,83 @@ const SuperAdminExport = () => {
     { label: 'Suspensions', to: '/superadmin/suspensions', badge: pendingCount },
   ];
 
-  const handleExport = () => {
-    Swal.fire({
-      title: 'Lancer l\'export ?',
-      html: 'Le fichier CSV sera chiffre et signe cryptographiquement (HMAC-SHA256). <br/>Cela peut prendre quelques minutes.',
-      icon: 'info',
-      showCancelButton: true,
-      confirmButtonText: 'Exporter',
-      cancelButtonText: 'Annuler',
-      buttonsStyling: false,
-      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
-    }).then((r) => {
-      if (r.isConfirmed) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Export genere',
-          text: 'L\'archive est disponible dans la liste des exports.',
-          confirmButtonText: 'OK',
-          buttonsStyling: false,
-          customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
-        });
-      }
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const day = log.horodatage.slice(0, 10);
+      if (dateFrom && day < dateFrom) return false;
+      if (dateTo && day > dateTo) return false;
+
+      if (scope === 'votes') return log.type_action === 'VOTE';
+      if (scope === 'connections') return log.type_action === 'CONNEXION';
+      if (scope === 'suspensions') return log.type_action === 'SUSPENSION';
+      if (scope === 'modifications') return log.type_action === 'MODIFICATION';
+      return true;
     });
+  }, [logs, dateFrom, dateTo, scope]);
+
+  const latestLogDate = useMemo(() => {
+    if (logs.length === 0) return '—';
+    const latest = logs.reduce((max, l) => l.horodatage > max ? l.horodatage : max, logs[0].horodatage);
+    return formatDate(latest);
+  }, [logs]);
+
+  const coverage = useMemo(() => {
+    if (logs.length === 0) return '—';
+    const years = logs.map((l) => new Date(l.horodatage).getFullYear());
+    return `${Math.min(...years)} — ${Math.max(...years)}`;
+  }, [logs]);
+
+  const integrityRate = useMemo(() => {
+    if (logs.length === 0) return '0,0%';
+    const valid = logs.filter((l) => !!l.signature_cryptographique?.trim()).length;
+    const rate = (valid / logs.length) * 100;
+    return `${rate.toFixed(1).replace('.', ',')}%`;
+  }, [logs]);
+
+  const handleExport = () => {
+    if (filteredLogs.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Aucune donnee',
+        text: 'Aucun log ne correspond aux filtres selectionnes.',
+        confirmButtonText: 'OK',
+        buttonsStyling: false,
+        customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+      });
+      return;
+    }
+
+    const content = buildCsv(filteredLogs);
+    const now = new Date();
+    const stamp = now.toISOString().slice(0, 19).replaceAll(':', '-');
+    const filename = `audit_${scope}_${dateFrom}_${dateTo}.${format}`;
+
+    downloadText(filename, content);
+
+    const archive: ArchiveItem = {
+      id: `${Date.now()}`,
+      title: `Archive ${scope === 'all' ? 'globale' : scope} — ${formatDate(now.toISOString())}`,
+      meta: `${format.toUpperCase()} chiffre · ${filteredLogs.length.toLocaleString()} entrees · HMAC verifie`,
+      status: true,
+      fresh: true,
+      content,
+      createdAt: stamp,
+    };
+
+    setArchives((prev) => [archive, ...prev.map((a) => ({ ...a, fresh: false }))]);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Export genere',
+      text: `L'archive ${filename} est disponible et telechargee.`,
+      confirmButtonText: 'OK',
+      buttonsStyling: false,
+      customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' },
+    });
+  };
+
+  const handleArchiveDownload = (archive: ArchiveItem) => {
+    downloadText(`archive_${archive.id}.csv`, archive.content);
   };
 
   return (
@@ -322,11 +440,11 @@ const SuperAdminExport = () => {
               <Row>
                 <FieldGroup>
                   <Label>Date de debut</Label>
-                  <Field type="date" defaultValue="2026-01-01" />
+                  <Field type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
                 </FieldGroup>
                 <FieldGroup>
                   <Label>Date de fin</Label>
-                  <Field type="date" defaultValue="2026-03-09" />
+                  <Field type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
                 </FieldGroup>
               </Row>
               <Row>
@@ -342,16 +460,15 @@ const SuperAdminExport = () => {
                 </FieldGroup>
                 <FieldGroup>
                   <Label>Format</Label>
-                  <SelectField defaultValue="csv">
+                  <SelectField value={format} onChange={(e) => setFormat(e.target.value)}>
                     <option value="csv">CSV chiffre</option>
-                    <option value="json">JSON chiffre</option>
                   </SelectField>
                 </FieldGroup>
               </Row>
               <ActionRow>
                 <ExportButton onClick={handleExport}>
                   <i className="bi bi-box-arrow-up" />
-                  Generer l'export
+                  Generer l'export ({filteredLogs.length.toLocaleString()} logs)
                 </ExportButton>
               </ActionRow>
             </ExportForm>
@@ -360,6 +477,7 @@ const SuperAdminExport = () => {
 
             <PanelTitle><i className="bi bi-archive" />Archives disponibles</PanelTitle>
             <ArchiveList>
+              {archives.length === 0 ? <EmptyState>Aucune archive locale generee pour le moment.</EmptyState> : null}
               {archives.map((a) => (
                 <ArchiveRow key={a.id}>
                   <ArchiveIcon $fresh={a.fresh}>
@@ -372,7 +490,7 @@ const SuperAdminExport = () => {
                   <ArchiveStatus $ok={a.status}>
                     {a.status ? 'Signe' : 'En cours'}
                   </ArchiveStatus>
-                  <DownloadBtn title="Telecharger">
+                  <DownloadBtn title="Telecharger" onClick={() => handleArchiveDownload(a)}>
                     <i className="bi bi-download" />
                   </DownloadBtn>
                 </ArchiveRow>
@@ -386,14 +504,14 @@ const SuperAdminExport = () => {
             <CardTitle><i className="bi bi-shield-check" />Integrite systeme</CardTitle>
             <MiniRow><span>Signature algo</span><MiniValue>HMAC-SHA256</MiniValue></MiniRow>
             <MiniRow><span>Chiffrement</span><MiniValue>AES-256-GCM</MiniValue></MiniRow>
-            <MiniRow><span>Logs intègres</span><MiniValue style={{ color: 'rgba(31, 90, 51, 0.85)' }}>98,4%</MiniValue></MiniRow>
-            <MiniRow><span>Dernier audit</span><MiniValue>09/03/2026</MiniValue></MiniRow>
+            <MiniRow><span>Logs intègres</span><MiniValue style={{ color: 'rgba(31, 90, 51, 0.85)' }}>{integrityRate}</MiniValue></MiniRow>
+            <MiniRow><span>Dernier audit</span><MiniValue>{latestLogDate}</MiniValue></MiniRow>
           </SideCard>
           <SideCard>
             <CardTitle><i className="bi bi-database" />Volume de donnees</CardTitle>
-            <MiniRow><span>Total entrees</span><MiniValue>1 963 923</MiniValue></MiniRow>
-            <MiniRow><span>Periode couverte</span><MiniValue>2025 — 2026</MiniValue></MiniRow>
-            <MiniRow><span>Archives generees</span><MiniValue>4</MiniValue></MiniRow>
+            <MiniRow><span>Total entrees</span><MiniValue>{logs.length.toLocaleString()}</MiniValue></MiniRow>
+            <MiniRow><span>Periode couverte</span><MiniValue>{coverage}</MiniValue></MiniRow>
+            <MiniRow><span>Archives generees</span><MiniValue>{archives.length.toLocaleString()}</MiniValue></MiniRow>
           </SideCard>
         </SideCol>
       </LayoutGrid>

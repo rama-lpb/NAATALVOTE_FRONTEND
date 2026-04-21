@@ -135,10 +135,10 @@ const NavItemLink = styled(Link)<{ $active?: boolean; $collapsed?: boolean }>`
   color: ${({ $active }) => ($active ? '#ffffff' : '#2f3b36')};
   background: ${({ $active }) =>
     $active
-      ? 'rgba(31, 90, 51, 0.52)'
-      : 'rgba(255, 255, 255, 0.35)'};
+      ? 'linear-gradient(135deg, #1f5a33 0%, #2d7a45 100%)'
+      : 'rgba(255, 255, 255, 0.64)'};
   border: 1px solid ${({ $active }) =>
-    $active ? 'rgba(31, 90, 51, 0.45)' : 'rgba(31, 90, 51, 0.14)'};
+    $active ? 'rgba(31, 90, 51, 0.50)' : 'rgba(31, 90, 51, 0.2)'};
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: ${({ $active }) =>
@@ -157,7 +157,7 @@ const NavItemLink = styled(Link)<{ $active?: boolean; $collapsed?: boolean }>`
   }
   &:hover {
     background: ${({ $active }) =>
-      $active ? 'rgba(31, 90, 51, 0.65)' : 'rgba(31, 90, 51, 0.1)'};
+      $active ? 'linear-gradient(135deg, #215d36 0%, #307f49 100%)' : 'rgba(31, 90, 51, 0.22)'};
     box-shadow: ${({ $active }) =>
       $active
         ? '0 6px 16px rgba(31, 90, 51, 0.25), inset 0 1px 0 rgba(255,255,255,0.15)'
@@ -202,7 +202,7 @@ const SideLink = styled(Link)<{ $collapsed?: boolean; $danger?: boolean }>`
   padding: 0.4rem 0.6rem;
   border-radius: 10px;
   background: ${({ $danger }) =>
-    $danger ? 'rgba(176, 58, 46, 0.08)' : 'rgba(255, 255, 255, 0.3)'};
+    $danger ? 'rgba(176, 58, 46, 0.14)' : 'rgba(255, 255, 255, 0.56)'};
   border: 1px solid ${({ $danger }) =>
     $danger ? 'rgba(176, 58, 46, 0.18)' : 'rgba(31, 90, 51, 0.12)'};
   backdrop-filter: blur(8px);
@@ -228,7 +228,7 @@ const LogoutBtn = styled.button<{ $collapsed?: boolean }>`
   font-size: 0.95rem;
   padding: 0.4rem 0.6rem;
   border-radius: 10px;
-  background: rgba(176, 58, 46, 0.08);
+  background: rgba(176, 58, 46, 0.16);
   border: 1px solid rgba(176, 58, 46, 0.18);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -319,8 +319,8 @@ const NotifBtn = styled.button`
   height: 34px;
   border-radius: 10px;
   border: 1px solid rgba(31, 90, 51, 0.14);
-  background: rgba(255, 255, 255, 0.5);
-  color: rgba(31, 90, 51, 0.6);
+  background: rgba(255, 255, 255, 0.74);
+  color: rgba(31, 90, 51, 0.84);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -398,7 +398,7 @@ const Body = styled.div`
 
 const ToggleButton = styled.button`
   border: 1px solid rgba(31, 90, 51, 0.18);
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.82);
   color: #1f5a33;
   border-radius: 10px;
   height: 36px;
@@ -864,7 +864,7 @@ export const AppLayout = ({ role, title, subtitle, navItems, actions, children }
         <Sidebar $collapsed={collapsed}>
           <Brand>
             <LogoNaatalVote size={64} />
-            <BrandText $collapsed={collapsed}>NATAALVOTE</BrandText>
+            <BrandText $collapsed={collapsed}>NAATALVOTE</BrandText>
           </Brand>
           <Divider />
           <Nav>

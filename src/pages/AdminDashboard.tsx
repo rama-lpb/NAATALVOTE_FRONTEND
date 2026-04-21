@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { useRef, useEffect, useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
-import { api, type ElectionDto } from '../services/api';
+import { api, type AdminCreationHistoryDto, type ElectionDto } from '../services/api';
 import { useAppSelector } from '../store/hooks';
 
 const LayoutGrid = styled.div`
@@ -118,6 +118,34 @@ const RowMeta = styled.div`
   font-size: 0.85rem;
 `;
 
+const HistoryList = styled.div`
+  display: grid;
+  gap: 0.7rem;
+`;
+
+const HistoryRow = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: rgba(31, 90, 51, 0.04);
+  border: 1px solid rgba(31, 90, 51, 0.08);
+`;
+
+const HistoryType = styled.span<{ $candidate?: boolean }>`
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  white-space: nowrap;
+  color: ${({ $candidate }) => ($candidate ? '#1e40af' : '#1f5a33')};
+  background: ${({ $candidate }) => ($candidate ? 'rgba(30, 64, 175, 0.1)' : 'rgba(31, 90, 51, 0.12)')};
+  border: 1px solid ${({ $candidate }) => ($candidate ? 'rgba(30, 64, 175, 0.2)' : 'rgba(31, 90, 51, 0.2)')};
+`;
+
 const Tag = styled.span<{ $tone: 'success' | 'pending' | 'info' }>`
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
@@ -140,16 +168,20 @@ const ActionButton = styled(Link)`
   text-decoration: none;
   padding: 0.6rem 1.1rem;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(31, 90, 51, 0.65), rgba(31, 90, 51, 0.5));
+  background: linear-gradient(135deg, #1f5a33 0%, #2d7a45 100%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(31, 90, 51, 0.4);
+  border: 1px solid #1f5a33;
   color: #ffffff;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
   font-size: 0.9rem;
   transition: all 0.2s;
-  &:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(31, 90, 51, 0.3); }
+  &:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #215d36 0%, #307f49 100%);
+    box-shadow: 0 4px 12px rgba(31, 90, 51, 0.3);
+  }
 `;
 
 const SecondaryButton = styled(Link)`
@@ -235,8 +267,14 @@ const VotesChart = ({ elections }: { elections: ElectionDto[] }) => {
   const h = 160;
   const chartW = width - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
-  const barW = Math.max((chartW / data.length) * 0.55, 8);
-  const gap = chartW / data.length;
+  const gap = chartW / Math.max(data.length - 1, 1);
+  const points = data.map((e, i) => {
+    const x = pad.left + i * gap;
+    const y = pad.top + chartH - (e.votes_count / maxVotes) * chartH;
+    return { x, y, label: e.titre.length > 10 ? `${e.titre.slice(0, 10)}…` : e.titre, votes: e.votes_count };
+  });
+  const path = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${path} L ${points[points.length - 1].x} ${pad.top + chartH} L ${points[0].x} ${pad.top + chartH} Z`;
 
   return (
     <ChartContainer ref={containerRef}>
@@ -250,18 +288,14 @@ const VotesChart = ({ elections }: { elections: ElectionDto[] }) => {
             </g>
           );
         })}
-        {data.map((e, i) => {
-          const barH = Math.max((e.votes_count / maxVotes) * chartH, 1);
-          const x = pad.left + i * gap + (gap - barW) / 2;
-          const y = pad.top + chartH - barH;
-          const label = e.titre.length > 10 ? e.titre.slice(0, 10) + '…' : e.titre;
-          return (
-            <g key={e.id}>
-              <rect x={x} y={y} width={barW} height={barH} fill="rgba(31,90,51,0.55)" rx="3" />
-              <text x={x + barW / 2} y={pad.top + chartH + 14} fill="rgba(31,90,51,0.45)" fontSize="7" fontFamily="Poppins" textAnchor="middle">{label}</text>
-            </g>
-          );
-        })}
+        <path d={areaPath} fill="rgba(31,90,51,0.14)" />
+        <path d={path} fill="none" stroke="rgba(31,90,51,0.82)" strokeWidth="2.8" strokeLinecap="round" />
+        {points.map((p, i) => (
+          <g key={data[i].id}>
+            <circle cx={p.x} cy={p.y} r="3.8" fill="rgba(31,90,51,0.95)" />
+            <text x={p.x} y={pad.top + chartH + 14} fill="rgba(31,90,51,0.55)" fontSize="7" fontFamily="Poppins" textAnchor="middle">{p.label}</text>
+          </g>
+        ))}
       </ChartSvg>
     </ChartContainer>
   );
@@ -269,6 +303,7 @@ const VotesChart = ({ elections }: { elections: ElectionDto[] }) => {
 
 const navItems = [
   { label: 'Tableau admin', to: '/admin/dashboard' },
+  { label: 'Elections creees', to: '/admin/elections' },
   { label: 'Programmer election', to: '/admin/election/create' },
   { label: 'Candidats', to: '/admin/candidats' },
   { label: 'Statistiques', to: '/admin/statistiques' },
@@ -278,14 +313,43 @@ const navItems = [
 const AdminDashboard = () => {
   const currentUser = useAppSelector(s => s.auth.user);
   const [elections, setElections] = useState<ElectionDto[]>([]);
+  const [creationHistory, setCreationHistory] = useState<AdminCreationHistoryDto[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.admin.listElections()
-      .then(setElections)
-      .catch(() => setElections([]))
+    Promise.all([
+      api.admin.listElections(currentUser?.id),
+      api.admin.listCreationHistory(currentUser?.id, 12),
+    ])
+      .then(async ([electionsData, historyData]) => {
+        let nextElections = electionsData;
+        let nextHistory = historyData;
+
+        if (currentUser?.id && electionsData.length === 0) {
+          try {
+            nextElections = await api.admin.listElections();
+          } catch {
+            nextElections = [];
+          }
+        }
+
+        if (currentUser?.id && historyData.length === 0) {
+          try {
+            nextHistory = await api.admin.listCreationHistory(undefined, 12);
+          } catch {
+            nextHistory = [];
+          }
+        }
+
+        setElections(nextElections);
+        setCreationHistory(nextHistory);
+      })
+      .catch(() => {
+        setElections([]);
+        setCreationHistory([]);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentUser?.id]);
 
   const active = elections.filter(e => e.statut === 'EN_COURS');
   const totalVotes = elections.reduce((s, e) => s + e.votes_count, 0);
@@ -300,6 +364,7 @@ const AdminDashboard = () => {
       navItems={navItems}
       actions={
         <>
+          <SecondaryButton to="/admin/elections">Liste elections</SecondaryButton>
           <SecondaryButton to="/admin/candidats">Gerer candidats</SecondaryButton>
           <ActionButton to="/admin/election/create">Nouvelle election</ActionButton>
         </>
@@ -355,6 +420,7 @@ const AdminDashboard = () => {
               <CardTitle>Scrutins programmes</CardTitle>
               <ActionRow>
                 <SecondaryButton to="/admin/candidats">Voir candidats</SecondaryButton>
+                <SecondaryButton to="/admin/candidats/nouveau">Ajouter candidat</SecondaryButton>
                 <ActionButton to="/admin/election/create">Creer election</ActionButton>
               </ActionRow>
             </HeaderSection>
@@ -377,6 +443,43 @@ const AdminDashboard = () => {
                   </Row>
                 ))}
               </Table>
+            )}
+          </Card>
+
+          <Card>
+            <HeaderSection>
+              <CardTitle>Historique de creation</CardTitle>
+              <ActionRow>
+                <SecondaryButton to="/admin/candidats/nouveau">Ajouter candidat</SecondaryButton>
+                <ActionButton to="/admin/candidats">Gestion candidats</ActionButton>
+              </ActionRow>
+            </HeaderSection>
+            {loading ? (
+              <RowMeta>Chargement…</RowMeta>
+            ) : creationHistory.length === 0 ? (
+              <RowMeta>Aucun historique de creation disponible pour le moment.</RowMeta>
+            ) : (
+              <HistoryList>
+                {creationHistory.map((item) => (
+                  <HistoryRow key={item.id}>
+                    <HistoryType $candidate={item.type_action === 'CREATE_CANDIDATE'}>
+                      {item.type_action === 'CREATE_CANDIDATE' ? 'Candidat' : 'Election'}
+                    </HistoryType>
+                    <div>
+                      <RowTitle>{item.description || 'Action de creation'}</RowTitle>
+                    </div>
+                    <RowMeta>
+                      {new Date(item.horodatage).toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </RowMeta>
+                  </HistoryRow>
+                ))}
+              </HistoryList>
             )}
           </Card>
         </MainColumn>

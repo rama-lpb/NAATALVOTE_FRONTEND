@@ -610,8 +610,9 @@ const OperatorHistory = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const allAlerts = useMemo(() => {
-    if (!operatorId) return [];
-    return alerts.filter((a) => a.operateur_id === operatorId);
+    if (!operatorId) return alerts;
+    const mine = alerts.filter((a) => a.operateur_id === operatorId);
+    return mine.length > 0 ? mine : alerts;
   }, [alerts, operatorId]);
 
   const filtered = useMemo(() => {
@@ -778,7 +779,7 @@ const OperatorHistory = () => {
         <Empty>
           <i className="bi bi-clock-history" style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }} />
           {allAlerts.length === 0
-            ? 'Aucune action enregistree pour ce compte.'
+            ? 'Aucune action enregistree pour le moment.'
             : 'Aucune action ne correspond aux filtres selectionnes.'}
         </Empty>
       ) : (

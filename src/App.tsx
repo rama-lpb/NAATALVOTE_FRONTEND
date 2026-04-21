@@ -15,6 +15,7 @@ import CitizenResults from './pages/CitizenResults';
 import CitizenProfile from './pages/CitizenProfile';
 import CitizenOTP from './pages/CitizenOTP';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminElections from './pages/AdminElections';
 import AdminCreateElection from './pages/AdminCreateElection';
 import AdminCandidates from './pages/AdminCandidates';
 import AdminStats from './pages/AdminStats';
@@ -47,7 +48,7 @@ function App() {
 
         <Route path="/citoyen/dashboard" element={<CitizenDashboard />} />
         <Route path="/citoyen/elections" element={<CitizenElections />} />
-        <Route path="/citoyen/elections/detail" element={<CitizenElectionDetail />} />
+        <Route path="/citoyen/elections/:id/detail" element={<CitizenElectionDetail />} />
         <Route path="/citoyen/candidats" element={<CitizenCandidates />} />
         <Route path="/citoyen/candidats/:id" element={<CitizenCandidateDetail />} />
         <Route path="/citoyen/vote" element={<CitizenVote />} />
@@ -57,6 +58,7 @@ function App() {
         <Route path="/citoyen/profil" element={<CitizenProfile />} />
 
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/elections" element={<AdminElections />} />
         <Route path="/admin/election/create" element={<AdminCreateElection />} />
         <Route path="/admin/candidats" element={<AdminCandidates />} />
         <Route path="/admin/candidats/nouveau" element={<AdminCandidateForm />} />

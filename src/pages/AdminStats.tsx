@@ -21,13 +21,6 @@ const ILLUS_AGE_GROUPS = [
   { label: '55+ ans',     value: 12, color: 'rgba(31, 90, 51, 0.5)' },
 ];
 
-const ILLUS_REGIONS = [
-  { label: 'Dakar',       value: 68, color: 'rgba(31, 90, 51, 0.6)' },
-  { label: 'Thies',       value: 57, color: 'rgba(31, 90, 51, 0.6)' },
-  { label: 'Saint-Louis', value: 49, color: 'rgba(138, 90, 16, 0.6)' },
-  { label: 'Ziguinchor',  value: 53, color: 'rgba(91, 95, 101, 0.6)' },
-];
-
 const ILLUS_HOURLY = [
   { hour: '08h', votes: 120 },
   { hour: '10h', votes: 350 },
@@ -36,6 +29,13 @@ const ILLUS_HOURLY = [
   { hour: '16h', votes: 510 },
   { hour: '18h', votes: 380 },
   { hour: '20h', votes: 190 },
+];
+
+const DEMO_CANDIDATE_DISTRIBUTION = [
+  { label: 'Cheikh NDIAYE', votes: 420000, percent: 23, color: 'rgba(31, 90, 51, 0.56)' },
+  { label: 'Rokhaya FALL', votes: 222500, percent: 12, color: 'rgba(138, 90, 16, 0.52)' },
+  { label: 'Aminata DIOP', votes: 680000, percent: 37, color: 'rgba(38, 76, 140, 0.54)' },
+  { label: 'Ibrahima SOW', votes: 515000, percent: 28, color: 'rgba(91, 95, 101, 0.55)' },
 ];
 
 // ─── Styled components ───────────────────────────────────────────────────────
@@ -260,6 +260,79 @@ const EmptyMsg = styled.div`
   padding: 1.5rem 0;
 `;
 
+const EmptyState = styled.div`
+  display: grid;
+  gap: 0.7rem;
+  background: linear-gradient(140deg, rgba(31, 90, 51, 0.06), rgba(31, 90, 51, 0.02));
+  border: 1px solid rgba(31, 90, 51, 0.16);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+`;
+
+const EmptyTitle = styled.p`
+  margin: 0;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #234433;
+  font-size: 0.95rem;
+  font-weight: 600;
+`;
+
+const EmptyText = styled.p`
+  margin: 0;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  color: #5f7667;
+  font-size: 0.84rem;
+  line-height: 1.5;
+`;
+
+const EmptySteps = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+const EmptyStep = styled.span`
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  font-size: 0.78rem;
+  color: #1f5a33;
+  border: 1px solid rgba(31, 90, 51, 0.22);
+  background: rgba(255, 255, 255, 0.76);
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+`;
+
+const softenBarColor = (color: string): string => {
+  const rgbaMatch = color.match(/^rgba?\(([^)]+)\)$/i);
+  if (rgbaMatch) {
+    const parts = rgbaMatch[1].split(',').map((p) => p.trim());
+    if (parts.length === 4) {
+      const [r, g, b, a] = parts;
+      const alpha = Number(a);
+      if (!Number.isNaN(alpha)) {
+        const nextAlpha = Math.max(0.35, Math.min(0.58, alpha * 0.82));
+        return `rgba(${r}, ${g}, ${b}, ${nextAlpha.toFixed(2)})`;
+      }
+    }
+    if (parts.length === 3) {
+      const [r, g, b] = parts;
+      return `rgba(${r}, ${g}, ${b}, 0.52)`;
+    }
+  }
+
+  const hex = color.replace('#', '');
+  if (hex.length === 6 || hex.length === 3) {
+    const normalized = hex.length === 3 ? hex.split('').map((c) => `${c}${c}`).join('') : hex;
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    if (![r, g, b].some(Number.isNaN)) {
+      return `rgba(${r}, ${g}, ${b}, 0.52)`;
+    }
+  }
+
+  return 'rgba(31, 90, 51, 0.52)';
+};
+
 // ─── Candidate votes bar chart ────────────────────────────────────────────────
 
 const CandidateVotesChart = ({
@@ -277,7 +350,7 @@ const CandidateVotesChart = ({
         const cand = candidates.find(c => c.id === cv.candidat_id);
         const label = cand ? `${cand.prenom} ${cand.nom}` : `Candidat ${i + 1}`;
         const pct = Math.round((cv.votes / maxVotes) * 100);
-        const color = cand?.color ?? 'rgba(31, 90, 51, 0.6)';
+        const color = softenBarColor(cand?.color ?? 'rgba(31, 90, 51, 0.6)');
         return (
           <BarRow key={cv.candidat_id}>
             <BarLabel title={label}>{label}</BarLabel>
@@ -294,28 +367,50 @@ const CandidateVotesChart = ({
 
 const HourlyChart = () => {
   const maxV = Math.max(...ILLUS_HOURLY.map(p => p.votes));
+  const points = ILLUS_HOURLY
+    .map((peak, idx) => {
+      const x = 40 + idx * 86;
+      const y = 190 - (peak.votes / maxV) * 130;
+      return { x, y, label: peak.hour, votes: peak.votes };
+    });
+  const linePath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x} 200 L ${points[0].x} 200 Z`;
+
   return (
     <ChartBox>
       <ChartSvg viewBox="0 0 600 220" preserveAspectRatio="none">
-        {ILLUS_HOURLY.map((peak, idx) => {
-          const height = (peak.votes / maxV) * 160;
-          const y = 200 - height;
-          return (
-            <g key={idx}>
-              <rect x={30 + idx * 75} y={y} width="40" height={height} fill="rgba(31, 90, 51, 0.55)" rx="4" />
-              <text x={50 + idx * 75} y="215" textAnchor="middle" fontSize="11" fill="#6b6f72">{peak.hour}</text>
-            </g>
-          );
-        })}
+        <path d={areaPath} fill="rgba(31, 90, 51, 0.14)" />
+        <path d={linePath} fill="none" stroke="rgba(31, 90, 51, 0.78)" strokeWidth="3.2" strokeLinecap="round" />
+        {points.map((p, idx) => (
+          <g key={idx}>
+            <circle cx={p.x} cy={p.y} r="4.2" fill="rgba(31, 90, 51, 0.92)" />
+            <text x={p.x} y="215" textAnchor="middle" fontSize="11" fill="#6b6f72">{p.label}</text>
+          </g>
+        ))}
       </ChartSvg>
     </ChartBox>
   );
 };
 
+const DemoCandidateChart = () => (
+  <BarList>
+    {DEMO_CANDIDATE_DISTRIBUTION.map((row) => (
+      <BarRow key={row.label}>
+        <BarLabel title={`${row.label} · ${row.percent}%`}>
+          {row.label} · {row.percent}%
+        </BarLabel>
+        <BarTrack $pct={row.percent} $color={row.color} />
+        <BarValue>{row.votes.toLocaleString('fr-FR')}</BarValue>
+      </BarRow>
+    ))}
+  </BarList>
+);
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const navItems = [
   { label: 'Tableau admin', to: '/admin/dashboard' },
+  { label: 'Elections creees', to: '/admin/elections' },
   { label: 'Programmer election', to: '/admin/election/create' },
   { label: 'Candidats', to: '/admin/candidats' },
   { label: 'Statistiques', to: '/admin/statistiques' },
@@ -366,6 +461,37 @@ const AdminStats = () => {
     return result;
   }, [elections, selectedYear, electionType]);
 
+  const availableYears = useMemo(() => {
+    const years = new Set(
+      elections.map((e) => new Date(e.date_debut).getFullYear().toString())
+    );
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [elections]);
+
+  const availableTypes = useMemo(() => {
+    const types = new Set(elections.map((e) => e.type));
+    return Array.from(types).sort();
+  }, [elections]);
+
+  const regionParticipation = useMemo(() => {
+    const byRegion = new Map<string, { votes: number; electeurs: number }>();
+    elections.forEach((election) => {
+      const key = election.region || 'National';
+      const current = byRegion.get(key) ?? { votes: 0, electeurs: 0 };
+      current.votes += election.votes_count;
+      current.electeurs += election.total_electeurs;
+      byRegion.set(key, current);
+    });
+    return Array.from(byRegion.entries())
+      .map(([label, values], idx) => ({
+        label,
+        value: values.electeurs > 0 ? Math.round((values.votes / values.electeurs) * 100) : 0,
+        color: idx % 2 === 0 ? 'rgba(31, 90, 51, 0.6)' : 'rgba(138, 90, 16, 0.6)',
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [elections]);
+
   const selectedElection = elections.find(e => e.id === selectedId) ?? null;
 
   const handleElectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -415,9 +541,9 @@ const AdminStats = () => {
           <FilterLabel htmlFor="year-filter">Annee :</FilterLabel>
           <FilterSelect id="year-filter" value={selectedYear} onChange={handleYearChange}>
             <option value="all">Toutes les annees</option>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
+            {availableYears.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
           </FilterSelect>
         </FilterGroup>
 
@@ -425,9 +551,9 @@ const AdminStats = () => {
           <FilterLabel htmlFor="type-filter">Type :</FilterLabel>
           <FilterSelect id="type-filter" value={electionType} onChange={handleTypeChange}>
             <option value="all">Tous les types</option>
-            <option value="PRESIDENTIELLE">Presidentielle</option>
-            <option value="LEGISLATIVE">Legislative</option>
-            <option value="MUNICIPALE">Municipale</option>
+            {availableTypes.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
           </FilterSelect>
         </FilterGroup>
       </FilterBar>
@@ -475,7 +601,20 @@ const AdminStats = () => {
 
         {!selectedId && !loadingElections && (
           <Card>
-            <EmptyMsg>Selectionnez une election pour afficher les statistiques detaillees.</EmptyMsg>
+            <EmptyState>
+              <EmptyTitle>Selectionnez une election pour afficher les statistiques detaillees</EmptyTitle>
+              <EmptyText>
+                Choisissez d’abord une election dans le filtre du haut. En attendant, voici un aperçu
+                de vos diagrammes pour conserver une vue analytique.
+              </EmptyText>
+              <EmptySteps>
+                <EmptyStep>1. Choisir annee</EmptyStep>
+                <EmptyStep>2. Choisir type</EmptyStep>
+                <EmptyStep>3. Selectionner election</EmptyStep>
+              </EmptySteps>
+            </EmptyState>
+            <CardTitle style={{ marginTop: '1rem' }}>Diagramme des voix par candidat (aperçu)</CardTitle>
+            <DemoCandidateChart />
           </Card>
         )}
 
@@ -503,7 +642,7 @@ const AdminStats = () => {
               <IllusNote>(illustratif)</IllusNote>
             </CardTitle>
             <BarList>
-              {ILLUS_REGIONS.map((region, idx) => (
+              {regionParticipation.map((region, idx) => (
                 <BarRow key={idx}>
                   <BarLabel>{region.label}</BarLabel>
                   <BarTrack $pct={region.value} $color={region.color} />
@@ -516,12 +655,12 @@ const AdminStats = () => {
 
         <Card>
           <CardTitle>
-            Histogramme des pics de vote (heures)
+            Tendance des votes (courbe horaire)
             <IllusNote>(illustratif)</IllusNote>
           </CardTitle>
           <HourlyChart />
           <Legend>
-            <LegendItem><Dot $color="rgba(31, 90, 51, 0.55)" />Votes par heure</LegendItem>
+            <LegendItem><Dot $color="rgba(31, 90, 51, 0.75)" />Evolution par heure</LegendItem>
           </Legend>
         </Card>
       </Section>

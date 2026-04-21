@@ -71,10 +71,11 @@ const Page = styled.main<{ $direction?: 'left' | 'right' | 'none' }>`
 `;
 
 const Shell = styled.section`
-  width: 90vw;
+  width: 96vw;
+  max-width: 1640px;
   height: 95vh;
   display: grid;
-  grid-template-columns: 45% 55%;
+  grid-template-columns: 48% 52%;
   background: #ffffff;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
   border-radius: 28px;
@@ -143,7 +144,7 @@ const Title = styled.h1`
 
 const Tabs = styled.div`
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 2px solid rgba(25, 80, 45, 0.35);
@@ -161,19 +162,21 @@ const TabLink = styled(Link)<{ $active?: boolean }>`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   font-weight: 600;
   color: ${({ $active }) => ($active ? '#ffffff' : '#1f5a33')};
-  background: ${({ $active }) => ($active ? '#1f5a33' : '#ffffff')};
+  background: ${({ $active }) =>
+    $active ? 'linear-gradient(135deg, #1f5a33 0%, #2d7a45 100%)' : '#ffffff'};
   cursor: pointer;
   text-decoration: none;
   text-align: center;
   transition: background 0.2s ease, color 0.2s ease;
   &:hover {
-    background: ${({ $active }) => ($active ? '#245f37' : '#f4f7f4')};
+    background: ${({ $active }) =>
+      $active ? 'linear-gradient(135deg, #215d36 0%, #307f49 100%)' : '#f4f7f4'};
   }
 `;
 
 const Field = styled.input`
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   border: 2px solid rgba(0, 0, 0, 0.18);
   border-radius: 16px;
   padding: 0.95rem 1.2rem;
@@ -190,7 +193,7 @@ const Field = styled.input`
 
 const SelectField = styled.select`
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   border: 2px solid rgba(0, 0, 0, 0.18);
   border-radius: 16px;
   padding: 0.95rem 1.2rem;
@@ -208,23 +211,23 @@ const SelectField = styled.select`
 
 const SubmitButton = styled.button`
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
   border: none;
   border-radius: 14px;
   padding: 0.9rem 1.4rem;
   font-size: 1.4rem;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
   color: #ffffff;
-  background: rgba(31, 90, 51, 0.6);
+  background: linear-gradient(135deg, #1f5a33 0%, #2e7a46 100%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(31, 90, 51, 0.6);
+  border: 1px solid #1f5a33;
   cursor: pointer;
   margin-top: 0.6rem;
   animation: ${fadeUp} 1400ms ease-out;
   transition: background 0.2s;
   &:hover {
-    background: rgba(31, 90, 51, 0.72);
+    background: linear-gradient(135deg, #225f37 0%, #33804c 100%);
   }
 `;
 
@@ -241,8 +244,8 @@ const BackLink = styled(Link)`
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   backdrop-filter: blur(2px);
-  transition: background 0.2s, opacity 0.2s;
-  opacity: 0.9;
+  transition: background 0.2s;
+  opacity: 1;
   z-index: 9999;
   pointer-events: auto;
   display: block;
@@ -250,7 +253,6 @@ const BackLink = styled(Link)`
   height: auto;
   &:hover {
     background: rgba(31, 90, 51, 0.2);
-    opacity: 1;
   }
 `;
 
@@ -268,7 +270,7 @@ const Register = () => {
         <FormPanel>
           <LogoRow>
             <LogoNaatalVote size={120} />
-            NATAALVOTE
+            NAATALVOTE
           </LogoRow>
           <Title>Inscrivez vous</Title>
           <Tabs>
