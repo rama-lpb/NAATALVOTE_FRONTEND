@@ -156,7 +156,7 @@ const LogoutLink = styled.button`
 const roleDescriptions: Record<UserRole, string> = {
   CITOYEN: 'Consultez les elections, votez une seule fois et suivez les resultats en direct.',
   ADMIN: 'Programmez les elections, ajoutez des candidats et publiez les statistiques avancees.',
-  OPERATEUR: 'Analysez les alertes automatiques, marquez les comptes suspects et preparez les rapports.',
+  OPERATEUR: 'Qualifiez les alertes de fraude, recommandez des suspensions et preparez les rapports.',
   SUPERADMIN: 'Controlez les acces, validez les suspensions et exportez les logs immuables.'
 };
 
