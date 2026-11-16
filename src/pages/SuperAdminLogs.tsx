@@ -215,7 +215,7 @@ const SuperAdminLogs = () => {
   const [logs, setLogs] = useState<{
     id: string; type_action: string; utilisateur_id: string;
     description: string; horodatage: string; adresse_ip: string;
-    signature_cryptographique: string;
+    signature_cryptographique: string | null;
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -289,9 +289,8 @@ const SuperAdminLogs = () => {
                 <LogUser>{log.utilisateur_id.slice(0, 8)}…</LogUser>
                 <LogDesc title={log.description}>{log.description}</LogDesc>
                 <LogTime>{fmtHorodatage(log.horodatage)}</LogTime>
-                <HashBadge title={log.signature_cryptographique}>
-                  <i className="bi bi-check2" />
-                  {log.signature_cryptographique.slice(0, 5)}
+                <HashBadge title={log.signature_cryptographique ?? 'Signature non implementee'}>
+                  {log.signature_cryptographique ? log.signature_cryptographique.slice(0, 5) : '—'}
                 </HashBadge>
               </LogRow>
             ))}

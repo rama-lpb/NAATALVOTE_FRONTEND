@@ -232,11 +232,11 @@ export const Hero = ({ videoSrc, videoAlt }: HeroProps) => {
         <HeroText>
           Participez au scrutin en toute sécurité, partout au Sénégal, et suivez les résultats en direct.
           <br />
-          Votes chiffrés, anonymat du bulletin et publication des résultats vérifiable.
+          Bulletin séparé de l'identité, un seul vote par électeur et reçu vérifiable.
         </HeroText>
         <TrustRow>
           <TrustPill>Plateforme officielle</TrustPill>
-          <TrustPill>Chiffrement des votes</TrustPill>
+          <TrustPill>Vote anonyme</TrustPill>
           <TrustPill>Assistance 24/7</TrustPill>
         </TrustRow>
         <ActionRow>

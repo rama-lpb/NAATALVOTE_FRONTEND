@@ -547,9 +547,9 @@ const CitizenVote = () => {
     /* Loading + appel API */
     Swal.fire({
       customClass: { popup: 'naatal-swal' },
-      title: 'Chiffrement en cours...',
+      title: 'Enregistrement en cours...',
       html: `<p style="font-family:Poppins,sans-serif;font-size:0.87rem;color:#5a6d62;margin:0;">
-        Votre bulletin est chiffré avec <strong>AES-256</strong> et anonymisé. Veuillez patienter.
+        Votre bulletin est enregistré séparément de votre identité. Veuillez patienter.
       </p>`,
       showConfirmButton: false,
       allowOutsideClick: false,
@@ -572,7 +572,7 @@ const CitizenVote = () => {
             title: 'Vote enregistré !',
             html: `
               <p style="font-family:Poppins,sans-serif;font-size:0.9rem;color:#5a6d62;margin:0 0 0.8rem;">
-                Votre bulletin a été ajouté au scrutin de façon <strong>anonyme et chiffrée</strong>.
+                Votre bulletin a été ajouté au scrutin de façon <strong>anonyme</strong> (séparé de votre identité).
               </p>
               <div style="background:rgba(31,90,51,0.07);border:1px solid rgba(31,90,51,0.18);border-radius:12px;
                 padding:0.7rem 1rem;font-family:'Courier New',monospace;font-size:1.05rem;font-weight:800;
@@ -772,13 +772,13 @@ const CitizenVote = () => {
         <SecurityBar>
           <SecurityItem>Vote anonymisé</SecurityItem>
           <Dot />
-          <SecurityItem>Chiffrement AES-256</SecurityItem>
+          <SecurityItem>Bulletin séparé de l'identité</SecurityItem>
           <Dot />
           <SecurityItem>Identité non tracée</SecurityItem>
           <Dot />
           <SecurityItem>Vote unique garanti</SecurityItem>
           <Dot />
-          <SecurityItem>HMAC-SHA256</SecurityItem>
+          <SecurityItem>Journal non modifiable</SecurityItem>
         </SecurityBar>
       </PageGrid>
     </AppLayout>

@@ -189,7 +189,7 @@ const CitizenVoteReceipt = () => {
     <AppLayout
       role="Citoyen"
       title="Vote enregistre"
-      subtitle="Votre bulletin a ete ajoute au scrutin de maniere anonyme et chiffree."
+      subtitle="Votre bulletin a ete ajoute au scrutin de maniere anonyme (separe de votre identite)."
       navItems={navItems}
     >
       <PageGrid>

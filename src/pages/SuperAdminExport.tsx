@@ -264,7 +264,7 @@ type ApiLog = {
   description: string;
   horodatage: string;
   adresse_ip: string;
-  signature_cryptographique: string;
+  signature_cryptographique: string | null;
 };
 
 type ArchiveItem = {
@@ -292,7 +292,7 @@ const buildCsv = (logs: ApiLog[]) => {
       csvEscape(l.description),
       csvEscape(l.horodatage),
       csvEscape(l.adresse_ip),
-      csvEscape(l.signature_cryptographique),
+      csvEscape(l.signature_cryptographique ?? ""),
     ].join(';'));
   });
   return lines.join('\n');
@@ -394,7 +394,7 @@ const SuperAdminExport = () => {
     const archive: ArchiveItem = {
       id: `${Date.now()}`,
       title: `Archive ${scope === 'all' ? 'globale' : scope} — ${formatDate(now.toISOString())}`,
-      meta: `${format.toUpperCase()} chiffre · ${filteredLogs.length.toLocaleString()} entrees · HMAC verifie`,
+      meta: `${format.toUpperCase()} · ${filteredLogs.length.toLocaleString()} entrees`,
       status: true,
       fresh: true,
       content,
@@ -421,7 +421,7 @@ const SuperAdminExport = () => {
     <AppLayout
       role="Super Admin"
       title="Export des logs"
-      subtitle="Generez des archives chiffrees et signees pour l'audit externe."
+      subtitle="Generez des exports du journal pour l'audit externe."
       navItems={navItems}
     >
       <LayoutGrid>
@@ -431,7 +431,7 @@ const SuperAdminExport = () => {
             <Notice>
               <i className="bi bi-shield-lock" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
               <span>
-                Les exports sont <strong>chiffres AES-256</strong> et signes avec <strong>HMAC-SHA256</strong>.
+                Dans ce prototype, les exports ne sont <strong>ni chiffres ni signes</strong> : protegez-les lors de leur transmission.
                 Aucun vote individuel n'est expose — seuls les journaux d'action sont exportes.
                 Chaque archive est en lecture seule et inalterable.
               </span>
@@ -461,7 +461,7 @@ const SuperAdminExport = () => {
                 <FieldGroup>
                   <Label>Format</Label>
                   <SelectField value={format} onChange={(e) => setFormat(e.target.value)}>
-                    <option value="csv">CSV chiffre</option>
+                    <option value="csv">CSV</option>
                   </SelectField>
                 </FieldGroup>
               </Row>
@@ -502,9 +502,9 @@ const SuperAdminExport = () => {
         <SideCol>
           <SideCard>
             <CardTitle><i className="bi bi-shield-check" />Integrite systeme</CardTitle>
-            <MiniRow><span>Signature algo</span><MiniValue>HMAC-SHA256</MiniValue></MiniRow>
-            <MiniRow><span>Chiffrement</span><MiniValue>AES-256-GCM</MiniValue></MiniRow>
-            <MiniRow><span>Logs intègres</span><MiniValue style={{ color: 'rgba(31, 90, 51, 0.85)' }}>{integrityRate}</MiniValue></MiniRow>
+            <MiniRow><span>Signature</span><MiniValue>Non implementee</MiniValue></MiniRow>
+            <MiniRow><span>Chiffrement</span><MiniValue>Non implemente</MiniValue></MiniRow>
+            <MiniRow><span>Logs signés</span><MiniValue style={{ color: 'rgba(31, 90, 51, 0.85)' }}>{integrityRate}</MiniValue></MiniRow>
             <MiniRow><span>Dernier audit</span><MiniValue>{latestLogDate}</MiniValue></MiniRow>
           </SideCard>
           <SideCard>

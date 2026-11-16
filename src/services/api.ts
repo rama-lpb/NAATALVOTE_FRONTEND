@@ -322,10 +322,7 @@ export const api = {
       const res = await fetch(`${API_BASE}/admin/elections/${electionId}/stats`, { headers: authHeaders() });
       return handleResponse(res);
     },
-    close: async (electionId: string): Promise<{ success: boolean }> => {
-      const res = await fetch(`${API_BASE}/admin/elections/${electionId}/close`, { method: 'POST', headers: authHeaders() });
-      return handleResponse(res);
-    },
+    // close() supprimé (audit E221) : la clôture d'une élection est réservée à l'ordonnanceur côté serveur.
     listCreationHistory: async (adminId?: string, limit = 25): Promise<AdminCreationHistoryDto[]> => {
       const params = new URLSearchParams();
       if (adminId) params.set('adminId', adminId);
