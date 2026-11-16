@@ -317,7 +317,7 @@ const OperatorDashboard = () => {
     <AppLayout
       role="Operateur de securite"
       title="Centre de vigilance"
-      subtitle="Surveillance temps reel des signaux de fraude."
+      subtitle="Suivi des alertes de fraude enregistrees."
       navItems={navItems}
     >
       <LayoutGrid>
@@ -325,7 +325,7 @@ const OperatorDashboard = () => {
           <Greeting>
             <div>
               <Hello>Bonjour, {currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Operateur'}</Hello>
-              <HelperText>Les alertes critiques sont priorisees automatiquement.</HelperText>
+              <HelperText>Les alertes sont classees de la plus recente a la plus ancienne.</HelperText>
             </div>
           </Greeting>
 

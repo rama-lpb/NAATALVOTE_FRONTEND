@@ -787,7 +787,7 @@ const OperatorAlertDetail = () => {
     <AppLayout
       role="Operateur de securite"
       title="Detail de l'alerte"
-      subtitle="Analyse complete de l'anomalie detectee automatiquement."
+      subtitle="Analyse complete de l'alerte enregistree."
       navItems={navItems}
     >
       {/* Breadcrumb */}
