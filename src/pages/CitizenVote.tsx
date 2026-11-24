@@ -426,7 +426,9 @@ const CitizenVote = () => {
       .then((data) => {
         const live = data.filter((e) => e.statut === 'EN_COURS');
         setApiElections(live);
-        if (live.length > 0) setSelectedElection(live[0].id);
+        setSelectedElection((previous) =>
+          live.some((election) => election.id === previous) ? previous : (live[0]?.id ?? '')
+        );
       })
       .catch(() => {
         Swal.fire({ icon: 'error', title: 'Erreur', text: 'Impossible de charger les élections.', buttonsStyling: false, customClass: { popup: 'naatal-swal', confirmButton: 'swal-confirm' } });

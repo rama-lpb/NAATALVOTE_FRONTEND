@@ -439,6 +439,7 @@ const AdminStats = () => {
 
   // When election is selected, fetch its stats + candidates
   useEffect(() => {
+    const load = async () => {
     if (!selectedId) {
       setStats(null);
       setCandidates([]);
@@ -452,6 +453,9 @@ const AdminStats = () => {
       .then(([s, c]) => { setStats(s); setCandidates(c); })
       .catch(() => { setStats(null); setCandidates([]); })
       .finally(() => setLoadingStats(false));
+
+    };
+    void load();
   }, [selectedId]);
 
   const filteredElections = useMemo(() => {

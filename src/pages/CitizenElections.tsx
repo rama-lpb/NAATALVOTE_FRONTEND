@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useElections } from '../hooks/useApi';
 import { api } from '../services/api';
 import { useAppSelector } from '../store/hooks';
@@ -423,6 +423,7 @@ const CitizenElections = () => {
   const itemsPerPage = 2;
 
   useEffect(() => {
+    const load = async () => {
     if (!sessionUser?.id) {
       setVotedElectionIds(new Set());
       return;
@@ -437,6 +438,9 @@ const CitizenElections = () => {
         setVotedElectionIds(voted);
       })
       .catch(() => setVotedElectionIds(new Set()));
+
+    };
+    void load();
   }, [sessionUser?.id]);
 
   const getStatusLabel = (statut: string): 'live' | 'scheduled' | 'closed' => {

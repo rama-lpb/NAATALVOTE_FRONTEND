@@ -336,6 +336,7 @@ const SuperAdminUserLogs = () => {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
+    const load = async () => {
     if (!userId) { setLoadingUser(false); return; }
     api.superadmin.listUsers()
       .then(users => setApiUser(users.find(u => u.id === userId) ?? null))
@@ -348,6 +349,9 @@ const SuperAdminUserLogs = () => {
     api.superadmin.listSuspensions()
       .then(s => setPendingCount(s.filter(x => x.statut === 'EN_ATTENTE').length))
       .catch(() => {});
+
+    };
+    void load();
   }, [userId]);
 
   const navItems = [

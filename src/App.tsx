@@ -1,44 +1,51 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { RequireRole } from './auth/RequireRole';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Portal from './pages/Portal';
-import CitizenDashboard from './pages/CitizenDashboard';
-import CitizenElections from './pages/CitizenElections';
-import CitizenCandidates from './pages/CitizenCandidates';
-import CitizenCandidateDetail from './pages/CitizenCandidateDetail';
-import CitizenElectionDetail from './pages/CitizenElectionDetail';
-import CitizenVote from './pages/CitizenVote';
-import CitizenVoteReceipt from './pages/CitizenVoteReceipt';
-import CitizenResults from './pages/CitizenResults';
-import CitizenProfile from './pages/CitizenProfile';
-import CitizenOTP from './pages/CitizenOTP';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminElections from './pages/AdminElections';
-import AdminCreateElection from './pages/AdminCreateElection';
-import AdminCandidates from './pages/AdminCandidates';
-import AdminStats from './pages/AdminStats';
-import AdminReports from './pages/AdminReports';
-import AdminCandidateForm from './pages/AdminCandidateForm';
-import OperatorDashboard from './pages/OperatorDashboard';
-import OperatorAlerts from './pages/OperatorAlerts';
-import OperatorHistory from './pages/OperatorHistory';
-import OperatorReports from './pages/OperatorReports';
-import OperatorAlertDetail from './pages/OperatorAlertDetail';
-import OperatorRecommendSuspension from './pages/OperatorRecommendSuspension';
-import SuperAdminConsole from './pages/SuperAdminConsole';
-import SuperAdminLogs from './pages/SuperAdminLogs';
-import SuperAdminExport from './pages/SuperAdminExport';
-import SuperAdminUsers from './pages/SuperAdminUsers';
-import SuperAdminSuspensions from './pages/SuperAdminSuspensions';
-import SuperAdminDecision from './pages/SuperAdminDecision';
-import SuperAdminUserLogs from './pages/SuperAdminUserLogs';
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Portal = lazy(() => import('./pages/Portal'));
+const CitizenDashboard = lazy(() => import('./pages/CitizenDashboard'));
+const CitizenElections = lazy(() => import('./pages/CitizenElections'));
+const CitizenCandidates = lazy(() => import('./pages/CitizenCandidates'));
+const CitizenCandidateDetail = lazy(() => import('./pages/CitizenCandidateDetail'));
+const CitizenElectionDetail = lazy(() => import('./pages/CitizenElectionDetail'));
+const CitizenVote = lazy(() => import('./pages/CitizenVote'));
+const CitizenVoteReceipt = lazy(() => import('./pages/CitizenVoteReceipt'));
+const CitizenResults = lazy(() => import('./pages/CitizenResults'));
+const CitizenProfile = lazy(() => import('./pages/CitizenProfile'));
+const CitizenOTP = lazy(() => import('./pages/CitizenOTP'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminElections = lazy(() => import('./pages/AdminElections'));
+const AdminCreateElection = lazy(() => import('./pages/AdminCreateElection'));
+const AdminCandidates = lazy(() => import('./pages/AdminCandidates'));
+const AdminStats = lazy(() => import('./pages/AdminStats'));
+const AdminReports = lazy(() => import('./pages/AdminReports'));
+const AdminCandidateForm = lazy(() => import('./pages/AdminCandidateForm'));
+const OperatorDashboard = lazy(() => import('./pages/OperatorDashboard'));
+const OperatorAlerts = lazy(() => import('./pages/OperatorAlerts'));
+const OperatorHistory = lazy(() => import('./pages/OperatorHistory'));
+const OperatorReports = lazy(() => import('./pages/OperatorReports'));
+const OperatorAlertDetail = lazy(() => import('./pages/OperatorAlertDetail'));
+const OperatorRecommendSuspension = lazy(() => import('./pages/OperatorRecommendSuspension'));
+const SuperAdminConsole = lazy(() => import('./pages/SuperAdminConsole'));
+const SuperAdminLogs = lazy(() => import('./pages/SuperAdminLogs'));
+const SuperAdminExport = lazy(() => import('./pages/SuperAdminExport'));
+const SuperAdminUsers = lazy(() => import('./pages/SuperAdminUsers'));
+const SuperAdminSuspensions = lazy(() => import('./pages/SuperAdminSuspensions'));
+const SuperAdminDecision = lazy(() => import('./pages/SuperAdminDecision'));
+const SuperAdminUserLogs = lazy(() => import('./pages/SuperAdminUserLogs'));
 import './index.css';
 
 function App() {
   return (
     <Router>
+      {import.meta.env.VITE_DEMO_MODE === 'true' && (
+        <aside role="note" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10000, padding: '8px 16px', background: '#fff2cf', color: '#493600', textAlign: 'center', fontSize: 13 }}>
+          Démonstration académique — données fictives et codes OTP simulés. Aucun scrutin réel.
+        </aside>
+      )}
+      <Suspense fallback={<p role="status">Chargement de la page…</p>}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -79,6 +86,7 @@ function App() {
         <Route path="/superadmin/decision" element={<RequireRole role="SUPERADMIN"><SuperAdminDecision /></RequireRole>} />
         <Route path="/superadmin/utilisateurs/:userId/logs" element={<RequireRole role="SUPERADMIN"><SuperAdminUserLogs /></RequireRole>} />
       </Routes>
+      </Suspense>
     </Router>
   );
 }

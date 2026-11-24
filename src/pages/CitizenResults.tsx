@@ -40,22 +40,8 @@ const TopSection = styled.div`
   gap: 1rem;
 `;
 
-const TitleSection = styled.div``;
 
-const PageTitle = styled.h1`
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #1a2e20;
-  margin: 0;
-`;
 
-const PageSubtitle = styled.p`
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.9rem;
-  color: #6b7a72;
-  margin: 0.3rem 0 0;
-`;
 
 const ControlsRow = styled.div`
   display: flex;
@@ -570,8 +556,8 @@ const CitizenResults = () => {
   const [apiElections, setApiElections] = useState<ElectionDto[]>([]);
   const [apiCandidates, setApiCandidates] = useState<CandidateDto[]>([]);
   const [voteResults, setVoteResults] = useState<{ candidat_id: string; votes: number; percent: number }[]>([]);
-  const [loadingElections, setLoadingElections] = useState(true);
-  const [loadingResults, setLoadingResults] = useState(false);
+  const [, setLoadingElections] = useState(true);
+  const [, setLoadingResults] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'closed'>('all');
 
@@ -593,6 +579,7 @@ const CitizenResults = () => {
 
   /* Charger résultats + candidats quand l'élection sélectionnée change */
   useEffect(() => {
+    const load = async () => {
     if (!selectedId) return;
     setLoadingResults(true);
     Promise.all([
@@ -602,6 +589,9 @@ const CitizenResults = () => {
       setApiCandidates(candidates as CandidateDto[]);
       setVoteResults(results ? results.results : []);
     }).finally(() => setLoadingResults(false));
+
+    };
+    void load();
   }, [selectedId]);
 
   useEffect(() => {

@@ -249,7 +249,6 @@ const AdminReports = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([api.elections.list(), api.candidats.list()])
       .then(([electionsData, candidatesData]) => {
         setElections(electionsData);

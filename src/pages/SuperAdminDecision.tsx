@@ -288,7 +288,7 @@ const SuperAdminDecision = () => {
   const currentUser = useAppSelector(s => s.auth.user);
   const justificationRef = useRef<HTMLTextAreaElement>(null);
 
-  const suspId = (location.state as any)?.suspId as string | undefined;
+  const suspId = (location.state as { suspId?: string } | null)?.suspId as string | undefined;
 
   const [suspension, setSuspension] = useState<{
     id: string; citoyen_id: string; motif: string; operateur_id: string;

@@ -646,6 +646,7 @@ const CitizenElectionDetail = () => {
   ];
 
   useEffect(() => {
+    const load = async () => {
     if (!id) {
       setLoading(false);
       setError('Election introuvable.');
@@ -668,6 +669,8 @@ const CitizenElectionDetail = () => {
         setError(e instanceof Error ? e.message : 'Erreur de chargement de l election.');
       })
       .finally(() => setLoading(false));
+    };
+    void load();
   }, [id]);
 
   const candidateColors = useMemo(() => {
@@ -705,13 +708,14 @@ const CitizenElectionDetail = () => {
     return Math.min(100, Math.round((totalVotes / election.total_electeurs) * 100));
   }, [election, totalVotes]);
 
+  const [loadedAt] = useState(() => Date.now());
   const daysRemaining = useMemo(() => {
     if (!election) return 0;
-    const now = Date.now();
+    const now = loadedAt;
     const end = new Date(election.date_fin).getTime();
     const diff = end - now;
     return diff <= 0 ? 0 : Math.ceil(diff / (1000 * 60 * 60 * 24));
-  }, [election]);
+  }, [election, loadedAt]);
 
   if (loading) {
     return (

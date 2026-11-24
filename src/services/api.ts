@@ -240,7 +240,6 @@ export const api = {
     verify: async (token: string): Promise<{
       success: boolean;
       election_id: string;
-      candidat_id: string;
       horodatage: string;
     }> => {
       const res = await fetch(`${API_BASE}/votes/verify/${token}`, { headers: authHeaders() });
@@ -334,6 +333,11 @@ export const api = {
 
   operateur: {
     listAlerts: async (): Promise<{
+      score_risque?: number;
+      localisation?: { est_vpn?: boolean; ville?: string; pays?: string };
+      note_interne?: string;
+      device?: { navigateur?: string; os?: string; appareil?: string };
+      tentatives?: { horodatage: string; ip: string; user_agent: string; resultat: string }[];
       id: string;
       type_fraude: string;
       citoyen_id: string | null;
@@ -367,6 +371,8 @@ export const api = {
       operateur_id: string;
       statut: string;
       date_creation: string;
+      date_decision?: string;
+      justification?: string;
     }[]> => {
       const res = await fetch(`${API_BASE}/operateur/suspensions`, { headers: authHeaders() });
       return handleResponse(res);
