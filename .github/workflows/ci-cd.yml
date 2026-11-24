@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Livrer explicitement le commit main validé sur Render"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,7 +34,7 @@ jobs:
       - run: npm ci
       - name: Contrôle qualité (ESLint)
         run: npm run lint -- --max-warnings 0
-      - name: Analyse des dépendances de production (bloquante au niveau « high »)
+      - name: Analyse de toutes les dépendances (bloquante au niveau « high »)
         run: npm audit --audit-level=high
       - name: Vérification TypeScript + build de production
         run: npm run build
@@ -45,7 +50,7 @@ jobs:
   deploy-production:
     name: Déploiement Render (après approbation)
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: production
