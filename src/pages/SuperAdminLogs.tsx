@@ -180,26 +180,7 @@ const HashBadge = styled.div`
   i { font-size: 0.7rem; }
 `;
 
-const Pagination = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.4rem;
-  padding: 0.8rem 1.3rem;
-  border-top: 1px solid rgba(31, 90, 51, 0.08);
-`;
 
-const PageBtn = styled.button<{ $active?: boolean }>`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  background: ${({ $active }) => $active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.06)'};
-  color: ${({ $active }) => $active ? '#fff' : 'rgba(31, 90, 51, 0.85)'};
-  border-radius: 8px;
-  padding: 0.28rem 0.6rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-`;
 
 const types = ['TOUS', 'CONNEXION', 'VOTE', 'SUSPENSION', 'MODIFICATION', 'EXPORT', 'CREATION'];
 
@@ -215,7 +196,7 @@ const SuperAdminLogs = () => {
   const [logs, setLogs] = useState<{
     id: string; type_action: string; utilisateur_id: string;
     description: string; horodatage: string; adresse_ip: string;
-    signature_cryptographique: string;
+    signature_cryptographique: string | null;
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -289,9 +270,8 @@ const SuperAdminLogs = () => {
                 <LogUser>{log.utilisateur_id.slice(0, 8)}…</LogUser>
                 <LogDesc title={log.description}>{log.description}</LogDesc>
                 <LogTime>{fmtHorodatage(log.horodatage)}</LogTime>
-                <HashBadge title={log.signature_cryptographique}>
-                  <i className="bi bi-check2" />
-                  {log.signature_cryptographique.slice(0, 5)}
+                <HashBadge title={log.signature_cryptographique ?? 'Signature non implementee'}>
+                  {log.signature_cryptographique ? log.signature_cryptographique.slice(0, 5) : '—'}
                 </HashBadge>
               </LogRow>
             ))}

@@ -504,16 +504,6 @@ const DecisionPill = styled.span<{ $statut: string }>`
   background: ${({ $statut }) => SUSPENSION_STATUT_COLORS[$statut]?.bg ?? 'rgba(0,0,0,0.06)'};
 `;
 
-const DecisionComment = styled.div`
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(31, 90, 51, 0.1);
-  border-radius: 10px;
-  padding: 0.65rem 0.8rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.82rem;
-  color: #2a3a2f;
-  line-height: 1.5;
-`;
 
 const NoDecisionYet = styled.div`
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
@@ -526,8 +516,8 @@ const NoDecisionYet = styled.div`
 `;
 
 /* ── Helpers ── */
-const getActionCategory = (alert: any, suspensions: any[]): ActionCategory => {
-  const hasSusp = !!alert.citoyen_id && suspensions.some((s: any) => s.citoyen_id === alert.citoyen_id);
+const getActionCategory = (alert: Awaited<ReturnType<typeof api.operateur.listAlerts>>[number], suspensions: Awaited<ReturnType<typeof api.operateur.listSuspensions>>): ActionCategory => {
+  const hasSusp = !!alert.citoyen_id && suspensions.some((s) => s.citoyen_id === alert.citoyen_id);
   if (hasSusp) return 'SUSPENSION';
   if (alert.statut === 'RESOLUE') return 'RESOLU';
   if (alert.type_fraude === 'IP_SUSPECTE' || alert.type_fraude === 'PATTERN_SUSPECT') return 'SUSPECT';
@@ -617,17 +607,17 @@ const OperatorHistory = () => {
 
   const filtered = useMemo(() => {
     return allAlerts
-      .filter((a: any) => filterAction === 'all' || getActionCategory(a, suspensions) === filterAction)
-      .filter((a: any) => !filterType || a.type_fraude === filterType)
-      .filter((a: any) => !filterElection || a.election_id === filterElection)
-      .filter((a: any) => !filterDate || a.date_detection.startsWith(filterDate))
-      .filter((a: any) =>
+      .filter((a) => filterAction === 'all' || getActionCategory(a, suspensions) === filterAction)
+      .filter((a) => !filterType || a.type_fraude === filterType)
+      .filter((a) => !filterElection || a.election_id === filterElection)
+      .filter((a) => !filterDate || a.date_detection.startsWith(filterDate))
+      .filter((a) =>
         !search ||
         a.description.toLowerCase().includes(search.toLowerCase()) ||
         a.id.toLowerCase().includes(search.toLowerCase()) ||
         (TYPE_LABELS[a.type_fraude] ?? '').toLowerCase().includes(search.toLowerCase())
       )
-      .sort((a: any, b: any) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime());
+      .sort((a, b) => new Date(b.date_detection).getTime() - new Date(a.date_detection).getTime());
   }, [allAlerts, suspensions, filterAction, filterType, filterElection, filterDate, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -682,17 +672,17 @@ const OperatorHistory = () => {
     setPage(1);
   };
 
-  const handleFilter = (setter: (v: any) => void) => (e: React.ChangeEvent<any>) => {
-    setter(e.target.value);
+  const handleFilter = <T extends string,>(setter: (v: T) => void) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    setter(e.target.value as T);
     setPage(1);
   };
 
   const hasFilters = filterAction !== 'all' || filterType || filterElection || filterDate || search;
 
   /* ── Drawer data ── */
-  const selectedAlert = selectedId ? allAlerts.find((a: any) => a.id === selectedId) ?? null : null;
+  const selectedAlert = selectedId ? allAlerts.find((a) => a.id === selectedId) ?? null : null;
   const selectedSusp = selectedAlert?.citoyen_id
-    ? suspensions.find((s: any) => s.citoyen_id === selectedAlert.citoyen_id) ?? null
+    ? suspensions.find((s) => s.citoyen_id === selectedAlert.citoyen_id) ?? null
     : null;
   const selectedCategory = selectedAlert
     ? getActionCategory(selectedAlert, suspensions)
@@ -700,10 +690,10 @@ const OperatorHistory = () => {
 
   const categories: { id: ActionCategory; label: string; count: number }[] = [
     { id: 'all', label: 'Toutes', count: allAlerts.length },
-    { id: 'EN_COURS', label: 'En cours', count: allAlerts.filter((a: any) => getActionCategory(a, suspensions) === 'EN_COURS').length },
-    { id: 'RESOLU', label: 'Classees', count: allAlerts.filter((a: any) => getActionCategory(a, suspensions) === 'RESOLU').length },
-    { id: 'SUSPECT', label: 'Suspects', count: allAlerts.filter((a: any) => getActionCategory(a, suspensions) === 'SUSPECT').length },
-    { id: 'SUSPENSION', label: 'Suspensions', count: allAlerts.filter((a: any) => getActionCategory(a, suspensions) === 'SUSPENSION').length },
+    { id: 'EN_COURS', label: 'En cours', count: allAlerts.filter((a) => getActionCategory(a, suspensions) === 'EN_COURS').length },
+    { id: 'RESOLU', label: 'Classees', count: allAlerts.filter((a) => getActionCategory(a, suspensions) === 'RESOLU').length },
+    { id: 'SUSPECT', label: 'Suspects', count: allAlerts.filter((a) => getActionCategory(a, suspensions) === 'SUSPECT').length },
+    { id: 'SUSPENSION', label: 'Suspensions', count: allAlerts.filter((a) => getActionCategory(a, suspensions) === 'SUSPENSION').length },
   ];
 
   return (
@@ -784,7 +774,7 @@ const OperatorHistory = () => {
         </Empty>
       ) : (
         <Timeline>
-          {paginated.map((alert: any) => {
+          {paginated.map((alert) => {
             const cat = getActionCategory(alert, suspensions);
             const refDate = alert.date_traitement ?? alert.date_detection;
             const d = new Date(refDate);
@@ -893,29 +883,29 @@ const OperatorHistory = () => {
                   <DrawerValue style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>{selectedAlert.ip}</DrawerValue>
                 </DrawerRow>
               )}
-              {(selectedAlert as any).localisation && (
+              {selectedAlert.localisation && (
                 <DrawerRow>
                   <DrawerLabel>Localisation</DrawerLabel>
                   <DrawerValue>
-                    {(selectedAlert as any).localisation.est_vpn
+                    {selectedAlert.localisation.est_vpn
                       ? '⚠ VPN / Anonyme'
-                      : `${(selectedAlert as any).localisation.ville}, ${(selectedAlert as any).localisation.pays}`}
+                      : `${selectedAlert.localisation.ville}, ${selectedAlert.localisation.pays}`}
                   </DrawerValue>
                 </DrawerRow>
               )}
-              {(selectedAlert as any).score_risque != null && (
+              {selectedAlert.score_risque != null && (
                 <DrawerRow>
                   <DrawerLabel>Score de risque</DrawerLabel>
                   <DrawerValue>
                     <span style={{
                       fontWeight: 700,
-                      color: (selectedAlert as any).score_risque >= 80
+                      color: selectedAlert.score_risque >= 80
                         ? 'rgba(176, 58, 46, 0.6)'
-                        : (selectedAlert as any).score_risque >= 55
+                        : selectedAlert.score_risque >= 55
                         ? 'rgba(138, 90, 16, 0.85)'
                         : 'rgba(31, 90, 51, 0.85)',
                     }}>
-                      {(selectedAlert as any).score_risque}/100
+                      {selectedAlert.score_risque}/100
                     </span>
                   </DrawerValue>
                 </DrawerRow>
@@ -947,7 +937,7 @@ const OperatorHistory = () => {
                   <DrawerValue>{formatDateTime(selectedAlert.date_traitement)}</DrawerValue>
                 </DrawerRow>
               )}
-              {!(selectedAlert as any).note_interne && selectedCategory === 'EN_COURS' && (
+              {!selectedAlert.note_interne && selectedCategory === 'EN_COURS' && (
                 <DrawerRow>
                   <DrawerLabel>Note</DrawerLabel>
                   <DrawerValue style={{ color: '#8a9a90', fontStyle: 'italic', fontSize: '0.8rem' }}>
@@ -955,13 +945,13 @@ const OperatorHistory = () => {
                   </DrawerValue>
                 </DrawerRow>
               )}
-              {(selectedAlert as any).note_interne && (
+              {selectedAlert.note_interne && (
                 <>
                   <DrawerRow>
                     <DrawerLabel>Note interne</DrawerLabel>
                     <DrawerValue />
                   </DrawerRow>
-                  <NoteBox>"{(selectedAlert as any).note_interne}"</NoteBox>
+                  <NoteBox>"{selectedAlert.note_interne}"</NoteBox>
                 </>
               )}
             </DrawerSection>

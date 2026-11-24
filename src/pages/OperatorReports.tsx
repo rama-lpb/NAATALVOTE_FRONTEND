@@ -391,7 +391,7 @@ const OperatorReports = () => {
   );
 
   const navItems = useMemo(() => {
-    const badge = allMyAlerts.filter((a: any) => a.statut === 'EN_ANALYSE').length;
+    const badge = allMyAlerts.filter((a) => a.statut === 'EN_ANALYSE').length;
     return [
       { label: 'Dashboard', to: '/operateur/dashboard' },
       { label: 'Mes alertes', to: '/operateur/mes-alertes', badge: badge || undefined },
@@ -414,26 +414,26 @@ const OperatorReports = () => {
   }, [period]);
 
   const alerts = useMemo(
-    () => allMyAlerts.filter((a: any) => new Date(a.date_detection) >= cutoff),
+    () => allMyAlerts.filter((a) => new Date(a.date_detection) >= cutoff),
     [allMyAlerts, cutoff]
   );
 
   const suspensions = useMemo(
-    () => mySuspensions.filter((s: any) => new Date(s.date_creation) >= cutoff),
+    () => mySuspensions.filter((s) => new Date(s.date_creation) >= cutoff),
     [mySuspensions, cutoff]
   );
 
   /* Stats */
   const total = alerts.length;
-  const resolues = alerts.filter((a: any) => a.statut === 'RESOLUE').length;
-  const enCours = alerts.filter((a: any) => a.statut === 'EN_ANALYSE').length;
+  const resolues = alerts.filter((a) => a.statut === 'RESOLUE').length;
+  const enCours = alerts.filter((a) => a.statut === 'EN_ANALYSE').length;
   const suspCount = suspensions.length;
   const tauxTraitement = total > 0 ? Math.round((resolues / total) * 100) : 0;
 
   /* Type distribution */
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    alerts.forEach((a: any) => { counts[a.type_fraude] = (counts[a.type_fraude] ?? 0) + 1; });
+    alerts.forEach((a) => { counts[a.type_fraude] = (counts[a.type_fraude] ?? 0) + 1; });
     return Object.entries(counts)
       .map(([type, count]) => ({ type, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
       .sort((a, b) => b.count - a.count);
@@ -442,7 +442,7 @@ const OperatorReports = () => {
   /* Election distribution */
   const elecCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    alerts.forEach((a: any) => {
+    alerts.forEach((a) => {
       if (!a.election_id) return;
       counts[a.election_id] = (counts[a.election_id] ?? 0) + 1;
     });
@@ -452,9 +452,9 @@ const OperatorReports = () => {
   }, [alerts, total]);
 
   /* Suspension outcomes */
-  const suspAttente = suspensions.filter((s: any) => s.statut === 'EN_ATTENTE').length;
-  const suspApprouve = suspensions.filter((s: any) => s.statut === 'APPROUVE').length;
-  const suspRejete = suspensions.filter((s: any) => s.statut === 'REJETE').length;
+  const suspAttente = suspensions.filter((s) => s.statut === 'EN_ATTENTE').length;
+  const suspApprouve = suspensions.filter((s) => s.statut === 'APPROUVE').length;
+  const suspRejete = suspensions.filter((s) => s.statut === 'REJETE').length;
 
   /* Reports list */
   const PERIOD_LABELS: Record<Period, string> = {

@@ -226,7 +226,7 @@ const SuperAdminConsole = () => {
           <Card>
             <CardTitle>Exports d'audit</CardTitle>
             <HelperText>Dernier export: 28/02/2026 - 09:45</HelperText>
-            <HelperText>Signature cryptographique validee.</HelperText>
+            <HelperText>Journal en ajout seul (declencheur PostgreSQL).</HelperText>
           </Card>
         </SideColumn>
       </LayoutGrid>

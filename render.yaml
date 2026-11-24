@@ -5,7 +5,14 @@ services:
     rootDir: .
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
+    autoDeployTrigger: off
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       # URL publique du backend (ex: https://naatalvote-backend.onrender.com)
       - key: VITE_API_ORIGIN
         sync: false
+      - key: VITE_DEMO_MODE
+        value: "true"

@@ -288,7 +288,7 @@ const SuperAdminDecision = () => {
   const currentUser = useAppSelector(s => s.auth.user);
   const justificationRef = useRef<HTMLTextAreaElement>(null);
 
-  const suspId = (location.state as any)?.suspId as string | undefined;
+  const suspId = (location.state as { suspId?: string } | null)?.suspId as string | undefined;
 
   const [suspension, setSuspension] = useState<{
     id: string; citoyen_id: string; motif: string; operateur_id: string;
@@ -474,7 +474,7 @@ const SuperAdminDecision = () => {
             <SideCard>
               <CardTitle><i className="bi bi-shield-check" />Securite de la decision</CardTitle>
               <MiniRow><span>Logs</span><MiniValue>Immuables</MiniValue></MiniRow>
-              <MiniRow><span>Signature</span><MiniValue>HMAC-SHA256</MiniValue></MiniRow>
+              <MiniRow><span>Signature</span><MiniValue>Non implémentée (prototype)</MiniValue></MiniRow>
               <MiniRow><span>Auditabilite</span><MiniValue>100%</MiniValue></MiniRow>
             </SideCard>
           </SideCol>

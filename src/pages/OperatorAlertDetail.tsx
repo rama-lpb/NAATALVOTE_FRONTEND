@@ -589,7 +589,6 @@ const OperatorAlertDetail = () => {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     Promise.all([api.operateur.listAlerts(), api.elections.list()])
       .then(([a, e]) => {
         if (cancelled) return;
@@ -624,22 +623,18 @@ const OperatorAlertDetail = () => {
     ];
   }, [alerts, operatorId]);
 
-  const alertId: string | undefined = (location.state as any)?.alertId;
+  const alertId: string | undefined = (location.state as { alertId?: string } | null)?.alertId;
   const raw = useMemo(() => {
     if (alerts.length === 0) return null;
     return alertId ? alerts.find((a) => a.id === alertId) ?? null : alerts[0];
   }, [alerts, alertId]);
 
-  const [taken, setTaken] = useState(false);
-  const [statut, setStatut] = useState('NOUVELLE');
+  const [decision, setDecision] = useState<{ id: string; taken: boolean; statut: string } | null>(null);
+  const currentDecision = decision?.id === raw?.id ? decision : null;
+  const taken = currentDecision?.taken ?? (raw !== null && raw.statut !== 'NOUVELLE');
+  const statut = currentDecision?.statut ?? raw?.statut ?? 'NOUVELLE';
   const [note, setNote] = useState('');
 
-  useEffect(() => {
-    if (!raw) return;
-    const wasNouvelle = raw.statut === 'NOUVELLE';
-    setTaken(!wasNouvelle);
-    setStatut(raw.statut);
-  }, [raw?.id]);
 
   if (!raw) {
     return (
@@ -652,16 +647,12 @@ const OperatorAlertDetail = () => {
     );
   }
 
-  const score = (raw as any).score_risque ?? (
-    raw.type_fraude === 'VOTE_MULTIPLE' ? 90 :
-    raw.type_fraude === 'IP_SUSPECTE' ? 82 :
-    raw.type_fraude === 'PATTERN_SUSPECT' ? 70 : 55
-  );
-  const localisation = (raw as any).localisation ?? null;
-  const tentatives = (raw as any).tentatives as Array<{
+  const score = raw.score_risque ?? null;
+  const localisation = raw.localisation ?? null;
+  const tentatives = raw.tentatives as Array<{
     horodatage: string; ip: string; user_agent: string; resultat: string;
   }> | null ?? null;
-  const device = (raw as any).device ?? null;
+  const device = raw.device ?? null;
 
   const severity = getSeverity(raw.type_fraude);
   const citoyenId = raw.citoyen_id ?? null;
@@ -702,8 +693,7 @@ const OperatorAlertDetail = () => {
       if (operatorId) {
         await api.operateur.treatAlert(raw.id, { statut: nextStatut, operateur_id: operatorId, description });
       }
-      setTaken(true);
-      setStatut(nextStatut);
+      setDecision({ id: raw.id, taken: true, statut: nextStatut });
       setAlerts((prev) => prev.map((a) => a.id === raw.id ? { ...a, statut: nextStatut, operateur_id: operatorId ?? a.operateur_id } : a));
     } catch {
       Swal.fire({
@@ -787,7 +777,7 @@ const OperatorAlertDetail = () => {
     <AppLayout
       role="Operateur de securite"
       title="Detail de l'alerte"
-      subtitle="Analyse complete de l'anomalie detectee automatiquement."
+      subtitle="Analyse complete de l'alerte enregistree."
       navItems={navItems}
     >
       {/* Breadcrumb */}
@@ -894,13 +884,13 @@ const OperatorAlertDetail = () => {
             <PanelTitle><i className="bi bi-clipboard-data" />Preuves collectees</PanelTitle>
 
             {/* Score de risque */}
-            <div>
+            {score !== null ? <div>
               <ScoreRow>
                 <span>Score de risque</span>
                 <ScoreValue $score={score}>{score}/100</ScoreValue>
               </ScoreRow>
               <ScoreBar $score={score} style={{ marginTop: '0.4rem' }} />
-            </div>
+            </div> : <p>Aucun score de risque mesuré.</p>}
 
             {/* Timeline des tentatives si disponible */}
             {tentatives && tentatives.length > 0 ? (

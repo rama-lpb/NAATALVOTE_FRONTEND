@@ -315,25 +315,7 @@ const DetailButton = styled(Link)`
   }
 `;
 
-const Pagination = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.4rem;
-  margin-top: 1.4rem;
-`;
 
-const PageButton = styled.button<{ $active?: boolean }>`
-  border: 1px solid rgba(31, 90, 51, 0.2);
-  background: ${({ $active }) => ($active ? 'rgba(31, 90, 51, 0.55)' : 'rgba(31, 90, 51, 0.08)')};
-  color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(31, 90, 51, 0.9)')};
-  border-radius: 10px;
-  padding: 0.3rem 0.6rem;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-`;
 
 const CitizenDashboard = () => {
   const navItems = [
@@ -394,7 +376,6 @@ const CitizenDashboard = () => {
 
   const userName = sessionUser ? `${sessionUser.prenom ?? ''} ${sessionUser.nom ?? ''}`.trim() : '';
   const liveCount = elections.filter((e) => e.statut === 'EN_COURS').length;
-  const closedCount = elections.filter((e) => e.statut === 'CLOTUREE').length;
   const votedCount = elections.filter((e) => votedElectionIds.has(e.id)).length;
 
   const filtered = elections.filter((e) => {

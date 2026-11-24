@@ -254,7 +254,6 @@ const OperatorDashboard = () => {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     Promise.all([api.operateur.listAlerts(), api.elections.list()])
       .then(([a, e]) => {
         if (cancelled) return;
@@ -310,14 +309,14 @@ const OperatorDashboard = () => {
     .sort((a, b) => new Date(b.date_traitement!).getTime() - new Date(a.date_traitement!).getTime())
     .slice(0, 4);
 
-  const fmtTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const fmtTime = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—';
 
   return (
     <AppLayout
       role="Operateur de securite"
       title="Centre de vigilance"
-      subtitle="Surveillance temps reel des signaux de fraude."
+      subtitle="Suivi des alertes de fraude enregistrees."
       navItems={navItems}
     >
       <LayoutGrid>
@@ -325,7 +324,7 @@ const OperatorDashboard = () => {
           <Greeting>
             <div>
               <Hello>Bonjour, {currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Operateur'}</Hello>
-              <HelperText>Les alertes critiques sont priorisees automatiquement.</HelperText>
+              <HelperText>Les alertes sont classees de la plus recente a la plus ancienne.</HelperText>
             </div>
           </Greeting>
 
@@ -395,7 +394,7 @@ const OperatorDashboard = () => {
               {recentActions.length === 0 ? (
                 <RowMeta style={{ color: '#a0b0a8', fontStyle: 'italic' }}>Aucune action enregistree.</RowMeta>
               ) : (
-                recentActions.map((a: any) => (
+                recentActions.map((a) => (
                   <MiniRow key={a.id}>
                     <RowMeta>{TYPE_LABELS[a.type_fraude] ?? a.type_fraude} — resolue</RowMeta>
                     <RowMeta>{fmtTime(a.date_traitement)}</RowMeta>

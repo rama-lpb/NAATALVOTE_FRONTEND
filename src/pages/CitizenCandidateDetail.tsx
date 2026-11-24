@@ -273,6 +273,7 @@ const CitizenCandidateDetail = () => {
   ];
 
   useEffect(() => {
+    const load = async () => {
     if (!id) {
       setLoading(false);
       setError('Candidat introuvable.');
@@ -296,6 +297,9 @@ const CitizenCandidateDetail = () => {
         setError(e instanceof Error ? e.message : 'Impossible de charger ce candidat.');
       })
       .finally(() => setLoading(false));
+
+    };
+    void load();
   }, [id]);
 
   const highlights = useMemo(() => buildHighlights(candidate?.biographie ?? ''), [candidate?.biographie]);

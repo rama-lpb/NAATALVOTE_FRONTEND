@@ -329,13 +329,14 @@ const SuperAdminUserLogs = () => {
   const [allLogs, setAllLogs] = useState<{
     id: string; type_action: string; utilisateur_id: string;
     description: string; horodatage: string; adresse_ip: string;
-    signature_cryptographique: string;
+    signature_cryptographique: string | null;
   }[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
+    const load = async () => {
     if (!userId) { setLoadingUser(false); return; }
     api.superadmin.listUsers()
       .then(users => setApiUser(users.find(u => u.id === userId) ?? null))
@@ -348,6 +349,9 @@ const SuperAdminUserLogs = () => {
     api.superadmin.listSuspensions()
       .then(s => setPendingCount(s.filter(x => x.statut === 'EN_ATTENTE').length))
       .catch(() => {});
+
+    };
+    void load();
   }, [userId]);
 
   const navItems = [
@@ -481,8 +485,8 @@ const SuperAdminUserLogs = () => {
                 <LogDesc title={log.description}>{log.description}</LogDesc>
                 <LogIP>{log.adresse_ip}</LogIP>
                 <LogTime>{fmtHorodatage(log.horodatage)}</LogTime>
-                <HashBadge title={log.signature_cryptographique}>
-                  <i className="bi bi-check2" />{log.signature_cryptographique.slice(0, 6)}
+                <HashBadge title={log.signature_cryptographique ?? 'Signature non implementee'}>
+                  {log.signature_cryptographique ? log.signature_cryptographique.slice(0, 6) : '—'}
                 </HashBadge>
               </LogRow>
             ))

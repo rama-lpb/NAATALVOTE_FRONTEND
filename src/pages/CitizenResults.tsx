@@ -4,17 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../components/AppLayout';
 import { api, type ElectionDto, type CandidateDto } from '../services/api';
 
-type AgeGroup = {
-  label: string;
-  value: number;
-  color: string;
-};
 
-type Region = {
-  name: string;
-  percent: number;
-  votes: number;
-};
 
 type Candidate = {
   id: string;
@@ -34,9 +24,6 @@ type Election = {
   participation: number;
   inscrits: number;
   candidates: Candidate[];
-  ageDistribution: AgeGroup[];
-  genderDistribution: { male: number; female: number };
-  regions: Region[];
 };
 
 const Container = styled.div`
@@ -53,22 +40,8 @@ const TopSection = styled.div`
   gap: 1rem;
 `;
 
-const TitleSection = styled.div``;
 
-const PageTitle = styled.h1`
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #1a2e20;
-  margin: 0;
-`;
 
-const PageSubtitle = styled.p`
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.9rem;
-  color: #6b7a72;
-  margin: 0.3rem 0 0;
-`;
 
 const ControlsRow = styled.div`
   display: flex;
@@ -428,15 +401,6 @@ const StatDesc = styled.div`
   margin-top: 0.3rem;
 `;
 
-const ChartsRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-`;
 
 const ChartPanel = styled.div`
   background: white;
@@ -550,50 +514,11 @@ const ProgressBarFillFull = styled.div<{ $value: number; $color?: string }>`
 `;
 
 
-const RegionList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-`;
 
-const RegionItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
 
-const RegionLabel = styled.div`
-  min-width: 120px;
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.85rem;
-  color: #1a2e20;
-`;
 
-const RegionBarOuter = styled.div`
-  flex: 1;
-  height: 24px;
-  background: rgba(31, 90, 51, 0.1);
-  border-radius: 12px;
-  overflow: hidden;
-`;
 
-const RegionBarInner = styled.div<{ $value: number }>`
-  height: 100%;
-  width: ${({ $value }) => $value}%;
-  background: linear-gradient(90deg, #1f5a33, #2d7a47);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 0.8rem;
-`;
 
-const RegionBarText = styled.span`
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: white;
-`;
 
 // Section title for results
 const SectionTitle = styled.h2`
@@ -622,36 +547,8 @@ const CANDIDATE_COLORS = [
   'rgba(100, 50, 150, 0.7)',
 ];
 
-const buildAgeDistribution = (participation: number): AgeGroup[] => {
-  const base = [20, 27, 22, 18, 13];
-  const tweak = Math.round((participation - 50) / 10);
-  const adjusted = [base[0] + tweak, base[1] + tweak, base[2], base[3] - tweak, base[4] - tweak]
-    .map((value) => Math.max(5, value));
-  const total = adjusted.reduce((sum, value) => sum + value, 0);
-  const normalized = adjusted.map((value) => Math.round((value / total) * 100));
-  return [
-    { label: '18 - 24 ans', value: normalized[0], color: 'rgba(31, 90, 51, 0.6)' },
-    { label: '25 - 34 ans', value: normalized[1], color: 'rgba(31, 90, 51, 0.68)' },
-    { label: '35 - 44 ans', value: normalized[2], color: 'rgba(38, 76, 140, 0.62)' },
-    { label: '45 - 54 ans', value: normalized[3], color: 'rgba(138, 90, 16, 0.6)' },
-    { label: '55+ ans', value: normalized[4], color: 'rgba(91, 95, 101, 0.62)' },
-  ];
-};
 
-const buildGenderDistribution = (participation: number) => {
-  const female = Math.max(35, Math.min(65, Math.round(50 + (participation - 50) * 0.18)));
-  return { female, male: 100 - female };
-};
 
-const buildRegions = (region: string, totalVotes: number): Region[] => {
-  const names = [region || 'Nationale', 'Dakar', 'Thies', 'Saint-Louis'];
-  const factors = [0.36, 0.28, 0.2, 0.16];
-  return names.map((name, idx) => ({
-    name,
-    percent: Math.round(factors[idx] * 100),
-    votes: Math.round(totalVotes * factors[idx]),
-  }));
-};
 
 const CitizenResults = () => {
   const [searchParams] = useSearchParams();
@@ -659,8 +556,8 @@ const CitizenResults = () => {
   const [apiElections, setApiElections] = useState<ElectionDto[]>([]);
   const [apiCandidates, setApiCandidates] = useState<CandidateDto[]>([]);
   const [voteResults, setVoteResults] = useState<{ candidat_id: string; votes: number; percent: number }[]>([]);
-  const [loadingElections, setLoadingElections] = useState(true);
-  const [loadingResults, setLoadingResults] = useState(false);
+  const [, setLoadingElections] = useState(true);
+  const [, setLoadingResults] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'closed'>('all');
 
@@ -682,6 +579,7 @@ const CitizenResults = () => {
 
   /* Charger résultats + candidats quand l'élection sélectionnée change */
   useEffect(() => {
+    const load = async () => {
     if (!selectedId) return;
     setLoadingResults(true);
     Promise.all([
@@ -691,6 +589,9 @@ const CitizenResults = () => {
       setApiCandidates(candidates as CandidateDto[]);
       setVoteResults(results ? results.results : []);
     }).finally(() => setLoadingResults(false));
+
+    };
+    void load();
   }, [selectedId]);
 
   useEffect(() => {
@@ -736,9 +637,10 @@ const CitizenResults = () => {
       .sort((a, b) => b.percent - a.percent);
   }, [apiCandidates, voteResults]);
 
-  const totalVotes = currentElection?.votes_count ?? voteResults.reduce((s, r) => s + r.votes, 0);
+  // Décompte réel des bulletins (API /votes/election/{id}/results) ; votes_count des données de démo est ignoré
+  const totalVotes = voteResults.reduce((s, r) => s + r.votes, 0);
   const inscrits = currentElection?.total_electeurs ?? 0;
-  const participation = inscrits > 0 && totalVotes > 0 ? Math.min(100, (totalVotes / inscrits) * 100) : 0;
+  const participation = inscrits > 0 && totalVotes > 0 ? Math.round(Math.min(100, (totalVotes / inscrits) * 100) * 100) / 100 : 0;
   const isLive = currentElection?.statut === 'EN_COURS';
 
   /* Placeholder quand encore en chargement */
@@ -750,9 +652,6 @@ const CitizenResults = () => {
     participation,
     inscrits,
     candidates: sorted,
-    ageDistribution: buildAgeDistribution(participation),
-    genderDistribution: buildGenderDistribution(participation),
-    regions: buildRegions(currentElection?.region ?? '', totalVotes),
   };
 
   return (
@@ -804,8 +703,8 @@ const CitizenResults = () => {
                 <StatValue>{election.inscrits.toLocaleString('fr-FR')}</StatValue>
               </StatCard>
               <StatCard $variant="default">
-                <StatLabel>Delai mise a jour</StatLabel>
-                <StatValue>{'< 2s'}</StatValue>
+                <StatLabel>Source</StatLabel>
+                <StatValue style={{ fontSize: '0.95rem' }}>Decompte des bulletins</StatValue>
               </StatCard>
             </StatsGrid>
           </>
@@ -873,79 +772,12 @@ const CitizenResults = () => {
               </StatBox>
             </StatsRow>
 
-            <ChartsRow>
-              <ChartPanel>
-                <ChartPanelTitle>Repartition par age</ChartPanelTitle>
-                {election.ageDistribution?.map((item) => (
-                  <div key={item.label} style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                      <span style={{ fontFamily: 'Poppins', fontSize: '0.85rem', color: '#6b7a72' }}>{item.label}</span>
-                      <span style={{ fontFamily: 'Poppins', fontSize: '0.85rem', fontWeight: '600', color: '#1a2e20' }}>{item.value}%</span>
-                    </div>
-                    <ProgressBarFull>
-                      <ProgressBarFillFull $value={item.value} $color={item.color} />
-                    </ProgressBarFull>
-                  </div>
-                ))}
-              </ChartPanel>
-
-              <ChartPanel>
-                <ChartPanelTitle>Repartition par genre</ChartPanelTitle>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem' }}>
-                <svg width="160" height="160" viewBox="0 0 160 160">
-                  {/* Female segment (starts at top, goes clockwise) */}
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="60"
-                    fill="none"
-                    stroke="rgba(138, 90, 16, 0.8)"
-                    strokeWidth="24"
-                    strokeDasharray={`${election.genderDistribution.female * 3.77} ${376 - election.genderDistribution.female * 3.77}`}
-                    transform="rotate(-90 80 80)"
-                  />
-                  {/* Male segment */}
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="60"
-                    fill="none"
-                    stroke="rgba(31, 90, 51, 0.8)"
-                    strokeWidth="24"
-                    strokeDasharray={`${election.genderDistribution.male * 3.77} ${376 - election.genderDistribution.male * 3.77}`}
-                    strokeDashoffset={-(election.genderDistribution.female * 3.77)}
-                    transform="rotate(-90 80 80)"
-                  />
-                </svg>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(138, 90, 16, 0.8)' }}></div>
-                    <span style={{ fontFamily: 'Poppins', fontSize: '0.9rem', color: '#1a2e20' }}>Femmes: {election.genderDistribution.female}%</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(31, 90, 51, 0.8)' }}></div>
-                    <span style={{ fontFamily: 'Poppins', fontSize: '0.9rem', color: '#1a2e20' }}>Hommes: {election.genderDistribution.male}%</span>
-                  </div>
-                </div>
-              </div>
-              </ChartPanel>
-
-              <ChartPanel>
-                <ChartPanelTitle>Repartition geographique</ChartPanelTitle>
-                <RegionList>
-                  {election.regions.map((region) => (
-                    <RegionItem key={region.name}>
-                      <RegionLabel>{region.name}</RegionLabel>
-                      <RegionBarOuter>
-                        <RegionBarInner $value={region.percent}>
-                          <RegionBarText>{region.percent}%</RegionBarText>
-                        </RegionBarInner>
-                      </RegionBarOuter>
-                    </RegionItem>
-                  ))}
-                </RegionList>
-              </ChartPanel>
-            </ChartsRow>
+            <ChartPanel>
+              <ChartPanelTitle>Repartitions par age, genre et region</ChartPanelTitle>
+              <p style={{ fontFamily: 'Poppins', fontSize: '0.88rem', color: '#5a6d62', margin: 0 }}>
+                Non disponibles : pour preserver l'anonymat, NAATALVOTE n'associe aucune donnee personnelle au bulletin.
+              </p>
+            </ChartPanel>
 
             <ChartPanel>
               <ChartPanelTitle>Resultats des candidats</ChartPanelTitle>
